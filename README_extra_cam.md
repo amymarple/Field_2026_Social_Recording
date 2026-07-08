@@ -22,36 +22,44 @@ picks them up automatically. See `extra_cam_record.ps1` and `install_extra_cam_t
 
 ## Finalized imaging settings (2026-07-07)
 
-Applied identically to **both** CH07 and CH08:
+Final settings (2026-07-08), applied identically to **both** CH07 and CH08:
 
-| Setting | CH07 | CH08 |
-|---|---|---|
-| Resolution | 1280×720 (720p) | 1280×720 (720p) |
-| Frame-rate setting | 10 fps | 10 fps |
-| Shutter (exposure) | **1/6 s** | **1/10 s** |
-| **Effective frame rate** (exposure-limited) | **~6 fps** | **~8–10 fps** |
-| Gain | 90 | 90 |
-| 3D NR (noise reduction) | **OFF** | **OFF** |
-| White balance — Red gain | 24 | 24 |
-| White balance — Blue gain | 10 | 10 |
-| Color mode | Color vision (not B&W) | Color vision (not B&W) |
-| Day/Night schedule | Night 20:15–05:15 | Night 20:15–05:15 |
+| Setting | Value |
+|---|---|
+| Resolution | **1280×720 (720p)** |
+| Frame rate | **~6 fps** (exposure-limited; see below) |
+| Shutter (exposure) | **1/6 s** |
+| Gain | **60** (fixed 60–60) |
+| Exposure compensation | 51 |
+| Anti-flicker | Outdoor |
+| 3D NR | **Level 0** (temporal NR disabled) |
+| 2D NR | **50** (spatial NR) |
+| White balance — Red / Blue gain | 24 / 10 |
+| Color mode | Color vision (not B&W) |
+| Day/Night schedule | Night profile **20:15–05:15**; Day otherwise |
 
-Resulting stream: HEVC, 720p, **~0.7 Mbps each** (~0.3 GB/day for both — negligible).
+Resulting stream: HEVC, 720p, **~0.67 Mbps each** → **~300 MB/hour, ~7 GB/day per camera**
+(~14 GB/day for both). Verified via 60 s live captures 2026-07-08.
 
-## Rationale / caveats (updated 2026-07-08)
+## Rationale / caveats (final 2026-07-08)
 
-- **Exposure caps the real frame rate** (max fps ≈ 1 / exposure). Even though both cameras are
-  *set* to 10 fps, the long exposures limit actual delivery: CH07's **1/6 s → ~6 fps** (verified
-  `6 tbr` via ffprobe), CH08's **1/10 s → ~8–10 fps**. To get a true 10 Hz you need shutter ≤ 1/10
-  (a dimmer image). The longer CH07 exposure was chosen for the **brightest static sleep image**,
-  accepting the lower rate — fine for immobility/sleep, where frame rate barely matters.
-- **3D NR removed** (was 21). 3D noise reduction is *temporal* — it averages consecutive frames,
-  which over-blends on moving rats and produces motion blur / ghost trails. It only helps a
-  **static** image; with animals moving it hurts. Turned OFF on both.
-- **Not an IR camera + dark box** → long exposure + high gain (90) are needed for a usable image;
-  this motion-blurs moving animals but is fine for **sleep/immobility**. Color vision kept (no IR
-  illuminator).
-- **~6–10 Hz / 720p is sufficient** for the intended use (sleep, rest/active bouts, gross activity,
+- **Frame rate is exposure-limited.** Max fps ≈ 1 / exposure, so the 1/6 s shutter caps both
+  cameras at **~6 fps** regardless of the 10 fps setting (verified `6 tbr` via ffprobe). Both were
+  normalized to 1/6 for a matched ~6 fps. 6 Hz is ample for sleep/rest/activity scoring.
+- **Noise, not resolution/fps, drives file size.** 3D NR (temporal) was disabled because it
+  averages consecutive frames → motion blur / ghost trails on moving rats (only helps a static
+  image). With it off, raw sensor grain hit the encoder and the bitrate jumped ~0.67 → ~1.5–1.75
+  Mbps (~600–700 MB/hour). Fixed **without** re-introducing temporal blur by lowering **gain
+  90 → 60** (less noise at source) and raising **2D NR → 50** (spatial NR cleans grain per-frame,
+  no cross-frame averaging). That brought it back to **~0.67 Mbps / ~300 MB/hour**. (Gain 65 vs 60
+  made no measurable size difference — 2D NR is doing the cleanup; the floor is real scene content.)
+- **Residual motion blur on *moving* animals is the 1/6 s exposure itself, not NR** — each frame
+  integrates 166 ms of motion. Unavoidable in a dark box without IR; irrelevant for still sleep.
+- **Not an IR camera + dark box** → long exposure + gain are needed for a usable image; color
+  vision kept (no IR illuminator). A true 10 Hz + sharp motion would require an IR illuminator +
+  faster shutter.
+- **~6 Hz / 720p is sufficient** for the intended use (sleep, rest/active bouts, gross activity,
   in-box position, social proximity). NOT enough for fine/fast behaviors (grooming microstructure
-  ~5–7 Hz, whisking) — those would need an IR illuminator + faster shutter + higher fps.
+  ~5–7 Hz, whisking) — those would need IR + faster shutter + higher fps.
+- To shrink files further if ever needed, cap the camera's encode **Bit Rate** (Stream → Encode),
+  not the gain.
