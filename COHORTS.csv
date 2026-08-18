@@ -1,0 +1,3 @@
+cohort_id,start_date,end_date,animals,notes
+cohort1,2026-06-28,2026-07-12,,"recording stopped 2026-07-12 15:00 (see EXPERIMENT_END_2026-07-12.md); CH01/02 encoder CBR->VBR fix mid-cohort on 07-09..07-11"
+cohort1_mice,2026-07-19,2026-07-31,,"formal MICE cohort 2026-07-19 20:00 -> 2026-07-31 ~10:45 (video); WISER db 1stcohort_mice_2026.sqlite; CH01/02 VBR 7168; AUDIO NOTE: MIC01 wedged again 2026-07-28 12:39 (passive USB cable) - no ultrasonic audio for the final ~3 days; see EXPERIMENT_END_2026-07-31.md"

@@ -60,12 +60,12 @@ param(
     [string]$SaveLog = 'E:\recording_qc\save_log.json',
     [switch]$DryRun,
     [switch]$Yes,
-    [string[]]$SourceRoots = @('E:\Reolink_record', 'E:\thermal_record')
+    [string[]]$SourceRoots = @('E:\Reolink_record', 'E:\thermal_record', 'E:\ultramic_record')   # ultramic added 2026-07-18
 )
 
 # ============================ CONFIG ============================
 $ExcludeDirs = @('bin', 'logs')
-$Extensions  = @('.mp4')
+$Extensions  = @('.mp4', '.wav', '.flac')     # video + UltraMic audio segments
 $DeleteLog   = $SaveLog -replace 'save_log\.json$', 'delete_log.json'
 if ($DeleteLog -eq $SaveLog) { $DeleteLog = Join-Path (Split-Path -Parent $SaveLog) 'delete_log.json' }
 # ===============================================================
@@ -117,7 +117,7 @@ Say ("==================================================================") Cyan
 
 # ---- save check: was this day already copied to USB? ----
 if ($RequireSaved) {
-    $rec = Get-SavedDays $SaveLog | Where-Object { $_.day -eq $dayStr -and [int]$_.failed -eq 0 } | Select-Object -Last 1
+    $rec = Get-SavedDays $SaveLog | Where-Object { $_.day -eq $dayStr -and (@($_.failed)[0] -eq 0) } | Select-Object -Last 1   # @() guard: legacy entries stored 'failed' as an array
     if (-not $rec) {
         Say "`nREFUSING to delete: no successful save record for $dayStr in the save log." Red
         Say "  Save the day first:   copy_day_to_usb.ps1 -Usb F: -Date $dayStr" Yellow

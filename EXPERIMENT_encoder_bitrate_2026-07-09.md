@@ -158,6 +158,42 @@ Peak hour (17:00–18:00) before vs after, worst channel:
   Verified: SelfTest PASS; dry-run flags 07-10 17:00 (56%), stays quiet on 07-11 17:00 (1.7/5.4%);
   test DM delivered.
 
+### Step 3 (2026-07-18 ~13:00): dusk regression at 8192 → A/B test, CH01=6144 vs CH02=7168
+
+24 h test run (07-17) showed VBR 8192 is NOT robust at dusk: 19:00 = **60.5% / 46.6%** capped
+(CH01/CH02), 20:00 = 49.9% / 33.5%, dusk mean KF 1.78–1.89 MB (riding the cap). A week earlier the
+same setting measured only 8–15% — normal scene variation (vegetation growth, clearer sky) eats the
+margin. History also shows dawn (07-12 05:00) at 18–22%: both gain-ramps cap.
+
+**Change (applied ~13:00, on the fly): CH01 max → 6144, CH02 max → 7168** — deliberate A/B in the
+same paddock/dusk. Caveat: CH02 historically runs ~1.2–1.5× hotter than CH01 at equal settings.
+Decision rule on tonight's 19:00/20:00 scan (05:20 task, or on-demand after 21:00):
+- both ≈0% → 7168 suffices → raise CH01 to 7168 (keep the quality).
+- CH01 clean, CH02 >10% → 6144 is the number → drop CH02 to 6144.
+- CH01 also >10% → step both to 4096 and reconsider 3D-NR / resolution.
+Test-day footage (07-17) was deleted after analysis (test data, save-log mark-only + delete_day).
+
+**CLOSED (2026-07-19 ~14:05): FINAL SETTINGS = CH01 + CH02 both VBR max 7168 kbps**, resolution/
+fps/codec untouched (2160×7680 @ ~20 fps HEVC). The full-day A/B (07-18 dusk + 07-19 dawn/morning/
+noon/afternoon, all zero caps on the hotter CH02@7168) justified raising CH01 from 6144. The daily
+05:20 capped-KF monitor (alert >=10%) remains the standing tripwire; 6144 is the proven fallback.
+
+**A/B RESULT (2026-07-18 dusk, scanned ~21:20): both PASS with zero caps.**
+| | CH01@6144 | CH02@7168 |
+|---|---|---|
+| 19:00 | 0/1800 capped, max 1.48 MB | 0/1799 capped, max 1.76 MB |
+| 20:00 | 0/1800 capped, max 1.49 MB | 0/1800 capped, max 1.76 MB |
+No keyframe ≥1.9 MB anywhere. Headroom below the 2,000,090-byte cap: CH01@6144 ≈ 22–25%,
+CH02@7168 ≈ 8–12%. Since CH02 is historically the hotter camera and passed cleanly at 7168,
+**recommendation: raise CH01 to 7168 too (both cams = VBR max 7168)** — best quality that the
+worst-case camera has demonstrated safe, consistent encode across both panoramas for CV, with
+the daily 05:20 capped-KF monitor (alert ≥10%) as the tripwire and 6144 as the proven fallback
+if a complex evening ever fires it. Caveat: one evening of data; the monitor is the guarantee.
+
+NOTE for tomorrow's 05:20 scan of 07-18: hours 05 and 12 were recorded BEFORE the ~13:00
+change (still @8192) and may correctly report caps / fire one alert — that is historical
+footage, not a regression. Only the 17/19/20 rows reflect the new settings.
+
 ### Dusk follow-up (2026-07-11 21:15): the residual hotspot is the DUSK GAIN-RAMP, not golden hour
 
 19:00/20:00 scans under VBR 8192: CH01 7.8%/9.8%, **CH02 15.0%/14.2% capped** (peak 19:30–20:45,

@@ -88,7 +88,9 @@ param(
     # Persistent local log of which days have been saved. delete_day.ps1 reads this.
     [string]$SaveLog = 'E:\recording_qc\save_log.json',
     # The recorders. Each immediate subfolder = one camera/group. Override only for testing.
-    [string[]]$SourceRoots = @('E:\Reolink_record', 'E:\thermal_record'),
+    # E:\ultramic_record added 2026-07-17: the UltraMic WAV segments follow the same
+    # filename contract, so they ride the same copy/verify/completeness machinery.
+    [string[]]$SourceRoots = @('E:\Reolink_record', 'E:\thermal_record', 'E:\ultramic_record'),
     # Also mirror the WISER daily backup (snapshots + incremental CSVs) to
     # <USB>\Wiser_backup, giving the tracking DB an off-machine copy. Additive (never
     # deletes on the USB), verified like the video copy, and independent of the video
@@ -99,7 +101,7 @@ param(
 
 # ============================ CONFIG ============================
 $ExcludeDirs   = @('bin', 'logs')
-$Extensions    = @('.mp4')
+$Extensions    = @('.mp4', '.wav', '.flac')     # video segments + UltraMic audio segments
 $ExpectedHours = 24                       # a full day = 24 hourly slots per camera
 # ===============================================================
 

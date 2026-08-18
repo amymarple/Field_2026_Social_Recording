@@ -42,9 +42,9 @@ elevated PowerShell):
 
 **Recorders** — one supervisor script per camera family, each with its own single-instance
 `Global\` mutex and task so they can't interfere with each other:
-- `rtsp_record.ps1` — 6 Reolink NVR channels (CH01–CH06), task "Reolink RTSP Recorder" (at logon).
-- `extra_cam_record.ps1` — CH07/CH08 direct-IP in-box sleep cameras (Dahua RTSP URL format),
-  written into the same `E:\Reolink_record` root so all QC tooling picks them up automatically.
+- `rtsp_record.ps1` — 8 Reolink NVR channels (CH01–CH08), task "Reolink RTSP Recorder" (at logon).
+  CH07/08 moved from direct PoE onto the NVR on 2026-07-17; `archive/extra_cam_record.ps1` is the
+  retired direct-IP recorder (its config on E: is renamed `.archived` so tools stop importing it).
 - `thermal_record.ps1` — EmpireTech cameras 108/109 (thermal + visual streams) → `E:\thermal_record`.
 - `failover_recorder.ps1` — dormant watchdog; if `E:` becomes unwritable it stops the primary task
   and records to `D:` (config/ffmpeg/Slack creds mirrored to `D:` by its installer). Failback is manual.

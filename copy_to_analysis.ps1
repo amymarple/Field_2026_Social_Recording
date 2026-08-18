@@ -1,9 +1,9 @@
 <#
 .SYNOPSIS
-    Copy EVERYTHING needed for offline analysis (Reolink video + thermal + WISER
-    backup) from the field PC to the analysis computer over the direct USB-Ethernet
-    link, in ONE command. So you can run the audio, CV, and WISER analysis on the
-    other machine.
+    Copy EVERYTHING needed for offline analysis (Reolink video + thermal + UltraMic
+    audio + WISER backup) from the field PC to the analysis computer over the direct
+    USB-Ethernet link, in ONE command. So you can run the audio, CV, and WISER
+    analysis on the other machine.
 
     *** READ-ONLY AT THE SOURCE. THIS SCRIPT ONLY EVER COPIES. ***
     It uses robocopy in copy-only mode: NO /MIR, NO /MOV, NO /PURGE (all three are
@@ -30,8 +30,10 @@
 .PARAMETER IncludeActive
     Also copy the still-recording (open) file. OFF by default. Leave off on the live rig.
 
-.PARAMETER SkipVideo / SkipThermal / SkipWiser
-    Turn off a modality. All ON by default ("copy everything").
+.PARAMETER SkipVideo / SkipThermal / SkipAudio / SkipWiser
+    Turn off a modality. All ON by default ("copy everything"). Audio = every MIC*
+    folder under E:\ultramic_record (MIC01 384K, MIC02 250K, any future mic), same
+    closed-files-only + -Date rules as video.
 
 .PARAMETER Gentle
     Add an inter-packet gap (robocopy /IPG) to ease link/disk pressure during capture.
@@ -52,17 +54,20 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)][string]$Dest,
-    [string]$Date,
+    [string[]]$Date,                       # one or more days, e.g. -Date 2026-07-24,2026-07-25
+    [string[]]$Channels,                   # limit video to these channel folders, e.g. -Channels CH07,CH08
     [switch]$IncludeActive,
     [switch]$SkipVideo,
     [switch]$SkipThermal,
+    [switch]$SkipAudio,
     [switch]$SkipWiser,
     [switch]$Gentle,
     [int]$Threads = 8,
     [switch]$DryRun,
-    [string]$ReolinkRoot = 'E:\Reolink_record',
-    [string]$ThermalRoot = 'E:\thermal_record',
-    [string]$WiserSource = 'E:\Wiser_backup'
+    [string]$ReolinkRoot  = 'E:\Reolink_record',
+    [string]$ThermalRoot  = 'E:\thermal_record',
+    [string]$UltramicRoot = 'E:\ultramic_record',
+    [string]$WiserSource  = 'E:\Wiser_backup'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -71,14 +76,20 @@ function Say([string]$m, [string]$c = 'Gray') { Write-Host $m -ForegroundColor $
 $ExcludeDirs = @('bin', 'logs')
 $logFile = Join-Path $env:TEMP ("copy_to_analysis_{0}.log" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))
 
-# ---- validate date ----
+# `powershell -File` passes "a,b" as ONE string (no array binding) - split ourselves
+if ($Date)     { $Date     = @($Date     | ForEach-Object { $_ -split ',' } | Where-Object { $_ }) }
+if ($Channels) { $Channels = @($Channels | ForEach-Object { $_ -split ',' } | Where-Object { $_ }) }
+
+# ---- validate date(s) ----
 if ($Date) {
-    try { [void][datetime]::ParseExact($Date, 'yyyy-MM-dd', $null) }
-    catch { Say "Bad -Date '$Date'. Use yyyy-MM-dd." Red; exit 2 }
+    foreach ($d0 in $Date) {
+        try { [void][datetime]::ParseExact($d0, 'yyyy-MM-dd', $null) }
+        catch { Say "Bad -Date '$d0'. Use yyyy-MM-dd." Red; exit 2 }
+    }
 }
 
 # ---- destination sanity: must NOT be on a recording source drive ----
-$srcQuals = @($ReolinkRoot, $ThermalRoot, $WiserSource | ForEach-Object { (Split-Path $_ -Qualifier) } | Where-Object { $_ })
+$srcQuals = @($ReolinkRoot, $ThermalRoot, $UltramicRoot, $WiserSource | ForEach-Object { (Split-Path $_ -Qualifier) } | Where-Object { $_ })
 # NOTE: Split-Path -Qualifier THROWS on a UNC path (\\server\share), so only ask for a
 # qualifier when the dest is a drive-letter path. A UNC dest has no drive qualifier -> ''
 # -> the same-drive-as-source guard is skipped (a UNC dest can't be a local recording drive).
@@ -116,16 +127,29 @@ function Invoke-Robo {
 # robocopy exit codes: <8 = success (0 none,1 copied,2 extra,4 mismatch); >=8 = failure
 function Robo-Ok([int]$rc) { return ($rc -lt 8) }
 
-# video filename filter (closed files only unless -IncludeActive)
-$datePart = if ($Date) { "*_${Date}_" } else { '*' }
-$videoPatterns = if ($IncludeActive) { @("$datePart*.mp4") } else { @("$datePart*_to_*.mp4") }
+# video/audio filename filters (closed files only unless -IncludeActive); one
+# pattern per date and extension - the mic WAV/FLAC segments follow the same
+# <name>_<date>_<start>_to_<end> contract as the video
+$videoPatterns = @(); $audioPatterns = @()
+if ($Date) {
+    foreach ($d0 in $Date) {
+        $videoPatterns += $(if ($IncludeActive) { "*_${d0}_*.mp4" } else { "*_${d0}_*_to_*.mp4" })
+        foreach ($ext in 'wav', 'flac') {
+            $audioPatterns += $(if ($IncludeActive) { "*_${d0}_*.$ext" } else { "*_${d0}_*_to_*.$ext" })
+        }
+    }
+} else {
+    $videoPatterns = if ($IncludeActive) { @('*.mp4') } else { @('*_to_*.mp4') }
+    $audioPatterns = if ($IncludeActive) { @('*.wav', '*.flac') } else { @('*_to_*.wav', '*_to_*.flac') }
+}
 
 Say ("==================================================================") Cyan
 Say ("  COPY -> ANALYSIS COMPUTER   (copy-only; source never modified)") Cyan
 Say ("  Dest:   $Dest") Cyan
-Say ("  Scope:  " + $(if ($Date) { "video for $Date" } else { 'ALL closed video' }) +
+Say ("  Scope:  " + $(if ($Date) { "video for $($Date -join ', ')" } else { 'ALL closed video' }) +
+     $(if ($Channels) { "  |  channels: $($Channels -join ',')" } else { '' }) +
      "  |  filter: $($videoPatterns -join ',')") Cyan
-Say ("  Modes:  video=$(-not $SkipVideo) thermal=$(-not $SkipThermal) wiser=$(-not $SkipWiser)" +
+Say ("  Modes:  video=$(-not $SkipVideo) thermal=$(-not $SkipThermal) audio=$(-not $SkipAudio) wiser=$(-not $SkipWiser)" +
      "  |  $(if ($DryRun){'DRY RUN'}else{'COPY'})$(if($Gentle){' (gentle)'})") Cyan
 Say ("  Log:    $logFile") Cyan
 Say ("==================================================================") Cyan
@@ -135,7 +159,7 @@ $fail = 0
 # ---- Reolink video: each CHxx -> Dest\Reolink_record\CHxx ----
 if (-not $SkipVideo -and (Test-Path $ReolinkRoot)) {
     Say "`n[Reolink video]" White
-    foreach ($d in (Get-ChildItem $ReolinkRoot -Directory -EA SilentlyContinue | Where-Object { $ExcludeDirs -notcontains $_.Name })) {
+    foreach ($d in (Get-ChildItem $ReolinkRoot -Directory -EA SilentlyContinue | Where-Object { ($ExcludeDirs -notcontains $_.Name) -and ((-not $Channels) -or ($Channels -contains $_.Name)) })) {
         $dst = Join-Path (Join-Path $Dest 'Reolink_record') $d.Name
         Say "  $($d.Name) -> $dst"
         $rc = Invoke-Robo -Src $d.FullName -Dst $dst -Patterns $videoPatterns
@@ -150,6 +174,17 @@ if (-not $SkipThermal -and (Test-Path $ThermalRoot)) {
         $dst = Join-Path (Join-Path $Dest 'thermal_record') $d.Name
         Say "  $($d.Name) -> $dst"
         $rc = Invoke-Robo -Src $d.FullName -Dst $dst -Patterns $videoPatterns
+        if (-not (Robo-Ok $rc)) { $fail++; Say "    robocopy FAILED (exit $rc)" Red }
+    }
+}
+
+# ---- UltraMic audio: each MIC* -> Dest\ultramic_record\MICxx ----
+if (-not $SkipAudio -and (Test-Path $UltramicRoot)) {
+    Say "`n[UltraMic audio]" White
+    foreach ($d in (Get-ChildItem $UltramicRoot -Directory -EA SilentlyContinue | Where-Object { $_.Name -like 'MIC*' })) {
+        $dst = Join-Path (Join-Path $Dest 'ultramic_record') $d.Name
+        Say "  $($d.Name) -> $dst"
+        $rc = Invoke-Robo -Src $d.FullName -Dst $dst -Patterns $audioPatterns
         if (-not (Robo-Ok $rc)) { $fail++; Say "    robocopy FAILED (exit $rc)" Red }
     }
 }

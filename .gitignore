@@ -6,3 +6,5 @@ recorder.config.psd1
 logs/
 CH[0-9][0-9]/
 *.mp4
+*.wav
+*.flac
