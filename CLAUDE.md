@@ -12,6 +12,11 @@ script is standalone PowerShell 5.1 run via
 
 ## Live-system safety rules
 
+- **Network topology (verified 2026-08-19): this field PC reaches ONLY the analysis PC**
+  (`\\192.168.50.2\audio_in`, direct Ethernet). It has internet + GitHub, but NO route to the lab
+  server or BioHPC (`cbsuruizfs1.biohpc.cornell.edu` resolves, ICMP+445 blocked — don't re-probe).
+  Field→analysis backups use `copy_to_analysis.ps1 -Dest \\192.168.50.2\audio_in [-Date ...]`;
+  cross-machine coordination goes through the `field2026-sync` repo (cloned OUTSIDE this tree).
 - **Never kill ffmpeg or stop the recorder scheduled tasks** unless the user explicitly asks.
   Recorders self-heal (supervisor loops restart dropped streams); a stray `Stop-Process ffmpeg`
   interrupts real data collection.
