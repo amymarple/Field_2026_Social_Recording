@@ -233,8 +233,15 @@ $now = Get-Date
 # last_seen_local inside the content. Only page when a sane timestamp is truly old.
 $feedProblem = $null
 $rows = $null
-if (-not (Test-Path -LiteralPath $CsvPath)) {
-    $feedProblem = "discovered_devices.csv NOT FOUND at $CsvPath"
+# existence check with retries: the console rewrites via delete+recreate, so a single
+# Test-Path can land in the sub-second gap where the file does not exist (seen 08-18 21:00)
+$csvPresent = $false
+for ($try = 1; $try -le 5; $try++) {
+    if (Test-Path -LiteralPath $CsvPath) { $csvPresent = $true; break }
+    if ($try -lt 5) { Start-Sleep -Seconds 2 }
+}
+if (-not $csvPresent) {
+    $feedProblem = "discovered_devices.csv NOT FOUND at $CsvPath (absent through 5 checks over 10 s)"
 } else {
     for ($try = 1; $try -le 3; $try++) {
         try { $rows = @(Import-Csv -LiteralPath $CsvPath); if ($rows.Count -gt 0) { break } } catch { }

@@ -54,6 +54,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File neurologger_alive_check.ps1 
 powershell -NoProfile -ExecutionPolicy Bypass -File install_neurologger_alive_check_task_system.ps1 -RunNow
 ```
 
+## Fix same day (2): NOT-FOUND false FEED STALE
+
+21:00 run paged "discovered_devices.csv NOT FOUND" while the console was running fine —
+Test-Path landed inside the sub-second delete+recreate window of the console's rewrite.
+Fix: existence is now checked up to 5 times over 10 s before declaring the feed missing.
+Same race family as the fix below; all three read paths (existence, fs timestamp,
+content) are now collision-tolerant.
+
 ## Fix same day: FILETIME-zero false FEED STALE
 
 First installed run paged "not updated for 223858725.2 min" (= 425.6 years = the
