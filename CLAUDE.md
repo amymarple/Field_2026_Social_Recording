@@ -29,15 +29,20 @@ script is standalone PowerShell 5.1 run via
   blocks the wiserex writer's commits, and past its 5 s busy_timeout the fixes are DROPPED
   (a 2-min unindexed query cost 150 s of tracking, 18:26–18:29). Analysis reads go to the
   `E:\Wiser_backup` snapshots (daily 13:00 task); a plain directory listing is the only
-  allowed touch. (2) **No content reads against `E:\Reolink_record` / `E:\thermal_record` /
-  `E:\ultramic_record` / `E:\nvr_rescue` while recording** — no hashing, ffprobe sweeps,
-  copies, or python over recorded media. Sustained reads starve recorder writes → TCP
-  backpressure kills RTSP streams (caused the 01:40–03:21 eight-channel outage). Filename/
-  metadata listings and the Get-HandleLen idiom are fine; anything that streams content is
-  user-run only, with their explicit go-ahead in that moment. Both rules are mechanically
+  allowed touch. (2) **COPY-FIRST on `E:\Reolink_record` / `E:\thermal_record` /
+  `E:\ultramic_record` / `E:\nvr_rescue` / `E:\WILD`: never read an original in place**
+  (operator order 2026-08-19 evening) — no hashing, ffprobe, Get-Content/cat, python, or
+  Read over files there. Instead `Copy-Item` the ONE file needed to the session scratchpad
+  (single-file copies out are the sanctioned move) and analyze the copy. Sustained in-place
+  reads starve recorder writes → TCP backpressure kills RTSP streams (caused the 01:40–03:21
+  eight-channel outage). Still allowed directly: filename/metadata listings and `*.config.psd1`
+  (Edit needs a direct Read; producers never write them). **Sole exception:** the user
+  explicitly asks for a live stream check in that moment → arm the 15-minute override flag
+  (`New-Item -ItemType File 'C:\Users\Cornell\.claude\allow-live-read' -Force`), which unlocks
+  E:-root reads (incl. Get-HandleLen) but NEVER `D:\Wiser\data`. Both rules are mechanically
   enforced by the PreToolUse hook `.claude/hooks/guard_live_surfaces.ps1` (wired in
-  `.claude/settings.json`) — if it blocks a command, hand that command to the user instead
-  of working around the hook.
+  `.claude/settings.json`); it is text-based and cannot see indirect reads through scripts,
+  so the rule binds even where the hook is blind — never work around it.
 - To read the size of a file ffmpeg is still writing, open a shared read handle
   (`[IO.File]::Open(..., ReadWrite share)`) — `Get-ChildItem .Length` reports a stale 0. This
   `Get-HandleLen` idiom appears in several scripts; reuse it.
