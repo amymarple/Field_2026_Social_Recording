@@ -7,7 +7,11 @@
 #>
 
 $ErrorActionPreference = 'Continue'
-$script = 'C:\Users\Cornell\Documents\GitHub\Field_2026_Social\reolink_record\thermal_record.ps1'
+# resolve thermal_record.ps1 NEXT TO THIS INSTALLER (was hardcoded to the old
+# pre-rename repo path, which broke the task when that tree changed - 2026-08-19)
+$base = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
+$script = Join-Path $base 'thermal_record.ps1'
+if (-not (Test-Path -LiteralPath $script)) { Write-Host "Worker script not found: $script" -ForegroundColor Red; return }
 $taskName = 'EmpireTech Thermal Cameras Recorder'
 # remove any task created under the old (misnamed) name
 Unregister-ScheduledTask -TaskName 'Reolink Thermal Recorder' -Confirm:$false -EA SilentlyContinue
