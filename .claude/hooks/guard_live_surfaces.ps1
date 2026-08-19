@@ -2,24 +2,25 @@
 # Contract: stdin = tool-call JSON; exit 0 = allow, exit 2 = block (stderr is shown
 # to Claude as the reason). Wired in .claude\settings.json (matcher Bash|PowerShell|Read|Grep).
 #
-# 2026-08-19 operator orders, after two agent-caused data losses the same day:
-#   - a "verify" content-read against E: starved recorder writes -> 01:40-03:21 video outage
-#   - a 2-min unindexed query on the live WISER DB held the SQLite SHARED lock past the
-#     wiserex writer's 5 s busy_timeout -> 150 s of tracking fixes dropped (18:26-18:29)
-#   - (evening) "every original file: do not directly read, always make a copy; the ONLY
-#     exception is the user specifically asks to read the original to check a stream"
+# 2026-08-19 operator orders (v3, relaxed the same evening from blanket copy-first):
+#   "just don't read a file that is actively writing - for example video, mic, or some
+#    streaming - because there has already been a case where the agent read a live file
+#    and data was lost. The only exception: I specifically ask for a live stream check."
 #
-# Policy this enforces:
-#   D:\Wiser\data  -> NOTHING opens files there, ever (no override). Use the
-#                     E:\Wiser_backup snapshots for any analysis.
-#   E:\{Reolink_record,thermal_record,ultramic_record,nvr_rescue,WILD}
-#                  -> no direct content reads. Copy the ONE file you need to the session
-#                     scratchpad (single-file Copy-Item / cp is allowed) and read the COPY.
-#                     Directory/metadata listings stay allowed. *.config.psd1 is exempt
-#                     (tiny, never producer-written; Edit requires a direct Read).
-#   Override (live stream check, ONLY when the user just explicitly asked for one):
-#     New-Item -ItemType File 'C:\Users\Cornell\.claude\allow-live-read' -Force
-#     Expires 15 minutes after creation. Never unlocks D:\Wiser\data.
+# What this blocks:
+#   1) D:\Wiser\data  - the LIVE WISER DB, actively written at all times. NOTHING opens
+#      files there, ever, no override (a reader's SQLite SHARED lock past the writer's
+#      5 s busy_timeout DROPPED 150 s of fixes on 2026-08-19). Use E:\Wiser_backup snapshots.
+#   2) OPEN recording segments under E:\{Reolink_record,thermal_record,ultramic_record,
+#      nvr_rescue,WILD}. The filename contract identifies them: a .mp4/.wav WITHOUT "_to_"
+#      in its name is still being written and must never be touched (read, copy, probe,
+#      or open-handle). Closed segments (with "_to_"), logs, configs: direct reads are fine.
+#      Recursive content-grep of a whole root directory is also blocked - it would sweep
+#      the open segment along with the rest.
+#
+# Override (ONLY when the user just explicitly asked to check a live stream):
+#   New-Item -ItemType File 'C:\Users\Cornell\.claude\allow-live-read' -Force
+#   Expires 15 minutes after creation. Never unlocks D:\Wiser\data.
 
 $raw = [Console]::In.ReadToEnd()
 if (-not $raw) { exit 0 }
@@ -40,8 +41,10 @@ if (Test-Path $flagPath) {
 }
 
 $wiserLive = '(?i)Wiser[\\/]+data'
-# Both Windows (E:\...) and Git-Bash (/e/...) spellings.
+# Windows (E:\...) and Git-Bash (/e/...) spellings of the recording roots.
 $eRoots    = '(?i)(E:[\\/]+|/e/)(Reolink_record|thermal_record|ultramic_record|nvr_rescue|WILD\b)'
+
+$openMsg = "that segment has NO '_to_' in its name = the recorder still has it open (filename contract). Touching a live segment has lost data before. Use the previous closed (_to_) segment, or wait for rollover. Sole exception - the user JUST explicitly asked to check a live stream: arm the 15-min override with  New-Item -ItemType File 'C:\Users\Cornell\.claude\allow-live-read' -Force  and retry."
 
 # ---- File tools (Read / Grep): judge the actual target paths, not the whole input,
 # so a Grep whose PATTERN merely mentions these strings does not false-trip.
@@ -53,9 +56,14 @@ if ($tool -eq 'Read' -or $tool -eq 'Grep') {
             Block 'D:\Wiser\data is the LIVE WISER DB - readers starve the wiserex writer (150 s of fixes lost 2026-08-19). Use the E:\Wiser_backup snapshots instead. No override exists for this path.'
         }
         if ($p -match $eRoots) {
-            if ($p -match '(?i)\.config\.psd1$') { continue }
             if ($override) { continue }
-            Block "direct read of a live recording surface: $p. Copy-first rule (operator order 2026-08-19): Copy-Item that ONE file to the session scratchpad and read the COPY. Sole exception - the user JUST explicitly asked to check a live stream: arm the 15-min override with  New-Item -ItemType File 'C:\Users\Cornell\.claude\allow-live-read' -Force  and retry."
+            $leaf = Split-Path $p -Leaf
+            if ($leaf -match '(?i)\.(mp4|wav)$' -and $leaf -notmatch '_to_') {
+                Block "open segment: $p - $openMsg"
+            }
+            if ($tool -eq 'Grep' -and $leaf -notmatch '(?i)\.[a-z0-9]{1,5}$') {
+                Block "recursive content search under a live recording root ($p) would sweep the currently-open segment too. Grep a specific closed (_to_) file, or copy files out first."
+            }
         }
     }
     exit 0
@@ -74,16 +82,21 @@ if ($cmd -match $wiserLive) {
     }
 }
 
-# ---- LIVE E: RECORDING ROOTS ---------------------------------------------------------
-# Allowed without override: directory/metadata listings (Get-ChildItem sorted on Name),
-# and a single-file Copy-Item / cp out to a non-E: destination - that IS the sanctioned
-# copy-first step. Blocked: anything streaming content in place (ffprobe/hash/python/
-# Get-Content/cat/...), open-handle probes (IO.File - Get-HandleLen is a stream check,
-# so it belongs behind the override), and bulk copiers (robocopy/xcopy/Copy-Item -Recurse).
+# ---- OPEN SEGMENTS under the E: recording roots -------------------------------------
+# Only fires when the command BOTH (a) contains something that opens/streams file content
+# and (b) names a media file token that is (or may be) an open segment: a .mp4/.wav
+# whose filename lacks "_to_" - including wildcards like *.wav, which would sweep the
+# open file in. Listings (Get-ChildItem etc.), closed (_to_) segments, logs, configs,
+# and whole-directory copy tools (which skip open files by design) pass untouched.
 if ($cmd -match $eRoots -and -not $override) {
-    $eReaders = '(?i)(ffprobe|ffmpeg|Get-FileHash|certutil|\bmd5|sha(1|256)sum|python|sqlite|Get-Content|Select-String|Import-Csv|findstr|IO\.File|FileStream|StreamReader|Compress|robocopy|xcopy|\bdd\b|\btype\b|\bcat\b|\bhead\b|\btail\b|\bstrings\b)'
-    if ($cmd -match $eReaders -or $cmd -match '(?i)Copy-Item[^|;]*-Recurse') {
-        Block "content read / bulk copy against a live E: recording root - sustained reads starved the recorders 2026-08-19 (01:40-03:21 outage). Copy-first rule: single-file Copy-Item the ONE file you need to the scratchpad in its own command, then analyze the COPY there. Metadata listings are fine. Sole exception - the user JUST explicitly asked to check a live stream: arm the 15-min override with  New-Item -ItemType File 'C:\Users\Cornell\.claude\allow-live-read' -Force  and retry."
+    $openers = '(?i)(ffprobe|ffmpeg|Get-Content|Select-String|Import-Csv|Get-FileHash|certutil|\bmd5|sha(1|256)sum|python|IO\.File|FileStream|StreamReader|Copy-Item|robocopy|xcopy|Compress|\btype\b|\bcat\b|\bcp\b|\bdd\b|\bhead\b|\btail\b|\bstrings\b|findstr)'
+    if ($cmd -match $openers) {
+        $tokens = [regex]::Matches($cmd, '(?i)[^\s"''<>|;]+\.(mp4|wav)\b') | ForEach-Object { $_.Value }
+        foreach ($t in $tokens) {
+            if ($t -notmatch '_to_') {
+                Block "command touches a possibly-open segment ($t) - $openMsg"
+            }
+        }
     }
 }
 
