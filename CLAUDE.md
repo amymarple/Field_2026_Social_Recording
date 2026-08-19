@@ -23,6 +23,13 @@ script is standalone PowerShell 5.1 run via
 - Retention/auto-delete is **OFF** (`RetentionDays = 0` since 2026-06-29). Nothing deletes footage
   automatically; the only sanctioned deletion path is `copy_day_to_usb.ps1` (writes a save log) →
   `delete_day.ps1` (refuses unless the day is in the save log).
+- **Scheduled tasks execute scripts straight from working trees** — the QC/watchdog tasks from THIS
+  repo ($PSScriptRoot defaults in the installers); the main video recorder still runs from the OLD
+  pre-rename path `...\Field_2026_Social\reolink_record\` (task never re-registered). Scripts are
+  read into memory at process start, so edits take effect on the NEXT restart, not immediately.
+  During a live cohort this repo is outbound-only: `git add/commit/push` freely (read-only), but no
+  `git pull/checkout/reset/clean` here. Cross-machine file exchange goes through the separate sync
+  repo cloned OUTSIDE this tree, never through this one.
 
 ## Testing / verification conventions
 
