@@ -35,11 +35,19 @@
     folder under E:\ultramic_record (MIC01 384K, MIC02 250K, any future mic), same
     closed-files-only + -Date rules as video.
 
+.PARAMETER Fast
+    Full-speed mode: 8 robocopy threads, no pacing (~118 MB/s, the link's wire
+    limit; a ~500 GB day in ~75 min). The DEFAULT (without -Fast) is gentle:
+    2 threads + inter-packet pacing (~15-30 MB/s, day copies overnight) so E:
+    seek pressure stays minimal while the rig records. Measurements (2026-08-18/19)
+    showed even full speed never disturbed capture - gentle default is deliberate
+    extra margin, chosen 2026-08-19.
+
 .PARAMETER Gentle
-    Add an inter-packet gap (robocopy /IPG) to ease link/disk pressure during capture.
+    Legacy switch: forces pacing even with -Fast. (Pacing is already the default.)
 
 .PARAMETER Threads
-    robocopy /MT threads (default 8).
+    robocopy /MT threads (default 2; -Fast raises to 8 unless you set it yourself).
 
 .PARAMETER DryRun
     List what would be copied and total sizes; copy nothing.
@@ -61,8 +69,13 @@ param(
     [switch]$SkipThermal,
     [switch]$SkipAudio,
     [switch]$SkipWiser,
+    [switch]$Fast,          # full speed (8 threads, no pacing); default is gentle
     [switch]$Gentle,
-    [int]$Threads = 8,
+    [switch]$Restartable,   # robocopy /Z: resume WITHIN a partly-copied file. Costs ~3x
+                            # write speed (measured 20 vs 60 MB/s on the analysis link
+                            # 2026-08-18), so OFF by default - re-runs already skip
+                            # completed files, and a re-copied in-flight file is cheap.
+    [int]$Threads = 2,
     [switch]$DryRun,
     [string]$ReolinkRoot  = 'E:\Reolink_record',
     [string]$ThermalRoot  = 'E:\thermal_record',
@@ -72,6 +85,11 @@ param(
 
 $ErrorActionPreference = 'Stop'
 function Say([string]$m, [string]$c = 'Gray') { Write-Host $m -ForegroundColor $c }
+
+# GENTLE-BY-DEFAULT (2026-08-19): pace robocopy unless -Fast; -Fast raises threads
+# to 8 unless the caller set -Threads explicitly. -Gentle forces pacing regardless.
+if ($Fast -and -not $PSBoundParameters.ContainsKey('Threads')) { $Threads = 8 }
+$UsePacing = (-not $Fast) -or $Gentle
 
 $ExcludeDirs = @('bin', 'logs')
 $logFile = Join-Path $env:TEMP ("copy_to_analysis_{0}.log" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))
@@ -110,10 +128,15 @@ if (-not (Test-Path -LiteralPath $Dest) -and -not ($destParent -and (Test-Path -
 function Invoke-Robo {
     param([string]$Src, [string]$Dst, [string[]]$Patterns, [switch]$Recurse)
     if (-not (Test-Path -LiteralPath $Src)) { Say "  (skip, missing source: $Src)" DarkGray; return 0 }
-    $flags = @('/Z', '/R:2', '/W:5', "/MT:$Threads", '/XO', '/NP', '/NDL', '/NJH', '/NJS',
+    # NO /XO: a Ctrl+C'd partial file at the dest has a NEWER timestamp than the
+    # source, and /XO would skip it forever, leaving it silently truncated. Without
+    # /XO robocopy still skips identical files (size+time "Same") but re-copies any
+    # partial/differing dest file - source is the truth on this link.
+    $flags = @('/R:2', '/W:5', "/MT:$Threads", '/NP', '/NDL', '/NJH', '/NJS',
                '/XD') + $ExcludeDirs + @('/TEE', "/LOG+:$logFile")
+    if ($Restartable) { $flags = @('/Z') + $flags }
     if ($Recurse) { $flags += '/E' }
-    if ($Gentle)  { $flags += @('/IPG:20') }
+    if ($UsePacing) { $flags += @('/IPG:20') }
     if ($DryRun)  { $flags += '/L' }
     # HARD BLOCK: never allow destructive/mirroring flags
     foreach ($bad in @('/MIR', '/MOV', '/MOVE', '/PURGE')) {
@@ -150,7 +173,7 @@ Say ("  Scope:  " + $(if ($Date) { "video for $($Date -join ', ')" } else { 'ALL
      $(if ($Channels) { "  |  channels: $($Channels -join ',')" } else { '' }) +
      "  |  filter: $($videoPatterns -join ',')") Cyan
 Say ("  Modes:  video=$(-not $SkipVideo) thermal=$(-not $SkipThermal) audio=$(-not $SkipAudio) wiser=$(-not $SkipWiser)" +
-     "  |  $(if ($DryRun){'DRY RUN'}else{'COPY'})$(if($Gentle){' (gentle)'})") Cyan
+     "  |  $(if ($DryRun){'DRY RUN'}else{'COPY'})$(if($UsePacing){" (GENTLE: $Threads threads + pacing)"}else{" (FAST: $Threads threads)"})") Cyan
 Say ("  Log:    $logFile") Cyan
 Say ("==================================================================") Cyan
 
@@ -200,6 +223,58 @@ if (-not $SkipWiser) {
         $rc = Invoke-Robo -Src $WiserSource -Dst $dst -Patterns @('*.*') -Recurse
         if (-not (Robo-Ok $rc)) { $fail++; Say "    robocopy FAILED (exit $rc)" Red }
     }
+}
+
+# ---- manifest: name+size of every source file in scope, written to the dest ----
+# Metadata-only (NO content reads on E:, safe while recording). Consumed by
+# verify_on_analysis.ps1 ON THE ANALYSIS COMPUTER, which does all heavy content
+# checking against its own local disk - never load the recording drive to verify.
+# (The old field-side -Verify hashed E: at full disk speed and starved the
+# recorders - see incident_log 2026-08-19.)
+if (-not $DryRun) {
+    Say "`n[manifest for analysis-side verify]" White
+
+    function Get-ScopeFiles([string]$dir, [string[]]$patterns) {
+        $seen = @{}
+        foreach ($p in $patterns) {
+            foreach ($f in (Get-ChildItem -LiteralPath $dir -Filter $p -File -EA SilentlyContinue)) { $seen[$f.Name] = $f }
+        }
+        $seen.Values
+    }
+
+    $vTargets = @()
+    if (-not $SkipVideo -and (Test-Path $ReolinkRoot)) {
+        Get-ChildItem $ReolinkRoot -Directory -EA SilentlyContinue | Where-Object { ($ExcludeDirs -notcontains $_.Name) -and ((-not $Channels) -or ($Channels -contains $_.Name)) } |
+            ForEach-Object { $vTargets += @{ src = $_.FullName; dst = Join-Path (Join-Path $Dest 'Reolink_record') $_.Name; pat = $videoPatterns; name = $_.Name } }
+    }
+    if (-not $SkipThermal -and (Test-Path $ThermalRoot)) {
+        Get-ChildItem $ThermalRoot -Directory -EA SilentlyContinue | Where-Object { $ExcludeDirs -notcontains $_.Name } |
+            ForEach-Object { $vTargets += @{ src = $_.FullName; dst = Join-Path (Join-Path $Dest 'thermal_record') $_.Name; pat = $videoPatterns; name = $_.Name } }
+    }
+    if (-not $SkipAudio -and (Test-Path $UltramicRoot)) {
+        Get-ChildItem $UltramicRoot -Directory -EA SilentlyContinue | Where-Object { $_.Name -like 'MIC*' } |
+            ForEach-Object { $vTargets += @{ src = $_.FullName; dst = Join-Path (Join-Path $Dest 'ultramic_record') $_.Name; pat = $audioPatterns; name = $_.Name } }
+    }
+
+    # Rows: dest-relative path + source size. Directory metadata only - this
+    # NEVER opens/reads file contents, so it cannot load E: while recording.
+    $rows = @()
+    foreach ($t in $vTargets) {
+        $rel = ($t.dst.Substring($Dest.Length).Trim('\', '/')) -replace '\\', '/'
+        foreach ($sf in @(Get-ScopeFiles $t.src $t.pat)) {
+            $rows += [pscustomobject]@{ RelPath = ('{0}/{1}' -f $rel, $sf.Name); Bytes = $sf.Length }
+        }
+    }
+    $manName = if ($Date) { 'copy_manifest_{0}.csv' -f ($Date -join '_') } else { 'copy_manifest_all.csv' }
+    try {
+        $rows | Export-Csv -NoTypeInformation -Path (Join-Path $Dest $manName)
+        Say ("  {0} file entrie(s) (metadata only) -> {1}" -f $rows.Count, $manName)
+        $vScript = Join-Path $PSScriptRoot 'verify_on_analysis.ps1'
+        if (Test-Path -LiteralPath $vScript) {
+            Copy-Item -LiteralPath $vScript -Destination (Join-Path $Dest 'verify_on_analysis.ps1') -Force
+            Say '  verify_on_analysis.ps1 refreshed at dest root - run it ON the analysis computer'
+        }
+    } catch { Say ("  manifest write failed: {0}" -f $_.Exception.Message) DarkYellow }
 }
 
 Say ("`n==================================================================") Cyan
