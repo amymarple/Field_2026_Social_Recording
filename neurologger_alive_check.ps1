@@ -31,6 +31,9 @@
                              Optional key NeurologgerDevices = @{ device_name = 'label' }
                              overrides the built-in cohort roster without reinstalling.
 .PARAMETER RealertHours      While loggers stay missing, re-alert at most this often.
+.PARAMETER HistoryPath       Append-only telemetry time series (one row per logger per
+                             run: battery V, storage %, recording elapsed s). Trend
+                             data only - nothing alerts on it yet.
 .PARAMETER DryRun            Print status only; send nothing, update no state.
 .PARAMETER TestSlack         Send a test message to the configured destinations, then exit.
 .PARAMETER SelfTest          Offline logic check on synthetic CSV rows (no Slack, no state).
@@ -53,6 +56,7 @@ param(
     [string]$ConfigPath = 'E:\recording_qc\overexposure.config.psd1',
     [string]$StatePath = 'E:\recording_qc\neurologger_alive_state.json',
     [string]$LogPath = 'E:\recording_qc\neurologger_alive_log.txt',
+    [string]$HistoryPath = 'E:\recording_qc\neurologger_telemetry_history.csv',
     [int]$RealertHours = 1,
     [switch]$DryRun,
     [switch]$TestSlack,
@@ -356,6 +360,22 @@ if (-not $DryRun) {
         [void](Send-SlackText $Slack.Token $Slack.Channels (":floppy_disk: Neurologger storage high (warn >= {0}%): {1}." -f $StorageWarnPercent, ($newStor -join '; ')))
     }
     $state.storWarned = $storNow
+
+    # --- telemetry history: one row per rostered logger per run. Trend data only -
+    # nothing alerts on it yet (storage-growth checks can be added once history exists).
+    if (-not (Test-Path -LiteralPath $HistoryPath)) {
+        Set-Content -LiteralPath $HistoryPath -Encoding UTF8 -Value 'ts_local,device,label,age_min,battery_v,storage_pct,rec_elapsed_s'
+    }
+    $ts = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
+    $hist = foreach ($dev in $Roster.Keys) {
+        $row = $rows | Where-Object { $_.device_name -eq $dev } | Select-Object -First 1
+        if ($row) {
+            $age = ''
+            try { $age = [math]::Round(((Get-Date) - [datetimeoffset]::Parse($row.last_seen_local, [Globalization.CultureInfo]::InvariantCulture).LocalDateTime).TotalMinutes, 1) } catch { }
+            '{0},{1},{2},{3},{4},{5},{6}' -f $ts, $dev, ($Roster[$dev] -replace ',', ' '), $age, $row.battery_voltage_volts, $row.used_storage_percent, $row.recording_elapsed_seconds
+        }
+    }
+    if ($hist) { Add-Content -LiteralPath $HistoryPath -Encoding UTF8 -Value $hist }
 
     Save-State
     Log-Line $status $action $sent
