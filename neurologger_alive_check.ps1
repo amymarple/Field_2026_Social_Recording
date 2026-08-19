@@ -66,6 +66,14 @@ param(
 $ErrorActionPreference = 'Stop'
 function Say([string]$m, [string]$c = 'Gray') { Write-Host $m -ForegroundColor $c }
 
+# --- kill switch: drop this file to silence the whole watchdog (no admin needed);
+# delete it to resume. Used during battery swaps / logger handling.
+$MutePath = 'E:\recording_qc\neurologger_alive_MUTED.txt'
+if (Test-Path -LiteralPath $MutePath) {
+    Say "MUTED via $MutePath - exiting without checks or alerts." Yellow
+    exit 0
+}
+
 # --- cohort roster: device_name -> label. Override with NeurologgerDevices in the
 # QC config (read each run - no task re-install when the cohort changes).
 $Roster = [ordered]@{
