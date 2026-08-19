@@ -28,6 +28,17 @@ script is standalone PowerShell 5.1 run via
 - Retention/auto-delete is **OFF** (`RetentionDays = 0` since 2026-06-29). Nothing deletes footage
   automatically; the only sanctioned deletion path is `copy_day_to_usb.ps1` (writes a save log) →
   `delete_day.ps1` (refuses unless the day is in the save log).
+- **PROTECT THE USB FABRIC — capture devices live on it.** Both UltraMics, the neurologger BLE
+  dongle, AND the analysis-link USB-GbE ethernet adapter are USB. On 2026-08-19 a sustained file
+  transfer through the USB ethernet adapter wedged an entire USB bank ("Port Reset Failed" on
+  every port; needed a PC reboot) and killed both mics + the neurologger feed mid-cohort.
+  Rules: (1) NEVER start a sustained/bulk transfer over the USB ethernet adapter without the
+  user's explicit go-ahead in that moment — a short burst test passing does NOT prove a long
+  transfer is safe on marginal hardware; (2) capture devices belong on direct PC root ports —
+  no hubs, no passive extensions (a hub failed 3x on 2026-08-19; extensions killed MIC01 twice
+  in cohort 1); (3) if a long transfer runs, watch mic growth during the first minutes and be
+  ready to kill it; (4) after ANY USB replug/dislodge event, treat the whole USB fabric as
+  suspect until devices re-verify.
 - **Scheduled tasks execute scripts straight from working trees** — the QC/watchdog tasks from THIS
   repo ($PSScriptRoot defaults in the installers); the main video recorder still runs from the OLD
   pre-rename path `...\Field_2026_Social\reolink_record\` (task never re-registered). Scripts are
