@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "^(Bash|PowerShell|Read|Grep)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\Cornell\\Documents\\GitHub\\Field_2026_Social_Recording\\.claude\\hooks\\guard_live_surfaces.ps1\""
+          }
+        ]
+      }
+    ]
+  }
+}
