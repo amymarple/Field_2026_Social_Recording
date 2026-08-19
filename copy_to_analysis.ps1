@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Copy EVERYTHING needed for offline analysis (Reolink video + thermal + UltraMic
     audio + WISER backup) from the field PC to the analysis computer over the direct
@@ -80,7 +80,9 @@ param(
     [string]$ReolinkRoot  = 'E:\Reolink_record',
     [string]$ThermalRoot  = 'E:\thermal_record',
     [string]$UltramicRoot = 'E:\ultramic_record',
-    [string]$WiserSource  = 'E:\Wiser_backup'
+    [string]$WiserSource  = 'E:\Wiser_backup',
+    [string]$RescueRoot   = 'E:\nvr_rescue',    # NVR-exported rescue footage (PC-time names)
+    [switch]$SkipRescue
 )
 
 $ErrorActionPreference = 'Stop'
@@ -107,7 +109,7 @@ if ($Date) {
 }
 
 # ---- destination sanity: must NOT be on a recording source drive ----
-$srcQuals = @($ReolinkRoot, $ThermalRoot, $UltramicRoot, $WiserSource | ForEach-Object { (Split-Path $_ -Qualifier) } | Where-Object { $_ })
+$srcQuals = @($ReolinkRoot, $ThermalRoot, $UltramicRoot, $WiserSource, $RescueRoot | ForEach-Object { (Split-Path $_ -Qualifier) } | Where-Object { $_ })
 # NOTE: Split-Path -Qualifier THROWS on a UNC path (\\server\share), so only ask for a
 # qualifier when the dest is a drive-letter path. A UNC dest has no drive qualifier -> ''
 # -> the same-drive-as-source guard is skipped (a UNC dest can't be a local recording drive).
@@ -212,6 +214,15 @@ if (-not $SkipAudio -and (Test-Path $UltramicRoot)) {
     }
 }
 
+# ---- NVR rescue footage: mirror the whole tree additively (small; like WISER) ----
+if (-not $SkipRescue -and (Test-Path $RescueRoot)) {
+    Say "`n[NVR rescue]" White
+    $dst = Join-Path $Dest 'nvr_rescue'
+    Say "  $RescueRoot -> $dst  (all rescued dates/channels)"
+    $rc = Invoke-Robo -Src $RescueRoot -Dst $dst -Patterns @('*.mp4') -Recurse
+    if (-not (Robo-Ok $rc)) { $fail++; Say "    robocopy FAILED (exit $rc)" Red }
+}
+
 # ---- WISER: mirror the whole backup tree (snapshots + incremental) additively ----
 if (-not $SkipWiser) {
     Say "`n[WISER backup]" White
@@ -290,3 +301,4 @@ if ($fail -eq 0) {
     Say "  >>> $fail group(s) had robocopy failures - see $logFile. Re-run to retry. <<<" Red
     exit 2
 }
+

@@ -33,3 +33,9 @@ files pass; exit 1 (warnings only).
     powershell -ExecutionPolicy Bypass -File <localpath>\verify_on_analysis.ps1 -Root <local audio_in folder> -Date 2026-08-17
 
 Mirrored to `Field_2026_Social\reolink_record\`.
+
+## Addendum (2026-08-19 PM): nvr_rescue is now a copy modality
+`copy_to_analysis.ps1` mirrors `E:\nvr_rescue\` -> `<Dest>\nvr_rescue\` on every run
+(additive, like WISER; `-SkipRescue` to omit; rescue root added to the dest-drive
+guard). Prompted by the 2026-08-19 rescue footage existing only on E: - rescued data
+must never be single-copy. First backup of the 37-file/29 GB tree ran the same day.
