@@ -38,16 +38,17 @@
 .PARAMETER Fast
     Full-speed mode: 8 robocopy threads, no pacing (~118 MB/s, the link's wire
     limit; a ~500 GB day in ~75 min). The DEFAULT (without -Fast) is gentle:
-    2 threads + inter-packet pacing (~15-30 MB/s, day copies overnight) so E:
-    seek pressure stays minimal while the rig records. Measurements (2026-08-18/19)
-    showed even full speed never disturbed capture - gentle default is deliberate
-    extra margin, chosen 2026-08-19.
+    SINGLE-threaded with inter-packet pacing /IPG:5 (~10-25 MB/s, day copies
+    overnight) so E: seek pressure stays minimal while the rig records.
+    NOTE: robocopy forbids /IPG with /MT (exit 16), so gentle mode never uses
+    threads - -Threads only applies with -Fast. Measurements (2026-08-18/19)
+    showed even full speed never disturbed capture - gentle default is margin.
 
 .PARAMETER Gentle
     Legacy switch: forces pacing even with -Fast. (Pacing is already the default.)
 
 .PARAMETER Threads
-    robocopy /MT threads (default 2; -Fast raises to 8 unless you set it yourself).
+    robocopy /MT threads, FAST MODE ONLY (default 8 with -Fast; ignored when pacing).
 
 .PARAMETER DryRun
     List what would be copied and total sizes; copy nothing.
@@ -134,11 +135,14 @@ function Invoke-Robo {
     # source, and /XO would skip it forever, leaving it silently truncated. Without
     # /XO robocopy still skips identical files (size+time "Same") but re-copies any
     # partial/differing dest file - source is the truth on this link.
-    $flags = @('/R:2', '/W:5', "/MT:$Threads", '/NP', '/NDL', '/NJH', '/NJS',
+    # robocopy REFUSES /IPG together with /MT (exit 16, nothing copied - hit live
+    # 2026-08-19). Gentle mode = single-threaded + /IPG pacing; fast mode = /MT only.
+    $flags = @('/R:2', '/W:5', '/NP', '/NDL', '/NJH', '/NJS',
                '/XD') + $ExcludeDirs + @('/TEE', "/LOG+:$logFile")
+    if ($UsePacing) { $flags += @('/IPG:5') }
+    else            { $flags += @("/MT:$Threads") }
     if ($Restartable) { $flags = @('/Z') + $flags }
     if ($Recurse) { $flags += '/E' }
-    if ($UsePacing) { $flags += @('/IPG:20') }
     if ($DryRun)  { $flags += '/L' }
     # HARD BLOCK: never allow destructive/mirroring flags
     foreach ($bad in @('/MIR', '/MOV', '/MOVE', '/PURGE')) {
