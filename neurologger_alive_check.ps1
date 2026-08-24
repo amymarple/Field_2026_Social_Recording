@@ -136,14 +136,21 @@ function Get-ShortId([string]$name) {
 # --- core evaluation (pure - also used by -SelfTest) ---
 # rows: objects with device_name, last_seen_local, battery_voltage_volts, used_storage_percent
 # returns per-logger status + warn lists
-function Get-FleetStatus($rows, $roster, [datetime]$now, [int]$staleMin, [double]$battWarn, [int]$storWarn, [double]$battCrit = 0) {
+function Get-FleetStatus($rows, $roster, [datetime]$now, [int]$staleMin, [double]$battWarn, [int]$storWarn, [double]$battCrit = 0, $lastKnown = @{}) {
     $byName = @{}
     foreach ($r in $rows) { if ($r.device_name) { $byName[$r.device_name] = $r } }
     $missing = @(); $battLow = @(); $battCritical = @(); $storHigh = @(); $detail = @()
     foreach ($dev in $roster.Keys) {
         $label = $roster[$dev]; $sid = Get-ShortId $dev
         if (-not $byName.ContainsKey($dev)) {
-            $missing += ("{0} (...{1}, never in list)" -f $label, $sid)
+            # No row in the snapshot. A wild_console restart wipes the discovered list
+            # and devices repopulate over minutes - grant grace if our own telemetry
+            # history saw this device within the stale window (false-page fix 2026-08-23).
+            if ($lastKnown.ContainsKey($dev) -and (($now - $lastKnown[$dev]).TotalMinutes -le $staleMin)) {
+                $detail += ("{0} ok(no row yet, history {1:F0}m ago - console list rebuilding)" -f $label, ($now - $lastKnown[$dev]).TotalMinutes)
+                continue
+            }
+            $missing += ("{0} (...{1}, not in list)" -f $label, $sid)
             $detail += ("{0} MISSING(no row)" -f $label)
             continue
         }
@@ -196,6 +203,11 @@ if ($SelfTest) {
     $s = Get-FleetStatus $rows $tr $now 60 3.60 90 3.50
     $gotMissing = @($s.Missing | ForEach-Object { ($_ -split ' ')[0] }) -join ','
     $okMissing = ($gotMissing -eq 'SF02,SF03')
+    # console-restart grace: SF03 has no row but history saw it 10 min ago -> not missing
+    $s2 = Get-FleetStatus $rows $tr $now 60 3.60 90 3.50 @{ 'CE64X_CCCC' = $now.AddMinutes(-10) }
+    $gotMissing2 = @($s2.Missing | ForEach-Object { ($_ -split ' ')[0] }) -join ','
+    $okGrace = ($gotMissing2 -eq 'SF02')
+    Say ("SelfTest restart-grace: [{0}] expected [SF02] -> {1}" -f $gotMissing2, $(if ($okGrace) { 'PASS' } else { 'FAIL' }))
     $gotBatt = @($s.BattLow | ForEach-Object { ($_ -split ' ')[0] }) -join ','
     $okBatt = ($gotBatt -eq 'SF04,SF06')
     $okCrit = (@($s.BattCritical).Count -eq 1 -and $s.BattCritical[0] -like 'SF06*')
@@ -205,7 +217,7 @@ if ($SelfTest) {
     Say ("SelfTest battery warn: [{0}] expected [SF04,SF06] -> {1}" -f $gotBatt, $(if ($okBatt) { 'PASS' } else { 'FAIL' }))
     Say ("SelfTest battery CRIT: [{0}] expected [SF06] -> {1}" -f ($s.BattCritical -join ','), $(if ($okCrit) { 'PASS' } else { 'FAIL' }))
     Say ("SelfTest storage: [{0}] -> {1}" -f ($s.StorHigh -join ','), $(if ($okStor) { 'PASS' } else { 'FAIL' }))
-    $ok = $okMissing -and $okBatt -and $okCrit -and $okStor
+    $ok = $okMissing -and $okBatt -and $okCrit -and $okStor -and $okGrace
     Say ("SelfTest: {0}" -f $(if ($ok) { 'PASS' } else { 'FAIL' })) $(if ($ok) { 'Green' } else { 'Red' })
     exit $(if ($ok) { 0 } else { 2 })
 }
@@ -311,8 +323,21 @@ if ($null -eq $rows -or $rows.Count -eq 0) {
     exit 0
 }
 
+# --- last-known sightings from our own telemetry history (console-restart grace) ---
+$lastKnown = @{}
+if (Test-Path -LiteralPath $HistoryPath) {
+    try {
+        foreach ($line in (Get-Content -LiteralPath $HistoryPath -Tail 600)) {
+            $p = $line -split ','
+            if ($p.Count -ge 2 -and $p[0] -match '^\d{4}-') {
+                try { $lastKnown[$p[1]] = [datetime]$p[0] } catch { }
+            }
+        }
+    } catch { }
+}
+
 # --- evaluate the fleet ---
-$fs = Get-FleetStatus $rows $Roster $now $StaleMinutes $BatteryWarnVolts $StorageWarnPercent $BatteryCriticalVolts
+$fs = Get-FleetStatus $rows $Roster $now $StaleMinutes $BatteryWarnVolts $StorageWarnPercent $BatteryCriticalVolts $lastKnown
 $nMissing = @($fs.Missing).Count
 $status = "{0}/{1} loggers missing (>{2} min). [{3}]" -f $nMissing, $Roster.Keys.Count, $StaleMinutes, ($fs.Detail -join ' ')
 Say $status $(if ($nMissing -gt 0) { 'Red' } else { 'Green' })
