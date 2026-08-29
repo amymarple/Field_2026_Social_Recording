@@ -31,6 +31,12 @@
                              Optional key NeurologgerDevices = @{ device_name = 'label' }
                              overrides the built-in cohort roster without reinstalling.
 .PARAMETER RealertHours      While loggers stay missing, re-alert at most this often.
+.PARAMETER ReminderTimes     Local HH:mm slots; once per day per slot (within a 30-min
+                             window after it) a Slack reminder of the battery-round
+                             sync ritual is sent (default 05:40 + 17:40, 20 min before
+                             the cohort-3 rounds). Fires even when the console feed is
+                             down - the reminder is for the humans doing the round.
+                             Pass @() to disable.
 .PARAMETER HistoryPath       Append-only telemetry time series (one row per logger per
                              run: battery V, storage %, recording elapsed s). Trend
                              data only - nothing alerts on it yet.
@@ -58,6 +64,7 @@ param(
     [string]$LogPath = 'E:\recording_qc\neurologger_alive_log.txt',
     [string]$HistoryPath = 'E:\recording_qc\neurologger_telemetry_history.csv',
     [int]$RealertHours = 1,
+    [string[]]$ReminderTimes = @('05:40', '17:40'),
     [switch]$DryRun,
     [switch]$TestSlack,
     [switch]$SelfTest
@@ -184,6 +191,22 @@ function Get-FleetStatus($rows, $roster, [datetime]$now, [int]$staleMin, [double
     return [pscustomobject]@{ Missing = $missing; BattLow = $battLow; BattCritical = $battCritical; StorHigh = $storHigh; Detail = $detail }
 }
 
+# Which reminder slot (HH:mm) is due: within windowMin after the slot time and not
+# already sent today (sentMap: slot -> 'yyyy-MM-dd'). Returns the slot or $null.
+function Get-DueReminderSlot([datetime]$now, [string[]]$slots, $sentMap, [int]$windowMin = 30) {
+    foreach ($slot in $slots) {
+        $parts = $slot -split ':'
+        if ($parts.Count -ne 2) { continue }
+        $slotTime = $now.Date.AddHours([int]$parts[0]).AddMinutes([int]$parts[1])
+        if ($now -ge $slotTime -and ($now - $slotTime).TotalMinutes -le $windowMin) {
+            $already = $null
+            if ($sentMap -and $sentMap.ContainsKey($slot)) { $already = [string]$sentMap[$slot] }
+            if ($already -ne $now.ToString('yyyy-MM-dd')) { return $slot }
+        }
+    }
+    return $null
+}
+
 # --- SELF TEST: synthetic rows, no Slack, no disk state ---
 if ($SelfTest) {
     $now = Get-Date
@@ -217,7 +240,15 @@ if ($SelfTest) {
     Say ("SelfTest battery warn: [{0}] expected [SF04,SF06] -> {1}" -f $gotBatt, $(if ($okBatt) { 'PASS' } else { 'FAIL' }))
     Say ("SelfTest battery CRIT: [{0}] expected [SF06] -> {1}" -f ($s.BattCritical -join ','), $(if ($okCrit) { 'PASS' } else { 'FAIL' }))
     Say ("SelfTest storage: [{0}] -> {1}" -f ($s.StorHigh -join ','), $(if ($okStor) { 'PASS' } else { 'FAIL' }))
-    $ok = $okMissing -and $okBatt -and $okCrit -and $okStor -and $okGrace
+    $rt = @('05:40', '17:40')
+    $r1 = Get-DueReminderSlot ([datetime]'2026-08-29 05:50') $rt @{}
+    $r2 = Get-DueReminderSlot ([datetime]'2026-08-29 05:50') $rt @{ '05:40' = '2026-08-29' }
+    $r3 = Get-DueReminderSlot ([datetime]'2026-08-29 06:30') $rt @{}
+    $r4 = Get-DueReminderSlot ([datetime]'2026-08-29 17:41') $rt @{ '05:40' = '2026-08-29' }
+    $r5 = Get-DueReminderSlot ([datetime]'2026-08-30 05:45') $rt @{ '05:40' = '2026-08-29' }  # new day -> due again
+    $okRem = ($r1 -eq '05:40') -and ($null -eq $r2) -and ($null -eq $r3) -and ($r4 -eq '17:40') -and ($r5 -eq '05:40')
+    Say ("SelfTest reminders: due/sent/late/evening/next-day -> {0}" -f $(if ($okRem) { 'PASS' } else { "FAIL [$r1|$r2|$r3|$r4|$r5]" }))
+    $ok = $okMissing -and $okBatt -and $okCrit -and $okStor -and $okGrace -and $okRem
     Say ("SelfTest: {0}" -f $(if ($ok) { 'PASS' } else { 'FAIL' })) $(if ($ok) { 'Green' } else { 'Red' })
     exit $(if ($ok) { 0 } else { 2 })
 }
@@ -232,7 +263,7 @@ if ($TestSlack) {
 if ($Roster.Keys.Count -eq 0) { Say 'Roster is empty - nothing to watch.' Red; exit 2 }
 
 # --- load state (de-dup / re-alert / recovery) ---
-$state = @{ missing = $false; lastAlert = $null; feedDown = $false; feedLastAlert = $null; battWarned = @(); battCritWarned = @(); storWarned = @() }
+$state = @{ missing = $false; lastAlert = $null; feedDown = $false; feedLastAlert = $null; battWarned = @(); battCritWarned = @(); storWarned = @(); reminded = @{} }
 if (Test-Path -LiteralPath $StatePath) {
     try {
         $s = Get-Content -LiteralPath $StatePath -Raw | ConvertFrom-Json
@@ -241,6 +272,9 @@ if (Test-Path -LiteralPath $StatePath) {
         if ($s.PSObject.Properties['battWarned']) { $state.battWarned = @($s.battWarned) }
         if ($s.PSObject.Properties['battCritWarned']) { $state.battCritWarned = @($s.battCritWarned) }
         if ($s.PSObject.Properties['storWarned']) { $state.storWarned = @($s.storWarned) }
+        if ($s.PSObject.Properties['reminded']) {
+            foreach ($p in $s.reminded.PSObject.Properties) { $state.reminded[$p.Name] = [string]$p.Value }
+        }
     } catch {}
 }
 function Save-State { if (-not $DryRun) { ($state | ConvertTo-Json) | Set-Content -LiteralPath $StatePath -Encoding UTF8 } }
@@ -249,6 +283,27 @@ function Log-Line([string]$status, [string]$action, $sent) {
 }
 
 $now = Get-Date
+
+# --- twice-daily battery-round sync reminder (before the feed checks on purpose:
+# it must fire even when wild_console is closed - it reminds the HUMANS) ---
+$dueSlot = Get-DueReminderSlot $now $ReminderTimes $state.reminded
+if ($dueSlot) {
+    $remind = ":alarm_clock: *Battery round soon - logger sync steps (per rat):*`n" +
+        "1) BEFORE pulling the battery: Connect in wild_console, write the ``Sync[Live] dev=`` value into the daily table (that IS the closing session's clock offset), stay connected ~1 min so time anchors land.`n" +
+        "2) Swap the battery.`n" +
+        "3) Reconnect -> Reset -> wait ``Cmd:`` >= 256 -> ``Sync[Live] err`` within a few ms (else Resync) -> *Record Start* (Recording time walks + Storage grows) -> preview ON.`n" +
+        "4) After any SD offload: ``python WILD_generate_pc_time.py <folder> --summary-plot`` -> anchors at BOTH ends, flat residuals. Log misses in the Notion notes."
+    if ($DryRun) {
+        Say "DryRun: reminder due for slot $dueSlot (not sent)" Yellow
+    } else {
+        $rSent = $false
+        if ($Slack.Token -and $Slack.Channels.Count) { $rSent = Send-SlackText $Slack.Token $Slack.Channels $remind }
+        else { Say "(no Slack creds; reminder would be: $remind)" DarkYellow }
+        $state.reminded[$dueSlot] = $now.ToString('yyyy-MM-dd')
+        Save-State
+        Log-Line "sync reminder slot $dueSlot" 'reminder' $rSent
+    }
+}
 
 # --- read snapshot + robust feed freshness ---
 # wild_console rewrites the CSV every few seconds; a read that races the rewrite can
