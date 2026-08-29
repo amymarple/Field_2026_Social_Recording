@@ -21,12 +21,21 @@ Design notes
   - Log files roll on the hour: E:\led_sync\LEDSYNC_YYYY-MM-DD_HH-00-00.txt
     (~3600 lines/hour, trivial write load; opened with shared read).
 
-Run from a terminal; Ctrl+C stops cleanly (LED off, "# STOP" line in the log):
+Run from a terminal (Ctrl+C stops cleanly: LED off, "# STOP" line in the log), or
+always-on via install_led_sync_task_system.ps1 (SYSTEM task, at-startup + 5-min
+self-heal; the Global\FieldLedSync mutex makes duplicate launches exit quietly).
 
   powershell -NoProfile -ExecutionPolicy Bypass -File .\led_sync.ps1
   powershell -NoProfile -ExecutionPolicy Bypass -File .\led_sync.ps1 -TestSeconds 10
 
-Exit codes: 0 = ok, 2 = fatal (port missing / not a MicroPython device).
+Pause switch (works on the SYSTEM task from any terminal, no elevation needed):
+  New-Item -ItemType File E:\led_sync\STOP     -> clean shutdown within ~1 s; while
+                                                  the flag exists, relaunches exit
+  Remove-Item E:\led_sync\STOP                 -> next self-heal tick (<=5 min)
+                                                  resumes, or Start-ScheduledTask
+                                                  'Field LED Sync' for right now
+If the Pico is absent at start (e.g. USB still enumerating after boot) the script
+waits and retries every 5 s instead of dying. Exit code: always 0.
 #>
 param(
     [string]$Port        = 'COM11',
@@ -124,15 +133,17 @@ function Disconnect-Pico([System.IO.Ports.SerialPort]$S) {
 }
 
 function Open-HourLog([datetime]$b) {
-    if ($script:logWriter) { try { $script:logWriter.Close() } catch { } }
+    # open the NEW file first, swap only on success - a failed roll keeps the old writer
     $p = Get-HourLogPath $b
     $isNew = -not (Test-Path $p)
-    $script:logWriter = New-Object IO.StreamWriter($p, $true, [Text.Encoding]::ASCII)  # append, shared read
-    $script:logWriter.AutoFlush = $true
+    $w = New-Object IO.StreamWriter($p, $true, [Text.Encoding]::ASCII)  # append, shared read
+    $w.AutoFlush = $true
     if ($isNew) {
-        $script:logWriter.WriteLine("# LEDSYNC rising-edge log  host=$env:COMPUTERNAME  port=$Port  pins=GP14+GP15+onboard  duty_ms=$DutyMs")
-        $script:logWriter.WriteLine('# columns: <PC send-complete timestamp> RISE sched=<intended second> offset_ms=<send lag after boundary>')
+        $w.WriteLine("# LEDSYNC rising-edge log  host=$env:COMPUTERNAME  port=$Port  pins=GP14+GP15+onboard  duty_ms=$DutyMs")
+        $w.WriteLine('# columns: <PC send-complete timestamp> RISE sched=<intended second> offset_ms=<send lag after boundary>')
     }
+    if ($script:logWriter) { try { $script:logWriter.Close() } catch { } }
+    $script:logWriter = $w
     $script:logHour = $b.ToString('yyyyMMddHH')
     $script:logPath = $p
 }
@@ -142,21 +153,60 @@ function Stamp { return [datetime]::Now.ToString('yyyy-MM-ddTHH:mm:ss.fffzzz') }
 
 if (-not (Test-Path $LogDir)) { New-Item -ItemType Directory -Path $LogDir -Force | Out-Null }
 
+$script:stopFlag = Join-Path $LogDir 'STOP'
+if (Test-Path $script:stopFlag) {
+    Write-Host "led_sync: STOP flag present ($($script:stopFlag)) - not starting. Remove-Item it to resume."
+    exit 0
+}
+
+# Single instance, matching the other recorders' Global\ mutex pattern (the COM port
+# is exclusive anyway; this just makes self-heal relaunches exit quietly).
+$mutex = New-Object Threading.Mutex($false, 'Global\FieldLedSync')
+$haveMutex = $false
+try { $haveMutex = $mutex.WaitOne(0) } catch [Threading.AbandonedMutexException] { $haveMutex = $true }
+if (-not $haveMutex) { Write-Host 'led_sync: another instance is already running - exiting.'; exit 0 }
+
 $script:logWriter = $null
 $sp = $null
 try {
-    $sp = Connect-Pico $Port
-    Open-HourLog ([datetime]::Now)
+    # Wait for the hour log too (another instance - e.g. a terminal run being replaced
+    # by the SYSTEM task - holds it until it exits; takeover happens within ~5 s).
+    $warnedLog = $false
+    while (-not $script:logWriter) {
+        if (Test-Path $script:stopFlag) { Write-Host 'led_sync: STOP flag - exiting.'; exit 0 }
+        try { Open-HourLog ([datetime]::Now) } catch {
+            if (-not $warnedLog) {
+                Write-Host "led_sync: waiting for the hour log - $($_.Exception.Message)"
+                $warnedLog = $true
+            }
+            Start-Sleep -Seconds 5
+        }
+    }
     Write-Log ("# START {0} pid=$PID" -f (Stamp))
+    # Wait for the Pico if it is not up yet (e.g. USB still enumerating after boot).
+    $warned = $false
+    while (-not $sp) {
+        if (Test-Path $script:stopFlag) { Write-Log ('# STOPFLAG {0} (before connect)' -f (Stamp)); exit 0 }
+        try { $sp = Connect-Pico $Port } catch {
+            if (-not $warned) {
+                Write-Log ('# WAIT {0} {1}' -f (Stamp), $_.Exception.Message)
+                Write-Host "led_sync: waiting for Pico on $Port - $($_.Exception.Message)"
+                $warned = $true
+            }
+            Start-Sleep -Seconds 5
+        }
+    }
+    Write-Log ('# CONNECT {0}' -f (Stamp))
     Write-Host "led_sync: pulsing 1 Hz on $Port (GP14+GP15+onboard), duty $DutyMs ms"
-    Write-Host "led_sync: logging rising edges to $($script:logPath)  (Ctrl+C to stop)"
+    Write-Host "led_sync: logging rising edges to $($script:logPath)  (Ctrl+C or STOP flag to stop)"
 
     $n = 0
     while ($true) {
+        if (Test-Path $script:stopFlag) { Write-Log ('# STOPFLAG {0}' -f (Stamp)); break }
         $next = Get-NextSecond
         if ($next.ToString('yyyyMMddHH') -ne $script:logHour) {
-            Open-HourLog $next
-            Write-Host "led_sync: rolled to $($script:logPath)"
+            try { Open-HourLog $next; Write-Host "led_sync: rolled to $($script:logPath)" }
+            catch { Write-Host "led_sync: hour roll failed ($($_.Exception.Message)) - still writing $($script:logPath)" }
         }
         $lead = ($next - [datetime]::Now).TotalMilliseconds - 40
         if ($lead -gt 0) { Start-Sleep -Milliseconds ([int]$lead) }
@@ -175,9 +225,11 @@ try {
             try { $sp.Close() } catch { }
             $sp = $null
             while (-not $sp) {
+                if (Test-Path $script:stopFlag) { break }
                 Start-Sleep -Seconds 5
                 try { $sp = Connect-Pico $Port } catch { $sp = $null }
             }
+            if (-not $sp) { Write-Log ('# STOPFLAG {0} (while disconnected)' -f (Stamp)); break }
             Write-Log ('# RECONNECT {0}' -f (Stamp))
             Write-Host 'led_sync: reconnected'
             continue
@@ -191,5 +243,7 @@ try {
     if ($script:logWriter) {
         try { $script:logWriter.WriteLine('# STOP {0}' -f (Stamp)); $script:logWriter.Close() } catch { }
     }
+    if ($haveMutex) { try { $mutex.ReleaseMutex() } catch { } }
+    if ($mutex) { $mutex.Dispose() }
 }
 exit 0

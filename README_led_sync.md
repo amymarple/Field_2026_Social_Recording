@@ -16,17 +16,40 @@ LED-onset video frame to its logged timestamp aligns **video ↔ ephys on one ti
   over the MicroPython raw REPL each time it starts (`'1'`=on, `'0'`=off, `'q'`=quit).
   After a Pico power-cycle, just restart the script.
 
-## Run / stop (plain terminal, foreground)
+## Run
+
+**Always-on (recommended)** — one-time install from an ELEVATED PowerShell:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\led_sync.ps1                  # run until Ctrl+C
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install_led_sync_task_system.ps1 -RunNow
+```
+
+Registers SYSTEM task **"Field LED Sync"**: starts at boot, self-heals every 5 min
+(the `Global\FieldLedSync` mutex makes duplicate launches exit quietly). If the Pico
+is missing at boot the script waits for it (`# WAIT` → `# CONNECT` in the log).
+
+**Pause / resume** (any terminal, no elevation):
+
+```powershell
+New-Item -ItemType File E:\led_sync\STOP     # clean stop within ~1 s; stays stopped
+Remove-Item E:\led_sync\STOP                 # resumes on the next 5-min tick
+Start-ScheduledTask 'Field LED Sync'         # ...or resume immediately
+```
+
+Prefer the STOP flag over `Stop-ScheduledTask` — a hard kill can leave the LED
+latched on mid-pulse (harmless but visible in the video until the next start).
+
+**Foreground (testing)** — Ctrl+C stops cleanly (LED off, `# STOP` logged):
+
+```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\led_sync.ps1 -TestSeconds 10  # visual check
 powershell -NoProfile -ExecutionPolicy Bypass -File .\led_sync.ps1 -SelfTest       # offline logic test
 ```
 
-**Ctrl+C stops cleanly**: LED forced off, Pico returned to its REPL, `# STOP` line
-written. If the serial port drops mid-run the script logs `# DROP`, retries every 5 s,
-and logs `# RECONNECT` (pulses missing in between — visible as gaps in the log).
+Only one instance can run (exclusive COM port + mutex) — stop a foreground run
+before starting the task; a starting instance politely waits `# WAIT`-ing until the
+old one lets go. If the serial port drops mid-run the script logs `# DROP`, retries
+every 5 s, and logs `# RECONNECT` (missing pulses show as gaps in the log).
 
 Params: `-Port COM11`, `-LogDir E:\led_sync`, `-DutyMs 500` (LED on-time per second).
 
