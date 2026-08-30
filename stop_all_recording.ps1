@@ -1,7 +1,9 @@
 # End-of-cohort shutdown: disable + stop every recorder and watchdog task, kill ffmpeg.
 # Run from an ELEVATED (Administrator) PowerShell:
 #   powershell -NoProfile -ExecutionPolicy Bypass -File stop_all_recording.ps1
-# Re-enable for the next cohort with -Enable.
+# Cohort start: -Enable re-enables AND starts every task immediately (no reboot needed;
+# the at-startup/at-logon triggers alone would otherwise wait for the next boot/logon).
+# Manual GUI starts remain: wild_console (BLE scan) and the WISER acquisition software.
 param([switch]$Enable)
 
 $tasks = @(
@@ -23,8 +25,10 @@ if (-not $admin) { Write-Host 'NOT ELEVATED - run from an Administrator PowerShe
 
 foreach ($t in $tasks) {
     if ($Enable) {
-        try { Enable-ScheduledTask -TaskName $t -ErrorAction Stop | Out-Null; Write-Host "enabled:  $t" }
-        catch { Write-Host "not found: $t" -ForegroundColor Yellow }
+        try { Enable-ScheduledTask -TaskName $t -ErrorAction Stop | Out-Null }
+        catch { Write-Host "not found: $t" -ForegroundColor Yellow; continue }
+        try { Start-ScheduledTask -TaskName $t -ErrorAction Stop; Write-Host "enabled + started: $t" }
+        catch { Write-Host "enabled (start failed: $($_.Exception.Message)): $t" -ForegroundColor Yellow }
     } else {
         try { Disable-ScheduledTask -TaskName $t -ErrorAction Stop | Out-Null } catch { Write-Host "not found: $t" -ForegroundColor Yellow; continue }
         Stop-ScheduledTask -TaskName $t -ErrorAction SilentlyContinue
