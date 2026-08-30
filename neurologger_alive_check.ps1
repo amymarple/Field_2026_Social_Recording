@@ -330,9 +330,10 @@ $now = Get-Date
 $dueSlot = Get-DueReminderSlot $now $ReminderTimes $state.reminded
 if ($dueSlot) {
     $remind = ":alarm_clock: *Battery round soon - logger sync steps (per rat):*`n" +
-        "1) BEFORE pulling the battery: Connect in wild_console, write the ``Sync[Live] dev=`` value into the daily table (that IS the closing session's clock offset), stay connected ~1 min so time anchors land.`n" +
+        "RULE: Resync only BEFORE Record Start - NEVER while recording (it steps the device clock mid-session).`n" +
+        "1) BEFORE pulling the battery (still recording): Connect, wait ~30 s until ``Sync[Live]`` shows (anchors landing), note the ``dev=`` value in the daily table, NO Resync -> *Record Stop* -> pull battery.`n" +
         "2) Swap the battery.`n" +
-        "3) Reconnect -> Reset -> wait ``Cmd:`` >= 256 -> ``Sync[Live] err`` within a few ms (else Resync) -> *Record Start* (Recording time walks + Storage grows) -> preview ON.`n" +
+        "3) Reconnect (not recording): Resync -> ``Sync[Live] err`` within a few ms -> *Record Start* (Recording time walks + Storage grows) -> preview ON.`n" +
         "4) After any SD offload: ``python WILD_generate_pc_time.py <folder> --summary-plot`` -> anchors at BOTH ends, flat residuals. Log misses in the Notion notes."
     if ($DryRun) {
         Say "DryRun: reminder due for slot $dueSlot (not sent)" Yellow
