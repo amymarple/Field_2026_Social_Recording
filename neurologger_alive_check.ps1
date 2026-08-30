@@ -140,21 +140,52 @@ function Get-ShortId([string]$name) {
     return $name
 }
 
+# The console reports a logger as 'CE64X_<12 hex>' when it resolved the advertised
+# name, but falls back to 'WILD device XX:XX:XX:XX:XX:XX' (BLE MAC, byte-REVERSED
+# relative to the hex form) when the name scan-response is lost - common at weak
+# RSSI, and the SAME logger can flip between forms across snapshots (seen at
+# cohort-3 start 2026-08-30). Reduce both to one canonical 12-hex id for matching.
+function Get-CanonicalDeviceId([string]$name) {
+    if (-not $name) { return $null }
+    if ($name -match '(?i)^CE64X_([0-9A-F]{12})$') { return $matches[1].ToUpper() }
+    if ($name -match '(?i)WILD\s*device\s+((?:[0-9A-F]{2}:){5}[0-9A-F]{2})') {
+        $bytes = $matches[1] -split ':'
+        [array]::Reverse($bytes)
+        return ($bytes -join '').ToUpper()
+    }
+    return $name.ToUpper()
+}
+
 # --- core evaluation (pure - also used by -SelfTest) ---
 # rows: objects with device_name, last_seen_local, battery_voltage_volts, used_storage_percent
 # returns per-logger status + warn lists
 function Get-FleetStatus($rows, $roster, [datetime]$now, [int]$staleMin, [double]$battWarn, [int]$storWarn, [double]$battCrit = 0, $lastKnown = @{}) {
+    # key rows by canonical id; when both name forms of one logger appear, keep the
+    # row with the newest last_seen
     $byName = @{}
-    foreach ($r in $rows) { if ($r.device_name) { $byName[$r.device_name] = $r } }
+    foreach ($r in $rows) {
+        if (-not $r.device_name) { continue }
+        $cid = Get-CanonicalDeviceId $r.device_name
+        if ($byName.ContainsKey($cid)) {
+            try {
+                $tNew = [datetimeoffset]::Parse($r.last_seen_local, [Globalization.CultureInfo]::InvariantCulture)
+                $tOld = [datetimeoffset]::Parse($byName[$cid].last_seen_local, [Globalization.CultureInfo]::InvariantCulture)
+                if ($tNew -gt $tOld) { $byName[$cid] = $r }
+            } catch { $byName[$cid] = $r }
+        } else { $byName[$cid] = $r }
+    }
+    $known = @{}
+    foreach ($k in $lastKnown.Keys) { $known[(Get-CanonicalDeviceId $k)] = $lastKnown[$k] }
     $missing = @(); $battLow = @(); $battCritical = @(); $storHigh = @(); $detail = @()
-    foreach ($dev in $roster.Keys) {
-        $label = $roster[$dev]; $sid = Get-ShortId $dev
+    foreach ($devKey in $roster.Keys) {
+        $dev = Get-CanonicalDeviceId $devKey
+        $label = $roster[$devKey]; $sid = Get-ShortId $devKey
         if (-not $byName.ContainsKey($dev)) {
             # No row in the snapshot. A wild_console restart wipes the discovered list
             # and devices repopulate over minutes - grant grace if our own telemetry
             # history saw this device within the stale window (false-page fix 2026-08-23).
-            if ($lastKnown.ContainsKey($dev) -and (($now - $lastKnown[$dev]).TotalMinutes -le $staleMin)) {
-                $detail += ("{0} ok(no row yet, history {1:F0}m ago - console list rebuilding)" -f $label, ($now - $lastKnown[$dev]).TotalMinutes)
+            if ($known.ContainsKey($dev) -and (($now - $known[$dev]).TotalMinutes -le $staleMin)) {
+                $detail += ("{0} ok(no row yet, history {1:F0}m ago - console list rebuilding)" -f $label, ($now - $known[$dev]).TotalMinutes)
                 continue
             }
             $missing += ("{0} (...{1}, not in list)" -f $label, $sid)
@@ -240,6 +271,16 @@ if ($SelfTest) {
     Say ("SelfTest battery warn: [{0}] expected [SF04,SF06] -> {1}" -f $gotBatt, $(if ($okBatt) { 'PASS' } else { 'FAIL' }))
     Say ("SelfTest battery CRIT: [{0}] expected [SF06] -> {1}" -f ($s.BattCritical -join ','), $(if ($okCrit) { 'PASS' } else { 'FAIL' }))
     Say ("SelfTest storage: [{0}] -> {1}" -f ($s.StorHigh -join ','), $(if ($okStor) { 'PASS' } else { 'FAIL' }))
+    # canonical-id matching: MAC form is byte-reversed relative to the CE64X_ hex form
+    $c1 = Get-CanonicalDeviceId 'CE64X_1DFE7F77721C'
+    $c2 = Get-CanonicalDeviceId 'WILD device 1C:72:77:7F:FE:1D'
+    $c3 = Get-CanonicalDeviceId 'WILD device 51:01:60:6D:CB:CA'
+    $okCanon = ($c1 -eq '1DFE7F77721C') -and ($c2 -eq '1DFE7F77721C') -and ($c3 -eq 'CACB6D600151')
+    $trC = [ordered]@{ 'CE64X_CACB6D600151' = 'SF10 T' }
+    $rowsC = @([pscustomobject]@{ device_name = 'WILD device 51:01:60:6D:CB:CA'; last_seen_local = $now.ToString('yyyy-MM-ddTHH:mm:ss.fffffff') + $off; battery_voltage_volts = '4.10'; used_storage_percent = '10' })
+    $sC = Get-FleetStatus $rowsC $trC $now 60 3.60 90 3.50
+    $okCanonMatch = (@($sC.Missing).Count -eq 0)
+    Say ("SelfTest canonical id: forms {0} + MAC-form roster match {1}" -f $(if ($okCanon) { 'PASS' } else { "FAIL [$c1|$c2|$c3]" }), $(if ($okCanonMatch) { 'PASS' } else { 'FAIL' }))
     $rt = @('05:40', '17:40')
     $r1 = Get-DueReminderSlot ([datetime]'2026-08-29 05:50') $rt @{}
     $r2 = Get-DueReminderSlot ([datetime]'2026-08-29 05:50') $rt @{ '05:40' = '2026-08-29' }
@@ -248,7 +289,7 @@ if ($SelfTest) {
     $r5 = Get-DueReminderSlot ([datetime]'2026-08-30 05:45') $rt @{ '05:40' = '2026-08-29' }  # new day -> due again
     $okRem = ($r1 -eq '05:40') -and ($null -eq $r2) -and ($null -eq $r3) -and ($r4 -eq '17:40') -and ($r5 -eq '05:40')
     Say ("SelfTest reminders: due/sent/late/evening/next-day -> {0}" -f $(if ($okRem) { 'PASS' } else { "FAIL [$r1|$r2|$r3|$r4|$r5]" }))
-    $ok = $okMissing -and $okBatt -and $okCrit -and $okStor -and $okGrace -and $okRem
+    $ok = $okMissing -and $okBatt -and $okCrit -and $okStor -and $okGrace -and $okRem -and $okCanon -and $okCanonMatch
     Say ("SelfTest: {0}" -f $(if ($ok) { 'PASS' } else { 'FAIL' })) $(if ($ok) { 'Green' } else { 'Red' })
     exit $(if ($ok) { 0 } else { 2 })
 }
@@ -456,7 +497,8 @@ if (-not $DryRun) {
     }
     $ts = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
     $hist = foreach ($dev in $Roster.Keys) {
-        $row = $rows | Where-Object { $_.device_name -eq $dev } | Select-Object -First 1
+        $cidWant = Get-CanonicalDeviceId $dev
+        $row = $rows | Where-Object { (Get-CanonicalDeviceId $_.device_name) -eq $cidWant } | Select-Object -First 1
         if ($row) {
             $age = ''
             try { $age = [math]::Round(((Get-Date) - [datetimeoffset]::Parse($row.last_seen_local, [Globalization.CultureInfo]::InvariantCulture).LocalDateTime).TotalMinutes, 1) } catch { }
