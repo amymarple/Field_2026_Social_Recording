@@ -1,5 +1,15 @@
 # Neurologger (CE64X / WILD) 每日 Resync 协议
 
+> ## ⚠️ SUPERSEDED (2026-08-30) — cohort 3 起按新版协议执行
+> 本文档写于 cohort 2(每日一次 4PM reset+resync),**其中"连上瞬间立刻 reset"与现行规则冲突**。
+> 现行协议(源码验证版)在 Notion cohort-3 页面 "Daily sync check + Sync mechanics" 一节,核心变化:
+> 1. **Resync 只在 Record Start 之前做,录制中绝不 Resync/reset**;
+> 2. 每次换电池 = 双锚点仪式:拔电池前保持连接 ~30–60 s 等 `Sync[Live]`(end anchor,记 `dev=`)
+>    → Record Stop → 换电池 → 重连 Resync → Record Start → 连着再等 ~30–60 s(start anchor);
+> 3. 锚点以 ~5 s 节奏写入 logger 自己的 SD 卡(analogin.dat),PC 端不存任何 sync 关键数据;
+> 4. 离线验收:`WILD_generate_pc_time.py <session> --summary-plot`,两端锚点齐 + 残差平。
+> 下文仅作 cohort-2 历史记录保留。
+
 **目的**:logger 平时一直在自己的 SD 卡上连续录制,但它的板载时钟会和主 PC 时间越差越远
 (实测:一台差 12 分 43 秒,另一台差 58 分 34 秒)。每天做一次 reset + resync,把设备 RTC
 重新锚定到主 PC 时间,保证电生理数据能和相机视频 / PC 时间对齐;同时也清掉 device 卡死、
