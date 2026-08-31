@@ -70,6 +70,8 @@ param(
     [string]$SyncLogPath = 'E:\recording_qc\neurologger_sync_log.csv',
     [int]$RealertHours = 1,
     [string[]]$ReminderTimes = @('05:40', '17:40'),
+    [string]$BleLogPath = 'C:\Users\Cornell\AppData\Local\CE32_console\ble_messages.csv',
+    [int]$ConnectedFreshMinutes = 10,
     [switch]$DryRun,
     [switch]$TestSlack,
     [switch]$SelfTest
@@ -227,6 +229,44 @@ function Get-FleetStatus($rows, $roster, [datetime]$now, [int]$staleMin, [double
     return [pscustomobject]@{ Missing = $missing; BattLow = $battLow; BattCritical = $battCritical; StorHigh = $storHigh; Detail = $detail }
 }
 
+# Decode a 10-byte 0xAF connected-status heartbeat payload (validated 1:1 against
+# the console GUI 2026-08-31): bytes 0-3 = recording elapsed seconds (LE u32),
+# bytes 4-5 = battery raw (LE u16; volts = raw * 2.0142e-4, calibrated raw 20256
+# <-> 4.08 V), bytes 6-9 = storage used in 512-byte sectors (LE u32).
+# Needed because FM63 firmware (2026-08-31) stopped updating advertisement telemetry
+# during recording - while CONNECTED the 0xAF heartbeats are the only live telemetry.
+function ConvertFrom-AfPayload([string]$hex) {
+    if (-not $hex -or $hex.Length -lt 20) { return $null }
+    $b = for ($i = 0; $i -lt 20; $i += 2) { [Convert]::ToInt32($hex.Substring($i, 2), 16) }
+    [pscustomobject]@{
+        RecSeconds = $b[0] + ($b[1] * 256) + ($b[2] * 65536) + ($b[3] * 16777216)
+        Volts      = [math]::Round(($b[4] + ($b[5] * 256)) * 2.0142e-4, 3)
+        UsedMB     = [math]::Round(($b[6] + ($b[7] * 256) + ($b[8] * 65536) + ($b[9] * 16777216)) * 512.0 / 1MB, 1)
+    }
+}
+
+# Latest fresh 0xAF telemetry per canonical device id from the console's BLE
+# message log (tail read only - the file is large and append-only per session).
+function Get-ConnectedTelemetry([string]$logPath, [datetime]$now, [int]$freshMin) {
+    $out = @{}
+    if (-not (Test-Path -LiteralPath $logPath)) { return $out }
+    try { $tail = Get-Content -LiteralPath $logPath -Tail 900 -ErrorAction Stop } catch { return $out }
+    foreach ($line in $tail) {
+        $p = $line -split ','
+        if ($p.Count -lt 6 -or $p[3] -ne '0xAF') { continue }
+        $dec = ConvertFrom-AfPayload $p[5]
+        if (-not $dec) { continue }
+        $ts = $null
+        try { $ts = ([datetimeoffset]::Parse($p[0], [Globalization.CultureInfo]::InvariantCulture)).LocalDateTime } catch { continue }
+        if (($now - $ts).TotalMinutes -gt $freshMin) { continue }
+        $cid = Get-CanonicalDeviceId $p[2]
+        if (-not $out.ContainsKey($cid) -or $ts -gt $out[$cid].Seen) {
+            $out[$cid] = [pscustomobject]@{ Seen = $ts; Volts = $dec.Volts; UsedMB = $dec.UsedMB; RecSeconds = $dec.RecSeconds }
+        }
+    }
+    return $out
+}
+
 # Which reminder slot (HH:mm) is due: within windowMin after the slot time and not
 # already sent today (sentMap: slot -> 'yyyy-MM-dd'). Returns the slot or $null.
 function Get-DueReminderSlot([datetime]$now, [string[]]$slots, $sentMap, [int]$windowMin = 30) {
@@ -276,6 +316,10 @@ if ($SelfTest) {
     Say ("SelfTest battery warn: [{0}] expected [SF04,SF06] -> {1}" -f $gotBatt, $(if ($okBatt) { 'PASS' } else { 'FAIL' }))
     Say ("SelfTest battery CRIT: [{0}] expected [SF06] -> {1}" -f ($s.BattCritical -join ','), $(if ($okCrit) { 'PASS' } else { 'FAIL' }))
     Say ("SelfTest storage: [{0}] -> {1}" -f ($s.StorHigh -join ','), $(if ($okStor) { 'PASS' } else { 'FAIL' }))
+    # 0xAF heartbeat decode: validated pair from the console GUI 2026-08-31
+    $af = ConvertFrom-AfPayload '13050000204F3EB96400'
+    $okAf = $af -and ($af.RecSeconds -eq 1299) -and ([math]::Abs($af.Volts - 4.08) -lt 0.005) -and ([math]::Abs($af.UsedMB - 3223.2) -lt 1.0)
+    Say ("SelfTest 0xAF decode: rec={0}s V={1} MB={2} -> {3}" -f $af.RecSeconds, $af.Volts, $af.UsedMB, $(if ($okAf) { 'PASS' } else { 'FAIL' }))
     # canonical-id matching: MAC form is byte-reversed relative to the CE64X_ hex form
     $c1 = Get-CanonicalDeviceId 'CE64X_1DFE7F77721C'
     $c2 = Get-CanonicalDeviceId 'WILD device 1C:72:77:7F:FE:1D'
@@ -294,7 +338,7 @@ if ($SelfTest) {
     $r5 = Get-DueReminderSlot ([datetime]'2026-08-30 05:45') $rt @{ '05:40' = '2026-08-29' }  # new day -> due again
     $okRem = ($r1 -eq '05:40') -and ($null -eq $r2) -and ($null -eq $r3) -and ($r4 -eq '17:40') -and ($r5 -eq '05:40')
     Say ("SelfTest reminders: due/sent/late/evening/next-day -> {0}" -f $(if ($okRem) { 'PASS' } else { "FAIL [$r1|$r2|$r3|$r4|$r5]" }))
-    $ok = $okMissing -and $okBatt -and $okCrit -and $okStor -and $okGrace -and $okRem -and $okCanon -and $okCanonMatch
+    $ok = $okMissing -and $okBatt -and $okCrit -and $okStor -and $okGrace -and $okRem -and $okCanon -and $okCanonMatch -and $okAf
     Say ("SelfTest: {0}" -f $(if ($ok) { 'PASS' } else { 'FAIL' })) $(if ($ok) { 'Green' } else { 'Red' })
     exit $(if ($ok) { 0 } else { 2 })
 }
@@ -423,6 +467,26 @@ if ($null -eq $rows -or $rows.Count -eq 0) {
     Say 'CSV content unreadable/empty this run (rewrite collision) - skipping.' Yellow
     Save-State; Log-Line 'CSV read collision (transient)' 'skip' $false
     exit 0
+}
+
+# --- connected-telemetry fallback: advertisement telemetry is frozen during
+# recording (FM63 firmware 2026-08-31), so for any snapshot row with an empty
+# battery field, fill battery / recording-elapsed from fresh 0xAF heartbeats of a
+# live console CONNECTION. Restores battery warn/critical paging + history rows
+# for whichever logger the operator keeps connected. ---
+$connTel = Get-ConnectedTelemetry $BleLogPath $now $ConnectedFreshMinutes
+$connUsed = @()
+if ($connTel.Count -gt 0) {
+    foreach ($r in $rows) {
+        if ($r.battery_voltage_volts) { continue }
+        $cid = Get-CanonicalDeviceId $r.device_name
+        if ($connTel.ContainsKey($cid)) {
+            $r.battery_voltage_volts = '{0:F2}' -f $connTel[$cid].Volts
+            $r.recording_elapsed_seconds = [string]$connTel[$cid].RecSeconds
+            $connUsed += $cid
+        }
+    }
+    if ($connUsed.Count) { Say ("connected-telemetry fill (0xAF): {0}" -f ($connUsed -join ', ')) Cyan }
 }
 
 # --- last-known sightings from our own telemetry history (console-restart grace) ---
