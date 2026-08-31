@@ -63,6 +63,11 @@ param(
     [string]$StatePath = 'E:\recording_qc\neurologger_alive_state.json',
     [string]$LogPath = 'E:\recording_qc\neurologger_alive_log.txt',
     [string]$HistoryPath = 'E:\recording_qc\neurologger_telemetry_history.csv',
+    # wild_console's own per-exchange sync log (rtc_diff_s = the "dev=" value shown in
+    # the UI; sync_live rows = the live PC-time anchors). Harvested each run into
+    # SyncLogPath so battery-round dev values are recorded without human transcription.
+    [string]$SyncResultsPath = 'C:\Users\Cornell\AppData\Local\CE32_console\sync_results.csv',
+    [string]$SyncLogPath = 'E:\recording_qc\neurologger_sync_log.csv',
     [int]$RealertHours = 1,
     [string[]]$ReminderTimes = @('05:40', '17:40'),
     [switch]$DryRun,
@@ -507,6 +512,36 @@ if (-not $DryRun) {
         }
     }
     if ($hist) { Add-Content -LiteralPath $HistoryPath -Encoding UTF8 -Value $hist }
+
+    # --- sync-anchor harvest: mirror new rows from the console's sync_results.csv into
+    # a permanent log. sync_meas_0x8C rows carry rtc_diff_s (the dev= value); the
+    # sync_live_0x8F rows are the live PC-time anchors (delay + computed offset).
+    # Dedup key: utc_iso+device+type. Never lets a parse problem break the watchdog.
+    try {
+        if (Test-Path -LiteralPath $SyncResultsPath) {
+            if (-not (Test-Path -LiteralPath $SyncLogPath)) {
+                Set-Content -LiteralPath $SyncLogPath -Encoding UTF8 -Value 'utc_iso,device,label,record_type,rtc_diff_s,delay_s,computed_offset_s'
+            }
+            $seenKeys = @{}
+            foreach ($line in (Get-Content -LiteralPath $SyncLogPath -Tail 600)) {
+                $p = $line -split ','
+                if ($p.Count -ge 4) { $seenKeys[($p[0] + '|' + $p[1] + '|' + $p[3])] = $true }
+            }
+            $newRows = foreach ($line in (Get-Content -LiteralPath $SyncResultsPath -Tail 400)) {
+                $f = $line -split ','
+                if ($f.Count -lt 11 -or $f[4] -notin @('sync_meas_0x8C', 'sync_live_0x8F')) { continue }
+                $key = ($f[0] + '|' + $f[2] + '|' + $f[4])
+                if ($seenKeys.ContainsKey($key)) { continue }
+                $seenKeys[$key] = $true
+                $cid = Get-CanonicalDeviceId $f[2]
+                $label = ''
+                foreach ($dev in $Roster.Keys) { if ((Get-CanonicalDeviceId $dev) -eq $cid) { $label = ($Roster[$dev] -replace ',', ' '); break } }
+                $off = if ($f.Count -ge 22) { $f[21] } else { '' }
+                '{0},{1},{2},{3},{4},{5},{6}' -f $f[0], $f[2], $label, $f[4], $f[10], $f[9], $off
+            }
+            if ($newRows) { Add-Content -LiteralPath $SyncLogPath -Encoding UTF8 -Value $newRows }
+        }
+    } catch { Say "sync-anchor harvest skipped: $($_.Exception.Message)" Yellow }
 
     Save-State
     Log-Line $status $action $sent
