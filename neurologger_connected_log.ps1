@@ -35,6 +35,7 @@ param(
     [int]$FreshMinutes  = 10,
     [int]$TailLines     = 1500,
     [double]$KneeVolts  = 3.50,
+    [string]$StatePath  = 'E:\recording_qc\neurologger_connected_state.json',
     [switch]$DryRun,
     [switch]$SelfTest
 )
@@ -166,4 +167,38 @@ if ($missing) { $statusLines += ''; $statusLines += "NOT CONNECTED (no fresh hea
 
 if (-not $DryRun) { Set-Content -LiteralPath $StatusPath -Encoding ASCII -Value ($statusLines -join "`r`n") }
 $statusLines | ForEach-Object { Write-Host $_ }
+
+# ---- disconnect alert (transition-based; the alive-check may be muted in the
+# everyone-connected regime, so this is the pager for dropped connections) --------
+$nowLabels = @($latest.Keys | ForEach-Object { if ($labels.ContainsKey($_)) { ($labels[$_] -split ' ')[0] } else { $_ } } | Sort-Object)
+$prev = @()
+if (Test-Path -LiteralPath $StatePath) {
+    try { $prev = @((Get-Content -LiteralPath $StatePath -Raw | ConvertFrom-Json).connected) } catch { }
+}
+$dropped = @($prev | Where-Object { $nowLabels -notcontains $_ })
+$joined  = @($nowLabels | Where-Object { $prev -notcontains $_ })
+if (-not $DryRun) {
+    if ($dropped.Count -gt 0 -or $joined.Count -gt 0) {
+        $tok = $null; $ch = @()
+        try { $c2 = Import-PowerShellDataFile -LiteralPath $ConfigPath; $tok = $c2.SlackBotToken; $ch = @($c2.SlackChannels) } catch { }
+        if ($tok -and $ch.Count) {
+            $parts = @()
+            if ($dropped.Count) { $parts += (":warning: logger BLE connection DROPPED: {0} - reconnect in wild_console (keep-connected mode, no advertisement telemetry)" -f ($dropped -join ', ')) }
+            if ($joined.Count -and $prev.Count) { $parts += (":white_check_mark: reconnected: {0}" -f ($joined -join ', ')) }
+            $body = $parts -join "`n"
+            foreach ($d in $ch) {
+                $cid = $d
+                try {
+                    if ($d -match '^[UW]') {
+                        $r = Invoke-RestMethod -Uri 'https://slack.com/api/conversations.open' -Method Post -Headers @{ Authorization = "Bearer $tok" } -ContentType 'application/json; charset=utf-8' -Body (@{ users = $d } | ConvertTo-Json)
+                        if (-not $r.ok) { continue }
+                        $cid = $r.channel.id
+                    }
+                    [void](Invoke-RestMethod -Uri 'https://slack.com/api/chat.postMessage' -Method Post -Headers @{ Authorization = "Bearer $tok" } -ContentType 'application/json; charset=utf-8' -Body (@{ channel = $cid; text = $body } | ConvertTo-Json))
+                } catch { }
+            }
+        }
+    }
+    (@{ connected = $nowLabels; ts = $now.ToString('o') } | ConvertTo-Json) | Set-Content -LiteralPath $StatePath -Encoding UTF8
+}
 exit 0
