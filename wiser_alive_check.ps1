@@ -30,6 +30,12 @@
 [CmdletBinding()]
 param(
     [string]$DbPath = 'D:\Wiser\data\3rdcohort_Spike_2026_3.sqlite',
+    # wiserex creates a NEW .sqlite on every session restart (three rolls observed
+    # 2026-09-01 alone). -FollowNewest watches whichever .sqlite in the DbPath
+    # directory was written most recently, so the watchdog never goes stale on a
+    # roll (the fixed-path backup/plot tasks still need re-registering per roll -
+    # the name-change info line in the log is the cue).
+    [switch]$FollowNewest,
     [int]$StaleMinutes = 30,
     [string]$ProcessName = 'wiserex',
     [string]$ConfigPath = 'E:\recording_qc\overexposure.config.psd1',
@@ -119,6 +125,11 @@ if ($TestSlack) {
 
 # --- gather facts (METADATA ONLY - never open files under the live data dir) ------
 $procRunning = [bool](Get-Process -Name $ProcessName -ErrorAction SilentlyContinue)
+if ($FollowNewest) {
+    $newestNow = Get-ChildItem -LiteralPath (Split-Path $DbPath -Parent) -Filter '*.sqlite' -ErrorAction SilentlyContinue |
+        Sort-Object LastWriteTime | Select-Object -Last 1
+    if ($newestNow) { $DbPath = $newestNow.FullName }
+}
 $dbItem = Get-Item -LiteralPath $DbPath -ErrorAction SilentlyContinue
 $dbExists = [bool]$dbItem
 $dbAgeMin = $null

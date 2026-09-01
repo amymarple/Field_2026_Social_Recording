@@ -21,6 +21,7 @@ param(
     [string]$TaskName = 'Field WISER Alive Check',
     [string]$ScriptPath,
     [string]$DbPath = 'D:\Wiser\data\3rdcohort_Spike_2026_3.sqlite',
+    [switch]$FollowNewest,   # watch whichever .sqlite in the DbPath dir is newest (survives wiserex file rolls)
     [int]$StaleMinutes = 30,
     [switch]$RunNow
 )
@@ -35,10 +36,12 @@ if (-not (Test-Path -LiteralPath $ScriptPath)) { throw "Worker script not found:
 $admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
 if (-not $admin) { Write-Host 'NOT ELEVATED. Re-open PowerShell as Administrator and run again.' -ForegroundColor Red; exit 1 }
 
-$arg = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden',
+$argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden',
          '-File', ('"{0}"' -f $ScriptPath),
          '-DbPath', ('"{0}"' -f $DbPath),
-         '-StaleMinutes', $StaleMinutes) -join ' '
+         '-StaleMinutes', $StaleMinutes)
+if ($FollowNewest) { $argList += '-FollowNewest' }
+$arg = $argList -join ' '
 
 $action  = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument $arg
 $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).Date `
