@@ -178,7 +178,10 @@ if (Test-Path -LiteralPath $StatePath) {
 $dropped = @($prev | Where-Object { $nowLabels -notcontains $_ })
 $joined  = @($nowLabels | Where-Object { $prev -notcontains $_ })
 if (-not $DryRun) {
-    if ($dropped.Count -gt 0 -or $joined.Count -gt 0) {
+    # One mute switch for ALL logger paging: the alive-check's mute file also
+    # silences these drop/reconnect alerts (telemetry logging continues regardless).
+    $muted = Test-Path -LiteralPath 'E:\recording_qc\neurologger_alive_MUTED.txt'
+    if (-not $muted -and ($dropped.Count -gt 0 -or $joined.Count -gt 0)) {
         $tok = $null; $ch = @()
         try { $c2 = Import-PowerShellDataFile -LiteralPath $ConfigPath; $tok = $c2.SlackBotToken; $ch = @($c2.SlackChannels) } catch { }
         if ($tok -and $ch.Count) {
