@@ -36,14 +36,21 @@ param(
     [int]$TailLines     = 1500,
     [double]$KneeVolts  = 3.50,
     [string]$StatePath  = 'E:\recording_qc\neurologger_connected_state.json',
+    # Slack pages on connection drop/reconnect. Default OFF since 2026-09-02: the
+    # cohort switched from keep-connected to touch-at-rounds, so every intentional
+    # disconnect fired a useless DROPPED page 10 min later. Re-enable by adding
+    # -DropAlerts to the task args if a keep-connected regime ever returns.
+    [switch]$DropAlerts,
     [switch]$DryRun,
     [switch]$SelfTest
 )
 
 $ErrorActionPreference = 'Stop'
 
-# cohort-3 card sizes (GB); override per cohort by editing here
-$CardGB = @{ 'SF07' = 512; 'SF08' = 512; 'SF09' = 512; 'SF10' = 128; 'SF11' = 128; 'SF12' = 128 }
+# cohort-3 card sizes (GB) - last confirmed mapping 2026-09-01 (3x125 + 3x512).
+# NB: cards get shuffled at offloads; only the physical read-off is authoritative -
+# update here when the mapping changes, it only affects the hours-to-full ETA.
+$CardGB = @{ 'SF07' = 125; 'SF08' = 512; 'SF09' = 512; 'SF10' = 125; 'SF11' = 512; 'SF12' = 125 }
 
 function Get-CanonicalDeviceId([string]$name) {
     if (-not $name) { return $null }
@@ -181,7 +188,7 @@ if (-not $DryRun) {
     # One mute switch for ALL logger paging: the alive-check's mute file also
     # silences these drop/reconnect alerts (telemetry logging continues regardless).
     $muted = Test-Path -LiteralPath 'E:\recording_qc\neurologger_alive_MUTED.txt'
-    if (-not $muted -and ($dropped.Count -gt 0 -or $joined.Count -gt 0)) {
+    if ($DropAlerts -and -not $muted -and ($dropped.Count -gt 0 -or $joined.Count -gt 0)) {
         $tok = $null; $ch = @()
         try { $c2 = Import-PowerShellDataFile -LiteralPath $ConfigPath; $tok = $c2.SlackBotToken; $ch = @($c2.SlackChannels) } catch { }
         if ($tok -and $ch.Count) {
