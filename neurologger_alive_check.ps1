@@ -541,7 +541,7 @@ if (-not $DryRun) {
     $battNow = @(); foreach ($b in $fs.BattLow) { $battNow += ($b -split ' ')[0] }
     $newBatt = @($fs.BattLow | Where-Object { $state.battWarned -notcontains (($_ -split ' ')[0]) })
     if ($newBatt.Count -gt 0 -and $Slack.Token -and $Slack.Channels.Count) {
-        [void](Send-SlackText $Slack.Token $Slack.Channels (":battery: Neurologger low battery (warn < {0:F2} V): {1}. At ~4 mV/h that is roughly a day to the discharge knee - plan the swap." -f $BatteryWarnVolts, ($newBatt -join '; ')))
+        [void](Send-SlackText $Slack.Token $Slack.Channels (":battery: Neurologger low battery (warn < {0:F2} V): {1}. At cohort-3 recording load (~60-75 mV/h) the 3.50 V knee is ~1.5-2 h away - plan the swap." -f $BatteryWarnVolts, ($newBatt -join '; ')))
     }
     $state.battWarned = $battNow
 
