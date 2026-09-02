@@ -20,8 +20,12 @@
                              (default 60 - matches the Notion Daily Checks rule
                              "missing >= 1 hour -> be alert").
 .PARAMETER FeedStaleMinutes  Page when the CSV itself has not been rewritten for
-                             this long (default 15): wild_console is closed or its
-                             BLE scan stopped, so logger status is unknown.
+                             this long (default 30): wild_console is closed or its
+                             BLE scan stopped, so logger status is unknown. NB: on a
+                             single-radio host an in-progress GATT connection (or a
+                             connection ATTEMPT to an out-of-range logger) suspends the
+                             advertisement scan and freezes this file for minutes -
+                             hence 30, not 15, to avoid false pages during handling.
 .PARAMETER BatteryWarnVolts  One-shot warning below this voltage (default 3.60).
 .PARAMETER BatteryCriticalVolts  One-shot CRITICAL page below this voltage (default
                              3.50 - the LiPo discharge knee; below it the cell drops
@@ -55,7 +59,7 @@
 param(
     [string]$CsvPath = 'C:\Users\Cornell\AppData\Local\CE32_console\discovered_devices.csv',
     [int]$StaleMinutes = 60,
-    [int]$FeedStaleMinutes = 15,
+    [int]$FeedStaleMinutes = 30,
     [double]$BatteryWarnVolts = 3.60,
     [double]$BatteryCriticalVolts = 3.50,
     [int]$StorageWarnPercent = 90,
@@ -438,7 +442,7 @@ if (-not $csvPresent) {
         exit 0
     }
     $feedAgeMin = [math]::Round(($now - $fresh).TotalMinutes, 1)
-    if ($feedAgeMin -gt $FeedStaleMinutes) { $feedProblem = "discovered_devices.csv not updated for $feedAgeMin min (wild_console closed or BLE scan stopped?)" }
+    if ($feedAgeMin -gt $FeedStaleMinutes) { $feedProblem = "discovered_devices.csv not updated for $feedAgeMin min (wild_console closed, BLE scan stopped, or a GATT connection/attempt is holding the single radio?)" }
 }
 if ($feedProblem) {
     Say "FEED: $feedProblem" Red
