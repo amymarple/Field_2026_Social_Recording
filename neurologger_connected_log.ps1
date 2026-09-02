@@ -47,10 +47,10 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-# cohort-3 card sizes (GB) - last confirmed mapping 2026-09-01 (3x125 + 3x512).
+# cohort-3 card sizes (GB) - ALL 512 since the 9/1 evening round (operator).
 # NB: cards get shuffled at offloads; only the physical read-off is authoritative -
 # update here when the mapping changes, it only affects the hours-to-full ETA.
-$CardGB = @{ 'SF07' = 125; 'SF08' = 512; 'SF09' = 512; 'SF10' = 125; 'SF11' = 512; 'SF12' = 125 }
+$CardGB = @{ 'SF07' = 512; 'SF08' = 512; 'SF09' = 512; 'SF10' = 512; 'SF11' = 512; 'SF12' = 512 }
 
 function Get-CanonicalDeviceId([string]$name) {
     if (-not $name) { return $null }
