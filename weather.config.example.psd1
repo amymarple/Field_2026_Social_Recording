@@ -17,4 +17,9 @@
     # Filename prefix - keep it equal to the station id used by the cloud exports
     # (AWN-<console MAC>) so local and cloud files sort together.
     StationLabel = 'AWN-F8B3B78DEAC9'
+
+    # The router-LAN adapter the console can reach. The installer opens the port on
+    # THIS interface only, so the camera and WISER jacks (which share the same
+    # 192.168.1.0/24 numbering) never expose it.
+    LanInterfaceAlias = 'Ethernet'
 }

@@ -34,21 +34,26 @@ if (-not (Test-Path -LiteralPath $ScriptPath)) { throw "Worker script not found:
 $admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
 if (-not $admin) { Write-Host 'NOT ELEVATED. Re-open PowerShell as Administrator and run again.' -ForegroundColor Red; exit 1 }
 
-# port from the config if there is one (defaults mirror weather_listener.ps1)
+# port + LAN interface from the config if there is one (defaults mirror weather_listener.ps1)
 $port = 8085
+$lanAlias = 'Ethernet'      # the router-LAN port the console can reach; NOT the camera/WISER I350 jacks
 if (Test-Path -LiteralPath $ConfigPath) {
     $c = Import-PowerShellDataFile -Path $ConfigPath
     if ($c.Port) { $port = [int]$c.Port }
+    if ($c.LanInterfaceAlias) { $lanAlias = [string]$c.LanInterfaceAlias }
 } else {
-    Write-Host "No config at $ConfigPath - using built-in defaults (port $port, D:\weather_data\local). Copy weather.config.example.psd1 there to change them." -ForegroundColor Yellow
+    Write-Host "No config at $ConfigPath - using built-in defaults (port $port, D:\weather_data\local, interface '$lanAlias'). Copy weather.config.example.psd1 there to change them." -ForegroundColor Yellow
 }
+if (-not (Get-NetAdapter -Name $lanAlias -ErrorAction SilentlyContinue)) { throw "No network adapter named '$lanAlias' - set LanInterfaceAlias in the config to the router-LAN port" }
 
-# firewall: inbound TCP on the port, local subnet only
+# firewall: inbound TCP on the port, local subnet only, and ONLY on the router-LAN
+# interface - the camera and WISER jacks (same 192.168.1.0/24) stay closed.
 $ruleName = "Field Weather Listener (TCP $port)"
 Get-NetFirewallRule -DisplayName 'Field Weather Listener*' -ErrorAction SilentlyContinue | Remove-NetFirewallRule
 New-NetFirewallRule -DisplayName $ruleName -Direction Inbound -Action Allow -Protocol TCP -LocalPort $port `
-    -RemoteAddress LocalSubnet -Profile Any -Description 'Ambient Weather console -> local weather_listener.ps1' | Out-Null
-Write-Host ("Firewall rule added: {0} (local subnet only)" -f $ruleName) -ForegroundColor Green
+    -RemoteAddress LocalSubnet -InterfaceAlias $lanAlias -Profile Any `
+    -Description 'Ambient Weather console -> local weather_listener.ps1 (router-LAN interface only)' | Out-Null
+Write-Host ("Firewall rule added: {0} (local subnet, interface '{1}' only)" -f $ruleName, $lanAlias) -ForegroundColor Green
 
 $arg = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden',
          '-File', ('"{0}"' -f $ScriptPath), '-ConfigPath', ('"{0}"' -f $ConfigPath)) -join ' '

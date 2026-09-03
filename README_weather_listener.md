@@ -39,8 +39,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File install_weather_listener_tas
 
 The installer registers the SYSTEM task **Field Weather Listener** (at startup +
 5-minute self-heal, no time limit) and adds an inbound firewall rule for TCP 8085
-restricted to the local subnet. Optional config: copy `weather.config.example.psd1`
-to `D:\weather_data\weather.config.psd1` (port, path, root, station label).
+restricted to the local subnet **and to the router-LAN adapter only** (`Ethernet`).
+The field PC has three interfaces numbered inside 192.168.1.0/24 (router LAN `.159`,
+camera jack `.20`, WISER jack `.10`); the console lives on the router LAN, so the
+camera and WISER segments never see the listener's port. Verified 2026-09-03: no
+device on either of those segments answers as `.159`. Optional config: copy
+`weather.config.example.psd1` to `D:\weather_data\weather.config.psd1` (port, path,
+root, station label, LAN interface alias).
 
 ## Point the console at the PC
 
