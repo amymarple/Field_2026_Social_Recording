@@ -92,6 +92,11 @@ elevated PowerShell):
 - `thermal_record.ps1` — EmpireTech cameras 108/109 (thermal + visual streams) → `E:\thermal_record`.
 - `failover_recorder.ps1` — dormant watchdog; if `E:` becomes unwritable it stops the primary task
   and records to `D:` (config/ffmpeg/Slack creds mirrored to `D:` by its installer). Failback is manual.
+- `weather_listener.ps1` — HTTP endpoint the Ambient Weather console posts to ("Customized upload",
+  Ecowitt or Wunderground protocol) → daily CSVs in the ambientweather.net export schema under
+  `D:\weather_data\local` (+ raw JSONL). Task "Field Weather Listener", port 8085, local subnet
+  only. Exists because the cloud never backfills a console outage (18 h lost 2026-09-02).
+  `README_weather_listener.md` has the console settings.
 
 All recorders follow the same pattern: one `ffmpeg -c copy` process per stream (no re-encode),
 hourly fragmented-MP4 segments aligned to the clock, a supervisor loop that restarts dead
