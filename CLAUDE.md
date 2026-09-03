@@ -106,6 +106,10 @@ processes and kills stalled ones (file not growing for ~240 s), and rename-on-cl
 - `overexposure_check.ps1` — hourly frame-exposure check (overexposed / near-black) with Slack alerts.
 - `disk_space_check.ps1` — 50/80/90% full Slack warnings (built but task not installed as of 2026-06-29).
 - `check_recording.ps1` — quick interactive status (is each stream growing right now?).
+- `analyze_minidump.py` — after a BSOD: names the faulting driver/function from
+  `C:\Windows\Minidump\*.dmp` without WinDbg (dbghelp + auto-fetched public PDBs). Copy the
+  dumps out of the admin-only folder first; the 2026-09 crashes were the kernel scheduler
+  (`nt!KiAbProcessPostContextSwitch`), not a USB driver — see `incident_log.md`.
 
 **Data lifecycle**: `copy_day_to_usb.ps1` (day → USB, save log) → `delete_day.ps1` (save-checked
 delete); `copy_to_analysis.ps1` (robocopy everything to the analysis machine, copy-only flags
