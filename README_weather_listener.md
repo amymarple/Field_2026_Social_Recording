@@ -7,7 +7,7 @@ reading to *any* HTTP address on the LAN ("Customized upload"). This listener is
 that address on the field PC — the cloud stays as a mirror, the local file is the
 record.
 
-**Independence:** own SYSTEM task, own `Global\FieldWeatherListener` mutex, own root.
+**Independence:** own SYSTEM task, own per-port mutex (`Global\FieldWeatherListener_<port>`), own root.
 It writes only under its root (default `D:\weather_data\local`) and never touches
 E: or any recorder.
 
@@ -18,7 +18,7 @@ E: or any recorder.
 | `D:\weather_data\local\AWN-F8B3B78DEAC9_YYYY-MM-DD.csv` | one file per **local** day, the exact 27-column schema of the ambientweather.net exports already in `D:\weather_data` (units: °C, mph, mm, mmHg; `Date` = local ISO with offset, e.g. `2026-09-03T15:20:00-04:00`) |
 | `D:\weather_data\local\raw\AWN-F8B3B78DEAC9_YYYY-MM-DD.jsonl` | every packet verbatim, every field the console sent (lossless) |
 | `D:\weather_data\local\weather_listener_state.json` | heartbeat: last packet time, packets today, errors |
-| `D:\weather_data\local\logs\weather_listener.log` | start/stop, one line per 60 packets, ignored requests, errors |
+| `D:\weather_data\local\logs\weather_listener.log` | start/stop, every 60th packet, ignored requests, errors |
 
 The analysis loader (`wiser_analysis_utils.load_weather` / `load_weather_multi`) reads
 the local files exactly like the cloud exports; `load_weather_multi` de-duplicates on
@@ -26,8 +26,9 @@ UTC timestamp, so overlapping cloud + local files are safe to pass together.
 
 Columns the console does not send are computed the way the cloud does it: dew point
 (Magnus), feels-like (NOAA heat index ≥ 80 °F, wind chill ≤ 50 °F & wind > 3 mph,
-else air temperature). Battery columns follow the export convention `1 = OK`
-(the Ecowitt packet uses `0 = OK`, the listener flips it).
+else air temperature). Battery columns follow the export convention `1 = OK`: the
+Ambient-protocol keys `battout`/`battin` already mean `1 = OK` and pass through; the
+Ecowitt keys `wh65batt`/`wh25batt`… use `0 = OK` and are flipped.
 
 ## Install (once, elevated PowerShell)
 
@@ -54,7 +55,7 @@ app → device → *Customized*): **Customized upload → Enable**
 
 | setting | value |
 |---|---|
-| Protocol | **Ecowitt** (Wunderground also works — the listener accepts both) |
+| Protocol | **Ambient** (what the console runs today), **Ecowitt** or **Wunderground** — the listener accepts all three. Note the Ambient protocol's URLs (`/data/report/&PASSKEY=…`) are rejected by Windows HTTP.sys, which is why the listener is a plain TCP socket with its own parser. |
 | Server IP / hostname | `192.168.1.159` (the field PC's LAN address — the Realtek "Ethernet" port) |
 | Path | `/data/report/` |
 | Port | `8085` |

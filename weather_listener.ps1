@@ -4,9 +4,9 @@
 
 .DESCRIPTION
     The AMBWeatherPro console can push every reading to ANY http address via its
-    "Customized upload" setting (Ecowitt protocol = HTTP POST, form-encoded; the
-    Wunderground protocol = HTTP GET with a query string). This script is that
-    address: a tiny HttpListener on the field PC that accepts both protocols and
+    "Customized upload" setting (Ambient / Wunderground protocol = HTTP GET with a
+    query string; Ecowitt protocol = HTTP POST, form-encoded). This script is that
+    address: a small raw-socket HTTP server on the field PC that accepts all three and
     appends each packet to a daily CSV using the SAME 27-column schema as the
     ambientweather.net export files already in D:\weather_data, so the analysis
     loader (wiser_analysis_utils.load_weather) reads local and cloud files alike.
