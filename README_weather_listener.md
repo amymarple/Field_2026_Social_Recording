@@ -58,7 +58,7 @@ app → device → *Customized*): **Customized upload → Enable**
 | Server IP / hostname | `192.168.1.159` (the field PC's LAN address — the Realtek "Ethernet" port) |
 | Path | `/data/report/` |
 | Port | `8085` |
-| Upload interval | `60` s (16 s minimum; 60 matches the cloud's 5-minute export well enough and keeps the files small) |
+| Upload interval | `300` s (= the cloud's own 5-minute cadence, so local and cloud rows line up; 16 s minimum if you ever want finer) |
 
 Save, wait one interval, then verify from any PowerShell:
 
@@ -66,7 +66,7 @@ Save, wait one interval, then verify from any PowerShell:
 powershell -NoProfile -ExecutionPolicy Bypass -File weather_listener.ps1 -Status
 ```
 
-`OK: last packet … (0.4 min ago)` = done. Exit codes: 0 fresh, 1 stale (> 10 min),
+`OK: last packet … (0.4 min ago)` = done. Exit codes: 0 fresh, 1 stale (> 15 min = three missed uploads),
 2 nothing received yet (check the console settings / firewall / that the PC's LAN
 address is still `192.168.1.159`).
 

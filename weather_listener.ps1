@@ -33,7 +33,7 @@
 
 .PARAMETER Status
     Print the last packet age from the state file. Exit 0 fresh, 1 stale
-    (> -StaleMinutes), 2 never received / no state.
+    (> -StaleMinutes, default 15 = three missed 5-minute uploads), 2 never received / no state.
 
 .EXAMPLE
     powershell -NoProfile -ExecutionPolicy Bypass -File weather_listener.ps1 -SelfTest
@@ -50,7 +50,7 @@ param(
     [string]$ConfigPath = 'D:\weather_data\weather.config.psd1',
     [switch]$SelfTest,
     [switch]$Status,
-    [int]$StaleMinutes = 10
+    [int]$StaleMinutes = 15
 )
 
 $ErrorActionPreference = 'Stop'
