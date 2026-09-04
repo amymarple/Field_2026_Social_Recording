@@ -40,7 +40,8 @@
     powershell -NoProfile -ExecutionPolicy Bypass -File weather_listener.ps1 -Status
 
 .NOTES
-    Binding http://+:PORT/ needs admin or SYSTEM - it is meant to run as the
+    Plain TCP socket with its own tolerant HTTP parser (NOT HttpListener/HTTP.sys,
+    which rejects the console's "Ambient" protocol URLs with 400). Meant to run as the
     "Field Weather Listener" SYSTEM task (install_weather_listener_task_system.ps1),
     which also opens the firewall port for the local subnet only.
 #>
@@ -107,6 +108,18 @@ function Parse-Form([string]$text) {
     return $h
 }
 
+function Split-Target([string]$target) {
+    # request target -> query part. Normal: '/path?a=1&b=2'. The console's "Ambient"
+    # protocol sends '/data/report/&PASSKEY=..&tempf=..' (no '?'), so fall back to
+    # the first '&'. A bare path returns ''.
+    if (-not $target) { return '' }
+    $q = $target.IndexOf('?')
+    if ($q -ge 0) { return $target.Substring($q + 1) }
+    $a = $target.IndexOf('&')
+    if ($a -ge 0) { return $target.Substring($a + 1) }
+    return ''
+}
+
 function Get-Num($h, [string[]]$keys) {
     foreach ($k in $keys) {
         if ($h.Contains($k) -and $h[$k] -ne '' -and $h[$k] -ne $null) {
@@ -171,9 +184,13 @@ function Convert-PacketToRow($h) {
     $dewC   = Get-Num $h @('dewptf'); if ($dewC -ne $null) { $dewC = FtoC $dewC } else { $dewC = Get-DewPointC $tC $rh }
     $relIn  = Get-Num $h @('baromrelin', 'baromin')
     $absIn  = Get-Num $h @('baromabsin')
-    # batteries: Ecowitt sends 0 = OK / 1 = low; the AWN export shows 1 = OK. Flip to match.
-    $battOut = Get-Num $h @('wh65batt', 'battout', 'wh68batt', 'wh80batt', 'wh90batt')
-    $battIn  = Get-Num $h @('wh25batt', 'wh26batt', 'battin')
+    # batteries: the AWN export convention is 1 = OK. The Ecowitt-named keys (wh65batt...)
+    # use 0 = OK / 1 = low -> flip them; the Ambient-named keys (battout/battin, what
+    # this console's "Ambient" protocol sends) already use 1 = OK -> pass through.
+    $battOut = Get-Num $h @('battout')
+    if ($battOut -eq $null) { $v = Get-Num $h @('wh65batt', 'wh68batt', 'wh80batt', 'wh90batt'); if ($v -ne $null) { $battOut = 1 - $v } }
+    $battIn  = Get-Num $h @('battin')
+    if ($battIn -eq $null)  { $v = Get-Num $h @('wh25batt', 'wh26batt'); if ($v -ne $null) { $battIn = 1 - $v } }
     $mm = 25.4
 
     $row = [ordered]@{}
@@ -199,9 +216,9 @@ function Convert-PacketToRow($h) {
     $row['Indoor Temperature (°C)']           = R1 $tInC
     $row['Indoor Humidity (%)']               = R0 $rhIn
     $row['Avg Wind Direction (10 mins) (°)']  = R0 (Get-Num $h @('winddir_avg10m', 'winddir'))
-    $row['Outdoor Battery']                   = $(if ($battOut -ne $null) { R0 (1 - $battOut) } else { '' })
+    $row['Outdoor Battery']                   = R0 $battOut
     $row['Absolute Pressure (mmHg)']          = R1 ($(if ($absIn -ne $null) { $absIn * $mm } else { $null }))
-    $row['Indoor Battery']                    = $(if ($battIn -ne $null) { R0 (1 - $battIn) } else { '' })
+    $row['Indoor Battery']                    = R0 $battIn
     $row['Indoor Feels Like (°C)']            = R1 (Get-FeelsLikeC $tInF $rhIn 0)
     $row['Indoor Dew Point (°C)']             = R1 (Get-DewPointC $tInC $rhIn)
     return @{ Row = $row; Utc = $utc; Local = $local }
@@ -276,70 +293,115 @@ if ($SelfTest) {
     if ($r2.Row['Indoor Temperature (°C)'] -ne '28.3')    { Write-Host "  FAIL: WU indoortempf 83 -> $($r2.Row['Indoor Temperature (°C)']) (expected 28.3)" -ForegroundColor Red; $ok = $false }
     $jsonl = Get-Content -LiteralPath (Join-Path $t ('raw\TEST_' + $r1.Local.ToString('yyyy-MM-dd') + '.jsonl'))
     if (@($jsonl).Count -lt 1 -or ($jsonl[0] | ConvertFrom-Json).fields.tempf -ne '71.4') { Write-Host '  FAIL: raw jsonl missing/incomplete' -ForegroundColor Red; $ok = $false }
+    # the console's real "Ambient protocol" request line, verbatim from HTTP.sys's reject log (2026-09-04)
+    $amb = '/data/report/&PASSKEY=CB309E1DEB3C6CB6F4B42D333E25C0B8&stationtype=AMBWeatherPro_V5.1.9&dateutc=2026-09-04+04:27:26&tempf=68.4&humidity=98&windspeedmph=0.00&battout=1&tempinf=78.6&humidityin=53&baromrelin=28.857&baromabsin=28.857&battin=1'
+    $af = Parse-Form (Split-Target $amb)
+    if ($af['tempf'] -ne '68.4' -or $af['dateutc'] -ne '2026-09-04 04:27:26' -or $af['baromabsin'] -ne '28.857') { Write-Host "  FAIL: Ambient-style target not parsed (tempf=$($af['tempf']) dateutc=$($af['dateutc']))" -ForegroundColor Red; $ok = $false }
+    $ambRow = (Convert-PacketToRow $af).Row
+    if ($ambRow['Outdoor Battery'] -ne '1' -or $ambRow['Indoor Battery'] -ne '1') { Write-Host "  FAIL: Ambient battout/battin=1 must stay 1 (got $($ambRow['Outdoor Battery'])/$($ambRow['Indoor Battery']))" -ForegroundColor Red; $ok = $false }
+    if ($ambRow['Outdoor Temperature (°C)'] -ne '20.2' -or $ambRow['Relative Pressure (mmHg)'] -ne '733') { Write-Host "  FAIL: Ambient row conversions (T=$($ambRow['Outdoor Temperature (°C)']) P=$($ambRow['Relative Pressure (mmHg)']))" -ForegroundColor Red; $ok = $false }
+    if ((Split-Target '/weatherstation/updateweatherstation.php?ID=x&tempf=1') -ne 'ID=x&tempf=1') { Write-Host '  FAIL: ?-query split' -ForegroundColor Red; $ok = $false }
+    if ((Split-Target '/data/report/') -ne '') { Write-Host '  FAIL: bare path should give empty query' -ForegroundColor Red; $ok = $false }
     Remove-Item -LiteralPath $t -Recurse -Force -ErrorAction SilentlyContinue
     if ($ok) { Write-Host 'SELF-TEST PASSED (Ecowitt POST + Wunderground GET -> AWN-schema CSV + raw JSONL)' -ForegroundColor Green; exit 0 }
     Write-Host 'SELF-TEST FAILED' -ForegroundColor Red; exit 2
 }
 
 # ---------------------------------------------------------------- listener ----
-$mutex = New-Object System.Threading.Mutex($false, 'Global\FieldWeatherListener')
-if (-not $mutex.WaitOne(0)) { Write-Host 'another weather_listener instance is running - exiting'; exit 0 }
+# Raw TCP + a tolerant hand-rolled HTTP parser, deliberately NOT System.Net.HttpListener:
+# HTTP.sys rejects the console's "Ambient" protocol with 400/URL before any listener
+# sees it (it builds the target as  /data/report/&PASSKEY=...  with '&' instead of '?';
+# seen live 2026-09-04 in %SystemRoot%\System32\LogFiles\HTTPERR). A plain socket has
+# no such opinion, and also needs no URL ACL, so this runs non-elevated too.
+# one instance per port (a test instance on another port may coexist with the SYSTEM task);
+# a non-admin process cannot even open a SYSTEM-owned global mutex -> treat that as "already running"
+try {
+    $mutex = New-Object System.Threading.Mutex($false, ('Global\FieldWeatherListener_{0}' -f $cfg.Port))
+    if (-not $mutex.WaitOne(0)) { Write-Host "another weather_listener instance owns port $($cfg.Port) - exiting"; exit 0 }
+} catch {
+    Write-Host "another weather_listener instance owns port $($cfg.Port) (mutex not accessible) - exiting"; exit 0
+}
 
 if (-not (Test-Path -LiteralPath $cfg.Root)) { New-Item -ItemType Directory -Force -Path $cfg.Root | Out-Null }
-$prefix = 'http://+:{0}{1}' -f $cfg.Port, $cfg.Path
-$listener = New-Object System.Net.HttpListener
-$listener.Prefixes.Add($prefix)
-# Also accept the Wunderground-protocol path and plain root so a mis-typed console path still lands.
-$listener.Prefixes.Add(('http://+:{0}/weatherstation/' -f $cfg.Port))
-$listener.Prefixes.Add(('http://+:{0}/' -f $cfg.Port))
-try { $listener.Start() } catch { Write-Log "cannot bind $prefix : $($_.Exception.Message)  (run as SYSTEM task or admin)"; exit 2 }
-Write-Log "listening on $prefix (also /weatherstation/ and /) -> $($cfg.Root)"
+$listener = New-Object System.Net.Sockets.TcpListener([System.Net.IPAddress]::Any, [int]$cfg.Port)
+try { $listener.Start() } catch { Write-Log "cannot bind port $($cfg.Port): $($_.Exception.Message)  (port in use? old HttpListener task still running?)"; exit 2 }
+Write-Log "listening on tcp/$($cfg.Port) (any path; Ecowitt POST, Wunderground GET, Ambient GET) -> $($cfg.Root)"
 
+$reply = [Text.Encoding]::ASCII.GetBytes("HTTP/1.1 200 OK`r`nContent-Type: text/plain`r`nContent-Length: 7`r`nConnection: close`r`n`r`nsuccess")
 $lastPacketLocal = $null; $lastDateUtc = $null; $packetsToday = 0; $today = (Get-Date).ToString('yyyy-MM-dd'); $errors = 0
 Write-State $cfg.Root @{ last_packet_local = $null; last_dateutc = $null; packets_today = 0; errors = 0 }
 $lastHeartbeat = Get-Date
 
+function Read-HttpRequest($stream) {
+    # returns @{ Method; Target; Body } - head read byte-by-byte until CRLFCRLF, then Content-Length bytes
+    $stream.ReadTimeout = 5000
+    $buf = New-Object IO.MemoryStream
+    $one = New-Object byte[] 1
+    $head = $null
+    while ($buf.Length -lt 65536) {
+        $n = $stream.Read($one, 0, 1)
+        if ($n -le 0) { break }
+        $buf.WriteByte($one[0])
+        if ($buf.Length -ge 4) {
+            $a = $buf.ToArray()
+            if ($a[-4] -eq 13 -and $a[-3] -eq 10 -and $a[-2] -eq 13 -and $a[-1] -eq 10) { $head = [Text.Encoding]::ASCII.GetString($a); break }
+        }
+    }
+    if (-not $head) { return $null }
+    $lines = $head -split "`r`n"
+    $parts = $lines[0] -split ' '
+    if ($parts.Count -lt 2) { return $null }
+    $len = 0
+    foreach ($l in $lines[1..($lines.Count - 1)]) { if ($l -match '^(?i)content-length:\s*(\d+)') { $len = [int]$Matches[1] } }
+    $body = ''
+    if ($len -gt 0 -and $len -lt 1048576) {
+        $data = New-Object byte[] $len; $got = 0
+        while ($got -lt $len) { $n = $stream.Read($data, $got, $len - $got); if ($n -le 0) { break }; $got += $n }
+        $body = [Text.Encoding]::UTF8.GetString($data, 0, $got)
+    }
+    return @{ Method = $parts[0]; Target = $parts[1]; Body = $body }
+}
+
 while ($true) {
-    $task = $listener.GetContextAsync()
+    $task = $listener.AcceptTcpClientAsync()
     while (-not $task.Wait(5000)) {
         if (((Get-Date) - $lastHeartbeat).TotalSeconds -ge 60) {
             Write-State $cfg.Root @{ last_packet_local = $lastPacketLocal; last_dateutc = $lastDateUtc; packets_today = $packetsToday; errors = $errors }
             $lastHeartbeat = Get-Date
         }
     }
-    $ctx = $task.Result
+    $client = $task.Result
+    $remote = ''
     try {
-        $req = $ctx.Request
-        $body = ''
-        if ($req.HasEntityBody) {
-            $sr = New-Object IO.StreamReader($req.InputStream, $req.ContentEncoding)
-            $body = $sr.ReadToEnd(); $sr.Close()
-        }
-        $fields = Parse-Form $body
-        if ($fields.Count -eq 0) { $fields = Parse-Form $req.Url.Query }
-        if ($fields.Contains('tempf') -or $fields.Contains('dateutc') -or $fields.Contains('PASSKEY')) {
-            $r = Write-Packet $fields $cfg.Root $cfg.StationLabel
-            $now = Get-Date
-            if ($now.ToString('yyyy-MM-dd') -ne $today) { $today = $now.ToString('yyyy-MM-dd'); $packetsToday = 0 }
-            $packetsToday++
-            $lastPacketLocal = $now.ToString('yyyy-MM-dd HH:mm:ss'); $lastDateUtc = [string]$fields['dateutc']
-            if ($packetsToday -eq 1 -or ($packetsToday % 60) -eq 0) {
-                Write-Log ('packet #{0} today from {1}  T={2} C RH={3} %  station utc {4}' -f $packetsToday, $req.RemoteEndPoint.Address, $r.Row['Outdoor Temperature (°C)'], $r.Row['Humidity (%)'], $lastDateUtc)
+        $remote = $client.Client.RemoteEndPoint.Address.ToString()
+        $stream = $client.GetStream()
+        $req = Read-HttpRequest $stream
+        if ($req) {
+            $fields = Parse-Form $req.Body
+            if ($fields.Count -eq 0) { $fields = Parse-Form (Split-Target $req.Target) }
+            if ($fields.Contains('tempf') -or $fields.Contains('dateutc') -or $fields.Contains('PASSKEY')) {
+                $r = Write-Packet $fields $cfg.Root $cfg.StationLabel
+                $now = Get-Date
+                if ($now.ToString('yyyy-MM-dd') -ne $today) { $today = $now.ToString('yyyy-MM-dd'); $packetsToday = 0 }
+                $packetsToday++
+                $lastPacketLocal = $now.ToString('yyyy-MM-dd HH:mm:ss'); $lastDateUtc = [string]$fields['dateutc']
+                if ($packetsToday -eq 1 -or ($packetsToday % 60) -eq 0) {
+                    Write-Log ('packet #{0} today from {1} ({2})  T={3} C RH={4} %  station utc {5}' -f $packetsToday, $remote, $req.Method, $r.Row['Outdoor Temperature (°C)'], $r.Row['Humidity (%)'], $lastDateUtc)
+                }
+                Write-State $cfg.Root @{ last_packet_local = $lastPacketLocal; last_dateutc = $lastDateUtc; packets_today = $packetsToday; errors = $errors }
+                $lastHeartbeat = Get-Date
+            } else {
+                $t = $req.Target; if ($t.Length -gt 80) { $t = $t.Substring(0, 80) + '...' }
+                Write-Log ('ignored {0} {1} from {2} (no weather fields)' -f $req.Method, $t, $remote)
             }
-            Write-State $cfg.Root @{ last_packet_local = $lastPacketLocal; last_dateutc = $lastDateUtc; packets_today = $packetsToday; errors = $errors }
-            $lastHeartbeat = Get-Date
         } else {
-            Write-Log ('ignored {0} {1} from {2} (no weather fields)' -f $req.HttpMethod, $req.Url.PathAndQuery, $req.RemoteEndPoint.Address)
+            Write-Log "ignored unparseable request from $remote"
         }
-        $bytes = [Text.Encoding]::ASCII.GetBytes('success')
-        $ctx.Response.StatusCode = 200; $ctx.Response.ContentType = 'text/plain'
-        $ctx.Response.ContentLength64 = $bytes.Length
-        $ctx.Response.OutputStream.Write($bytes, 0, $bytes.Length)
+        $stream.Write($reply, 0, $reply.Length)
     } catch {
         $errors++
-        Write-Log "request error: $($_.Exception.Message)"
-        try { $ctx.Response.StatusCode = 500 } catch { }
+        Write-Log "request error from ${remote}: $($_.Exception.Message)"
     } finally {
-        try { $ctx.Response.Close() } catch { }
+        try { $client.Close() } catch { }
     }
 }
