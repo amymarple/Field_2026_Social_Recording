@@ -15,11 +15,16 @@ logger's drain on its **current cell**, and posts to Slack at **01:02 and 13:02*
 1. **Current cell** = samples since the last upward jump >= 150 mV (a swap).
 2. **Slope** = first-to-last over the last 4 h of that cell (needs >= 1.5 h of span).
    Advertised voltage is 20 mV-quantized, so error ~ 20 mV / span.
-3. **Plateau -> knee**: linear at the measured slope down to **3.68 V**.
-4. **Knee -> auto-stop (~3.40 V)**: ~2.0 h for a regular cell (SF07 9/3; regular cells reach
-   the knee at ~10-12 h of age), ~4 h for a 1000 mAh cell (SF08/SF11 9/2-9/3; knee at ~14-17 h).
-   Chosen by the cell's **age at the knee**, not by slope - a low slope can also just mean a
-   light load (all six ran 20-31 mV/h on 9/4 with regular cells).
+3. **Reference discharge curve** (900 mAh cell on an EVO 512 card, mean of the 9/2 and 9/3
+   nights; life to auto-stop 14.2 h): 4.18 V at install, 4.04 @2 h, 3.93 @4 h, 3.83 @6 h,
+   3.77 @8 h, 3.71 @10 h, 3.65 @12 h, 3.58 @13 h, 3.45 @14 h, 3.40 @14.2 h. The cell is
+   **placed on the curve by its voltage** (a weaker cell simply sits further along), so the
+   LiPo nonlinearity - steep 4.1->3.9, flat plateau 3.9->3.7, then the knee - is built in.
+   (The first version extrapolated the 4-h slope linearly to the knee and, at 4 h of age,
+   predicted 05:52 for cells that the curve puts at ~09:50. Never extrapolate the steep part.)
+4. **Drain-rate factor**: remaining time on the curve is scaled by (curve slope over the same
+   span) / (measured slope), clamped **x0.6 .. x1.5** - a high-power SD card shortens, a
+   1000 mAh cell (or a light load) lengthens. Knee = the curve's 3.68 V age, scaled the same way.
 5. **Why 01:02 / 13:02**: evening cells (~19:30-20:00) are ~5 h old at 01:00, morning cells
    (~08:15) ~4.75 h old at 13:00 - past the surface-charge phase, so the slope is steady.
    Install-hour slopes are inflated (lesson of 2026-09-02); never forecast from them.

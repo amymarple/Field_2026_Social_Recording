@@ -58,6 +58,38 @@ function Say([string]$m, [string]$c = 'Gray') { Write-Host $m -ForegroundColor $
 
 $MutePath = 'E:\recording_qc\neurologger_alive_MUTED.txt'
 
+# ---- reference discharge curve --------------------------------------------------------
+# 900 mAh cell on an EVO 512 card, mean of the cohort-3 nights 9/2 and 9/3 (age since install
+# in hours -> advertised volts). Steep 4.1->3.9, flat plateau 3.9->3.7, knee, then the dive.
+# Life to auto-stop = 14.2 h. A cell is placed on this curve by VOLTAGE (so cell-to-cell
+# quality shows up as "already further along"), and its remaining time is scaled by how fast
+# it drains relative to the curve over the same span (x0.6 .. x1.5: high-power card .. 1000 mAh).
+$script:RefCurve = @(@(0.0, 4.18), @(2.0, 4.04), @(4.0, 3.93), @(6.0, 3.83), @(8.0, 3.77),
+                     @(10.0, 3.71), @(12.0, 3.65), @(13.0, 3.58), @(14.0, 3.45), @(14.2, 3.40))
+$script:RefLifeH = 14.2
+function Get-RefVolts([double]$age) {
+    $c = $script:RefCurve
+    if ($age -le $c[0][0]) { return [double]$c[0][1] }
+    for ($i = 1; $i -lt $c.Count; $i++) {
+        if ($age -le $c[$i][0]) {
+            $f = ($age - $c[$i-1][0]) / ($c[$i][0] - $c[$i-1][0])
+            return [double]($c[$i-1][1] + $f * ($c[$i][1] - $c[$i-1][1]))
+        }
+    }
+    return [double]$c[$c.Count-1][1]
+}
+function Get-RefAge([double]$v) {
+    $c = $script:RefCurve
+    if ($v -ge $c[0][1]) { return 0.0 }
+    for ($i = 1; $i -lt $c.Count; $i++) {
+        if ($v -ge $c[$i][1]) {
+            $f = ($c[$i-1][1] - $v) / ($c[$i-1][1] - $c[$i][1])
+            return [double]($c[$i-1][0] + $f * ($c[$i][0] - $c[$i-1][0]))
+        }
+    }
+    return [double]$script:RefLifeH
+}
+
 # ---- pure forecast core (also exercised by -SelfTest) ------------------------------
 function Get-BatteryForecast {
     param([object[]]$Rows, [datetime]$Now, [double]$SlopeWindowHours, [double]$MinSpanHours,
@@ -103,28 +135,24 @@ function Get-BatteryForecast {
         $slope = ($first.Volts - $last.Volts) / $spanH * 1000.0     # mV/h, + = draining
         $r.SpanH = [math]::Round($spanH, 2); $r.SlopeMvH = [math]::Round($slope, 1)
         $r.SlopeErr = [math]::Round(20.0 / $spanH, 1)
-        $slopeEff = [math]::Max($slope, 8.0)
-        if ($last.Volts -gt $KneeVolts) { $hExit = ($last.Volts - $KneeVolts) / ($slopeEff / 1000.0) } else { $hExit = 0.0 }
-        # Dive length from the cell's AGE at the knee (a low slope can mean a big cell OR a
-        # light load, so slope alone cannot tell them apart): regular cells reach 3.68 V at
-        # ~10-12 h and then take ~2.0 h to auto-stop (SF07 2026-09-03); 1000 mAh cells reach
-        # it at ~14-17 h and take ~4 h (SF08/SF11 2026-09-02/03). Linear between 12.5 and 14 h.
-        $ageAtKnee = $r.SegH + $hExit
-        if ($ageAtKnee -le 12.5) { $diveH = 2.0 }
-        elseif ($ageAtKnee -ge 14.0) { $diveH = 4.0 }
-        else { $diveH = 2.0 + 2.0 * ($ageAtKnee - 12.5) / 1.5 }
-        if ($last.Volts -gt $KneeVolts) {
-            $hStop = $hExit + $diveH
-            $r.ExitAt = $Now.AddHours($hExit)
-        } else {
-            $frac = ($last.Volts - $StopVolts) / ($KneeVolts - $StopVolts)
-            if ($frac -lt 0.1) { $frac = 0.1 }
-            if ($frac -gt 1.0) { $frac = 1.0 }
-            $hStop = $diveH * $frac
-            $r.ExitAt = $Now; $r.Note = 'past the knee - diving'
-        }
+        # Place the cell on the reference curve by voltage, then scale the remaining time by
+        # its drain rate relative to the curve over the same span (clamped x0.6 .. x1.5).
+        $ageT = Get-RefAge $last.Volts
+        $remT = $script:RefLifeH - $ageT
+        $a0 = [math]::Max(0.0, $ageT - $spanH)
+        $sT = ((Get-RefVolts $a0) - (Get-RefVolts $ageT)) / [math]::Max($ageT - $a0, 0.25) * 1000.0
+        $factor = 1.0
+        if ($slope -le 8.0) { $factor = 1.5 } elseif ($sT -gt 0) { $factor = $sT / $slope }
+        if ($factor -lt 0.6) { $factor = 0.6 }
+        if ($factor -gt 1.5) { $factor = 1.5 }
+        $hStop = $remT * $factor
+        $kneeAgeT = Get-RefAge $KneeVolts
+        $hExit = [math]::Max(0.0, ($kneeAgeT - $ageT) * $factor)
+        $r.ExitAt = $Now.AddHours($hExit)
         $r.StopAt = $Now.AddHours($hStop)
         $r.SwapBy = $r.StopAt.AddHours(-$MarginHours)
+        $r.Note = ('drain x{0:F2} of ref' -f (1.0 / $factor))
+        if ($last.Volts -le $KneeVolts) { $r.Note = 'past the knee - diving; ' + $r.Note }
         if ($null -ne $last.Pct) {
             $cardRate = $CardFillDefault
             $pw = @($win | Where-Object { $null -ne $_.Pct })
@@ -150,22 +178,24 @@ function Get-NextRound([datetime]$Now, [double[]]$RoundHours) {
 if ($SelfTest) {
     $now = Get-Date '2026-09-04 13:02:00'
     $rows = @()
-    function Add-Series([string]$lab, [datetime]$t0, [double]$hours, [double]$v0, [double]$mvh, [double]$pct0, [double]$recStart) {
+    # synthetic cells generated FROM the reference curve: rateMul = drain speed vs the curve,
+    # ageOffset = where on the curve the cell starts
+    function Add-Ref([string]$lab, [datetime]$t0, [double]$hours, [double]$rateMul, [double]$ageOffset, [double]$pct0, [double]$recStart) {
         $n = [int]($hours * 12)
         for ($k = 0; $k -le $n; $k++) {
-            $t = $t0.AddMinutes(5 * $k)
-            $script:rows += [pscustomobject]@{ Ts = $t; Label = $lab; Volts = ($v0 - $mvh / 1000.0 * (5.0 * $k / 60.0)); Pct = ($pct0 + 1.74 * (5.0 * $k / 60.0)); Rec = ($recStart + 300 * $k) }
+            $t = $t0.AddMinutes(5 * $k); $age = $ageOffset + $rateMul * (5.0 * $k / 60.0)
+            $script:rows += [pscustomobject]@{ Ts = $t; Label = $lab; Volts = (Get-RefVolts $age); Pct = ($pct0 + 1.74 * (5.0 * $k / 60.0)); Rec = ($recStart + 300 * $k) }
         }
     }
-    Add-Series 'A' $now.AddHours(-5) 5 4.10 40 30 1000       # ends 3.90 @ 40 mV/h -> 5.5 h + 2.0 h = 7.5 h
-    Add-Series 'B' $now.AddHours(-5) 5 3.80 40 30 1000       # ends 3.60 (past knee) -> 2.0 * (0.20/0.28) = 1.43 h
-    Add-Series 'C' $now.AddHours(-5) 5 3.925 25 30 1000      # ends 3.80 @ 25 mV/h, only 5 h old -> 4.8 h + 2.0 h = 6.8 h (light load, NOT a big cell)
-    Add-Series 'G' $now.AddHours(-14) 14 4.11 28 30 1000     # 1000 mAh: 14 h old, ends 3.72 @ 28 -> knee in 1.36 h (age 15.4) + 4.0 h = 5.36 h
-    Add-Series 'D' $now.AddHours(-5) 2.5 3.60 40 30 1000     # old cell, then swap:
-    Add-Series 'D' $now.AddHours(-2.5) 2.5 4.15 40 0 0       #   4.15 -> 4.05 over 2.5 h -> 9.25 h + 2.0 h = 11.25 h
-    Add-Series 'E' $now.AddHours(-5) 5 3.60 0 30 1000        # E: frozen rec -> STOPPED
+    Add-Ref 'A' $now.AddHours(-5) 5 1.0 0 30 1000        # exactly on the curve, 5 h old -> 14.2 - 5 = 9.2 h left
+    Add-Ref 'B' $now.AddHours(-5) 5 1.0 8.5 30 1000      # on the curve at age 13.5 (past the knee) -> 0.7 h left
+    Add-Ref 'C' $now.AddHours(-5) 5 0.5 0 30 1000        # drains at half the curve rate (1000 mAh / light load) -> x1.5 clamp -> 17.55 h
+    Add-Ref 'G' $now.AddHours(-5) 5 2.0 0 30 1000        # drains at twice the curve rate (high-power card) -> x0.6 clamp -> 2.52 h
+    Add-Ref 'D' $now.AddHours(-5) 2.5 1.0 10 30 1000     # old cell (age 10 -> 12.5), then swap:
+    Add-Ref 'D' $now.AddHours(-2.5) 2.5 1.0 0 0 0        #   fresh, 2.5 h on the curve -> 11.7 h left
+    Add-Ref 'E' $now.AddHours(-5) 5 1.0 0 30 1000        # E: frozen rec -> STOPPED
     $rows = @($rows | ForEach-Object { if ($_.Label -eq 'E') { $_.Rec = 47719 }; $_ })
-    Add-Series 'F' $now.AddHours(-5) 4.5 4.00 40 30 1000     # F: last sample 30 min old -> STALE
+    Add-Ref 'F' $now.AddHours(-5) 4.5 1.0 0 30 1000      # F: last sample 30 min old -> STALE
     $fc = Get-BatteryForecast $rows $now 4 1.5 3.68 3.40 1.0 1.74 20
     $ok = $true
     function Check([string]$lab, [double]$expH, [double]$tol) {
@@ -175,7 +205,7 @@ if ($SelfTest) {
         Say ("SelfTest {0}: stop in {1:F2} h (expected {2:F2} +/- {3}) -> {4}" -f $lab, $got, $expH, $tol, $(if ($pass) { 'PASS' } else { 'FAIL' })) $(if ($pass) { 'Green' } else { 'Red' })
         if (-not $pass) { $script:ok = $false }
     }
-    Check 'A' 7.5 0.25; Check 'B' 1.43 0.1; Check 'C' 6.8 0.3; Check 'D' 11.25 0.3; Check 'G' 5.36 0.3
+    Check 'A' 9.2 0.25; Check 'B' 0.7 0.15; Check 'C' 17.55 0.4; Check 'D' 11.7 0.3; Check 'G' 2.52 0.3
     $e = $fc | Where-Object { $_.Label -eq 'E' }; $f = $fc | Where-Object { $_.Label -eq 'F' }
     Say ("SelfTest E (frozen rec): {0} -> {1}" -f $e.Status, $(if ($e.Status -eq 'STOPPED') { 'PASS' } else { 'FAIL' }))
     Say ("SelfTest F (stale ad):   {0} -> {1}" -f $f.Status, $(if ($f.Status -eq 'STALE') { 'PASS' } else { 'FAIL' }))
@@ -251,7 +281,7 @@ $other   = @($fc | Where-Object { $_.Status -in 'STALE', 'SHORT' })
 # ---- compose ------------------------------------------------------------------------
 $lines = @()
 $lines += ("NEUROLOGGER BATTERY FORECAST  {0:yyyy-MM-dd HH:mm}   next planned round {1:ddd HH:mm}" -f $now, $nextRound)
-$lines += ('slope = last {0} h on the current cell (20 mV-quantized ads); model: {1} V knee then an age-based dive (2 h regular, 4 h 1000 mAh); swap-by = stop - {2} h' -f $SlopeWindowHours, $KneeVolts, $MarginHours)
+$lines += ('slope = last {0} h on the current cell (20 mV-quantized ads); model: cell placed by voltage on the 900 mAh/EVO reference curve (14.2 h), remaining time scaled by its drain rate vs the curve (x0.6..1.5); knee {1} V; swap-by = stop - {2} h' -f $SlopeWindowHours, $KneeVolts, $MarginHours)
 $lines += ('-' * 100)
 $lines += ('{0,-5} {1,6} {2,9} {3,7} {4,8} {5,8} {6,8} {7,6} {8,10}  {9}' -f 'rat', 'V', 'mV/h', 'cell h', 'knee', 'STOP', 'swap by', 'card%', 'full at', 'note')
 foreach ($x in ($fc | Sort-Object { if ($_.StopAt) { $_.StopAt } else { [datetime]::MaxValue } })) {
