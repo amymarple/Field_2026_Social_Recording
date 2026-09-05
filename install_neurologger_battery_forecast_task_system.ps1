@@ -14,6 +14,8 @@
         powershell -NoProfile -ExecutionPolicy Bypass -File neurologger_battery_forecast.ps1 -TestSlack
 
     Change the planned round times with -RoundHours (decimal local hours), e.g. 8,20.
+    The value reaches the worker as ONE "8.25,19.75" string under 'powershell -File'; the worker
+    splits it itself (fixed 2026-09-05 - the first build failed parameter binding in the task).
 #>
 [CmdletBinding()]
 param(

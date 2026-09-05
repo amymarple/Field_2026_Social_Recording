@@ -39,7 +39,7 @@ param(
     [string]$ConfigPath  = 'E:\recording_qc\overexposure.config.psd1',
     [string]$StatusPath  = 'E:\recording_qc\neurologger_battery_forecast.txt',
     [string]$LogPath     = 'E:\recording_qc\neurologger_battery_forecast_log.txt',
-    [double[]]$RoundHours = @(8.25, 19.75),
+    $RoundHours = @(8.25, 19.75),   # decimal local hours; also ONE "8.25,19.75" string (how -File passes it)
     [double]$SlopeWindowHours = 4.0,
     [double]$MinSpanHours = 1.5,
     [double]$KneeVolts = 3.68,
@@ -57,6 +57,25 @@ $ErrorActionPreference = 'Stop'
 function Say([string]$m, [string]$c = 'Gray') { Write-Host $m -ForegroundColor $c }
 
 $MutePath = 'E:\recording_qc\neurologger_alive_MUTED.txt'
+
+# -RoundHours arrives as a real array from a PowerShell session but as ONE string ("8.25,19.75")
+# when the scheduled task runs 'powershell -File'; a [double[]] parameter then fails to bind, and a
+# list without a second decimal point ("17,8.25") would silently parse as 178.25 h (thousands
+# separator) -> "next round 10:15". Normalise here, culture-invariant. (Bug found 2026-09-05.)
+function ConvertTo-HourList($Raw) {
+    $out = @()
+    foreach ($item in @($Raw)) {
+        foreach ($tok in ("$item" -split '[,; ]+')) {
+            if ($tok -eq '') { continue }
+            $h = [double]::Parse($tok, [Globalization.CultureInfo]::InvariantCulture)
+            if ($h -lt 0 -or $h -ge 24) { throw "RoundHours: '$tok' is not a local hour in 0..24" }
+            $out += $h
+        }
+    }
+    return $out
+}
+$RoundHours = @(ConvertTo-HourList $RoundHours)
+if ($RoundHours.Count -eq 0) { $RoundHours = @(8.25, 19.75) }
 
 # ---- reference discharge curve --------------------------------------------------------
 # 900 mAh cell on an EVO 512 card, mean of the cohort-3 nights 9/2 and 9/3 (age since install
@@ -210,6 +229,10 @@ if ($SelfTest) {
     Say ("SelfTest E (frozen rec): {0} -> {1}" -f $e.Status, $(if ($e.Status -eq 'STOPPED') { 'PASS' } else { 'FAIL' }))
     Say ("SelfTest F (stale ad):   {0} -> {1}" -f $f.Status, $(if ($f.Status -eq 'STALE') { 'PASS' } else { 'FAIL' }))
     if ($e.Status -ne 'STOPPED' -or $f.Status -ne 'STALE') { $ok = $false }
+    $hl = @(ConvertTo-HourList '17,8.25'); $hl2 = @(ConvertTo-HourList @(8.25, 19.75))
+    $hlOk = ($hl.Count -eq 2 -and $hl[0] -eq 17 -and $hl[1] -eq 8.25 -and $hl2.Count -eq 2 -and $hl2[1] -eq 19.75)
+    Say ("SelfTest RoundHours parse: '17,8.25' -> {0}; array -> {1} -> {2}" -f ($hl -join '/'), ($hl2 -join '/'), $(if ($hlOk) { 'PASS' } else { 'FAIL' }))
+    if (-not $hlOk) { $ok = $false }
     $nr = Get-NextRound $now @(8.25, 19.75)
     Say ("SelfTest next round from 13:02: {0:HH:mm} -> {1}" -f $nr, $(if ($nr.Hour -eq 19 -and $nr.Minute -eq 45) { 'PASS' } else { 'FAIL' }))
     if (-not ($nr.Hour -eq 19 -and $nr.Minute -eq 45)) { $ok = $false }
