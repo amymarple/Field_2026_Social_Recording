@@ -97,6 +97,12 @@ them (see Rounds). Card = model on the logger during that cell.
 | 09-04 08:26 | SF11 | EVO | 4.20 | 09-04 20:11 | 3.70 | 3.68 | 11.8 | swapped alive |
 | 09-04 20:10–20:33 | all six | EVO | 4.08–4.18 | (running) | | | | current cells |
 
+## Retired cells
+
+| cell | evidence | verdict |
+|---|---|---|
+| **900 mAh on SF10, 9/4 20:26 (install 4.08 V)** | lowest install of the batch; life 10.5 h to auto-stop (~06:58 9/5) vs 11-14 h for the same batch/card; 06:51 sag-and-rebound (high-IR fingerprint); restarted 07:00 on the same cell, held 15 min then slid 240 mV/h to a second auto-stop ~07:29 with no rebound. SF10 the logger ran its previous two cells normally (14.3 h, 11.8 h) -> not the logger. | **RETIRE.** Confirm with one full charge + rested reading: < 4.15 V = aged, bin it; 4.20 V = was undercharged, day-shift pool only, never overnight. Sharpie it. |
+
 ## Lessons banked
 
 1. **Never pull a battery without Record Stop** (night 1). Low-voltage auto-stop commits; a
