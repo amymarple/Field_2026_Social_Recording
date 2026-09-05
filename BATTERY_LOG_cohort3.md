@@ -102,7 +102,7 @@ them (see Rounds). Card = model on the logger during that cell.
 | 09-04 20:33 | SF12 | EVO | 4.18 | 09-05 08:4x | 3.58 | 3.58 | 12.2 | slid 3.66→3.58 from 08:00; stopped at the edge; 210 anchors 07:30–08:10 |
 | 09-04 20:23 | SF08 | EVO | 4.12 | 09-05 08:45 | 3.68 | 3.68 | 12.4 | 1000 mAh, manual Stop, alive |
 | 09-04 20:31 | SF11 | EVO | 4.12 | 09-05 08:45 | 3.70 | 3.70 | 12.3 | 1000 mAh, manual Stop, alive |
-| 09-05 09:31 | all six | high-power set (inferred: Sonic 512 ×3 / PE 256 / PE 128 / Insignia 128) | 4.18–4.24 | (running) | | | | 13:02 forecast: auto-stop 18:04–18:47 → evening round by 17:00; 1000 mAh not yet distinguishable (fleet 92–109 mV/h); **SF07 session split by a probe move (Stop 13:15:40 → Start 13:31:19, same cell)**; 14:47: all six 3.74–3.78 V, auto-stop 17:55–18:43 → PM round by 16:55 |
+| 09-05 09:31 | all six | high-power set (inferred: Sonic 512 ×3 / PE 256 / PE 128 / Insignia 128) | 4.18–4.24 | (running) | | | | 13:02 forecast: auto-stop 18:04–18:47 → evening round by 17:00; 1000 mAh not yet distinguishable (fleet 92–109 mV/h); **SF07 session split by a probe move (Stop 13:15:40 → Start 13:31:19, same cell)**; **SF11 likewise (Stop 15:02:10 → Start 15:11:34)**; 14:47: all six 3.74–3.78 V, auto-stop 17:55–18:43 → PM round by 16:55 |
 
 ## Retired cells
 
