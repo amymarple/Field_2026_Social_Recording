@@ -15,9 +15,14 @@ with the extraction snippet at the bottom.
 - Same cells on **non-EVO cards** (Sonic / Pro Endurance / Insignia): knee at **~9 h**
   (9/3 day). **Only the EVO is a low-power card** — the 9/3 same-day switch (non-EVO day
   batch → all-EVO night batch) is the cleanest evidence: +50% life from the card alone.
-- 1000 mAh cell ≈ **17–24 h**. Auto-stop lands at ~3.40 V; knee 3.68 V; the dive below the
-  knee takes ~2 h (regular) / ~4 h (1000 mAh).
-- Install **≥4.18 V rested** — the 4.08–4.12 V installs have been the first to die every time.
+- The regular cells are **900 mAh nominal**; the two "1000 mAh" cells last **17–24 h** — 1.5–2×
+  the 900s despite only +11% on the label, so the 900s are delivering well under their rating.
+  **The label does not predict life; the measured life in this table does** (cell triage).
+- Auto-stop lands at ~3.40 V; knee 3.68 V; the dive below the knee takes ~2 h (900 mAh) /
+  ~4 h (1000 mAh).
+- Install full. **900 mAh: ≥4.18 V rested** — the 4.08–4.12 V installs of 900s have been the
+  first to die every time. **1000 mAh: they top out at ~4.08–4.12 V — that IS full for them;
+  do not reject them by the 4.18 rule.**
 
 ## Rounds
 
@@ -33,7 +38,7 @@ with the extraction snippet at the bottom.
 | **9/3 ~08:06** AM | **all non-EVO**: SF07/08/09 Sonic 512, SF10 Pro Endurance 256, SF11 Pro Endurance 128, SF12 Insignia 128 | Fresh 4.06–4.20 V. **Fast-draining day batch — the cards.** SF08 and SF11 auto-stopped in the afternoon (SF08 restarted 16:03 on the same cell; SF11 restarted, ran a 580-s stub and died again at 3.40 V); SF09/SF10 were at 3.40–3.50 V when stopped for the round (16:53); SF12 was **stopped manually at 16:55, still 3.62 V**. **SF07's 9/3 08:06 cell ran 24.0 h** (to 9/4 08:06) = a 1000 mAh, even starting on a Sonic. |
 | **9/3 16:46–18:10** evening | **all switched to EVO** | Round ran 16:46–18:10 (Stops from 16:46, fresh cells 17:50–18:10): 4.18–4.22 V on SF08–SF12, SF07 kept its 1000 mAh (card swapped at its 17:49 Stop/Start). **Longest regular-cell run so far: 14.1–14.3 h** — SF10/SF11/SF12 auto-stopped 08:06–08:21 9/4, minutes before the round reached them (operator arrived ~08:15); SF08/SF09 swapped alive at the knee. |
 | **9/4 08:11–08:26** AM | all EVO | Fresh 4.14–4.24 V. Midday ~14:02 Stop→Start on SF07/SF11 (no swap). All six still alive at the evening swap (11.8–12.0 h, 3.62–3.72 V). |
-| **9/4 20:10–20:33** evening | all EVO | Fresh: SF07 4.16, SF08 4.12, SF09 4.18, **SF10 4.08 (below the ≥4.18 rule)**, SF11 4.12, SF12 4.18. Expect the 4.08–4.12 installs (SF10, SF08, SF11) to die first, ~08:00–08:45 9/5; the 01:02 forecast gives the order. |
+| **9/4 20:10–20:33** evening | all EVO | Fresh: SF07 4.16, SF08 4.12, SF09 4.18, **SF10 4.08 (a 900 mAh — genuinely low)**, SF11 4.12, SF12 4.18. **SF08 and SF11 carry the two 1000 mAh (4.12 is their full charge)**; SF07/SF09/SF10/SF12 are 900 mAh. Expect SF10 first (~08:00 9/5), then SF07/SF09/SF12 (~08:30–09:30); SF08/SF11 run to ~13:00. The 01:02 forecast gives the exact order. |
 
 ## Cell table (auto-extracted; 9/1 23:41 onward is exact, earlier rows are partial)
 
@@ -100,9 +105,10 @@ them (see Rounds). Card = model on the logger during that cell.
    ~9 h; EVO → 14.1–14.3 h. Sonic 512, Pro Endurance 256/128 and Insignia 128 all belong to the
    high-power group in the logger (the bench in `EXPERIMENT_sd_card_power.md` ranks them
    among themselves but has not measured the EVO yet). Fleet = EVO only, since 9/3 evening.
-3. **Install voltage matters**: 4.08–4.12 V installs die 1–2 h before 4.20–4.24 V ones.
-   Rule: ≥4.18 V rested or it does not go on a rat overnight. The 3.42 V (9/1) and 3.78 V
-   (9/1) mistakes cost a session tail each.
+3. **Install voltage matters (per cell type)**: among the 900 mAh cells, 4.08–4.12 V installs
+   die 1–2 h before 4.20–4.24 V ones — rule: ≥4.18 V rested or it does not go on a rat
+   overnight. The 1000 mAh cells are full at ~4.08–4.12 V and are exempt. The 3.42 V (9/1) and
+   3.78 V (9/1) mistakes cost a session tail each.
 4. **Slopes are only comparable at matched post-install phase** — install-hour slopes carry
    surface charge; the 01:02/13:02 forecast is timed to be past it.
 5. **12-h rounds vs 12–14 h EVO cells = 0–2 h margin.** Two 1000 mAh cells cover two loggers to
