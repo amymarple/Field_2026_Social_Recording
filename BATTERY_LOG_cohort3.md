@@ -39,6 +39,7 @@ with the extraction snippet at the bottom.
 | **9/3 16:46–18:10** evening | **all switched to EVO** | Round ran 16:46–18:10 (Stops from 16:46, fresh cells 17:50–18:10): 4.18–4.22 V on SF08–SF12, SF07 kept its 1000 mAh (card swapped at its 17:49 Stop/Start). **Longest regular-cell run so far: 14.1–14.3 h** — SF10/SF11/SF12 auto-stopped 08:06–08:21 9/4, minutes before the round reached them (operator arrived ~08:15); SF08/SF09 swapped alive at the knee. |
 | **9/4 08:11–08:26** AM | all EVO | Fresh 4.14–4.24 V. Midday ~14:02 Stop→Start on SF07/SF11 (no swap). All six still alive at the evening swap (11.8–12.0 h, 3.62–3.72 V). |
 | **9/4 20:10–20:33** evening | all EVO | Fresh: SF07 4.16, SF08 4.12, SF09 4.18, **SF10 4.08 (a 900 mAh — genuinely low)**, SF11 4.12, SF12 4.18. **SF08 and SF11 carry the two 1000 mAh (4.12 is their full charge)**; SF07/SF09/SF10/SF12 are 900 mAh. Expect SF10 first (~08:00 9/5), then SF07/SF09/SF12 (~08:30–09:30); SF08/SF11 run to ~13:00. The 01:02 forecast gives the exact order. |
+| **9/5 08:40–09:50** AM | **cards: ? — operator is switching to high-power cards, confirm per logger.** SF10's card NOT formatted (33%) | Night cells (9/4 20:20–20:33): the 900s ran **12.2–12.5 h** and were stopped at 3.58–3.64 V, right at the auto-stop edge (~08:31–08:45); the 1000 mAh on SF08/SF11 were alive at 3.68–3.70 after 12.3 h. **SF10's 4.08 V cell died three times** (~06:58, ~07:29 after a zombie restart at 07:00, ~08:30 after another at 08:05) → retired. **Anchor-only BLE pass 08:00–08:10, no handling**: 14–16 anchors per logger; SF12 (the first to slide) was ridden 07:30–08:10 = 210 anchors. **All six Record-Stopped ~08:40–08:50; fresh cells at 09:31 (SF07 4.22, SF08 4.18, SF09 4.22, SF10 4.22, SF11 4.18, SF12 4.24); Rec Start 09:33–09:50 → a ~50-min fleet-wide recording gap during the swap + 5 card formats.** Round deliberately late: operator cannot do dawn, and with 8-h cards the morning round should sit as late as the night cells allow. |
 
 ## Cell table (auto-extracted; 9/1 23:41 onward is exact, earlier rows are partial)
 
@@ -95,7 +96,13 @@ them (see Rounds). Card = model on the logger during that cell.
 | 09-04 08:16 | SF09 | EVO | 4.14 | 09-04 20:11 | 3.66 | 3.62 | 11.9 | swapped alive |
 | 09-04 08:26 | SF10 | EVO | 4.22 | 09-04 20:11 | 3.70 | 3.68 | 11.8 | swapped alive |
 | 09-04 08:26 | SF11 | EVO | 4.20 | 09-04 20:11 | 3.70 | 3.68 | 11.8 | swapped alive |
-| 09-04 20:10–20:33 | all six | EVO | 4.08–4.18 | (running) | | | | current cells |
+| 09-04 20:27 | SF10 | EVO | 4.08 | 09-05 06:58 | 3.52 | 3.52 | 10.5 | **yes 06:58**; zombie restarts 07:00→07:29 and 08:05→~08:30 — **RETIRED** |
+| 09-04 20:20 | SF07 | EVO | 4.16 | 09-05 08:3x | 3.64 | 3.64 | 12.3 | stopped at the edge (~08:31–08:45) |
+| 09-04 20:25 | SF09 | EVO | 4.18 | 09-05 08:3x | 3.64 | 3.62 | 12.2 | stopped at the edge (~08:31–08:45) |
+| 09-04 20:33 | SF12 | EVO | 4.18 | 09-05 08:4x | 3.58 | 3.58 | 12.2 | slid 3.66→3.58 from 08:00; stopped at the edge; 210 anchors 07:30–08:10 |
+| 09-04 20:23 | SF08 | EVO | 4.12 | 09-05 08:45 | 3.68 | 3.68 | 12.4 | 1000 mAh, manual Stop, alive |
+| 09-04 20:31 | SF11 | EVO | 4.12 | 09-05 08:45 | 3.70 | 3.70 | 12.3 | 1000 mAh, manual Stop, alive |
+| 09-05 09:31 | all six | **? (confirm)** | 4.18–4.24 | (running) | | | | SF08/SF11 at 4.18 = likely the 1000s; SF10 card not formatted (33%) |
 
 ## Retired cells
 
