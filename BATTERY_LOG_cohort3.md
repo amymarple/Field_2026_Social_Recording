@@ -116,7 +116,7 @@ them (see Rounds). Card = model on the logger during that cell.
 | 09-05 18:57 | SF10 | EVO 512 | 4.22 | 09-06 07:00 | 3.72 | 3.72 | 12.0 | **stopped ~04:03 at 3.74 flat (contact suspected, not the cell)**; restarted 05:58 on the same cell, ran 1.0 h to the round's Stop |
 | 09-05 18:59 | SF11 | EVO 512 | 4.16 | 09-06 07:02 | 3.70 | 3.70 | 12.0 | 1000 mAh (26 mV/h), manual Stop, alive |
 | 09-05 19:03 | SF12 | EVO 512 | 4.17 | 09-06 06:57 | 3.60 | 3.58 | 11.9 | manual Stop at the edge; SF12 the logger drains 5–10% faster than the rest in every batch; ERR 0505 text 06:50 |
-| 09-06 07:53–08:10 | all six | EVO 512 (not formatted, 19–23%) | 4.14–4.20 | (running) |  |  |  | day shift; 1000 mAh = SF08 + SF12 (operator-confirmed); 900 on SF07/09/10/11 |
+| 09-06 07:53–08:10 | all six | EVO 512 (not formatted, 19–23%) | 4.14–4.20 | (running) |  |  |  | day shift; 1000 mAh = SF08 + SF12 (operator-confirmed); 900 on SF07/09/10/11; SF07 + SF11 sessions split by 1/4-turn probe moves (Stop 12:31:20 / 12:32:32 -> Start 13:29:42 / 13:33:38, same cells) |
 
 ## Retired cells
 
