@@ -29,8 +29,10 @@ logger's drain on its **current cell**, and posts to Slack at **01:02 and 13:02*
    (~08:15) ~4.75 h old at 13:00 - past the surface-charge phase, so the slope is steady.
    Install-hour slopes are inflated (lesson of 2026-09-02); never forecast from them.
 
-Also flags **STOPPED** (recording-elapsed frozen over 3 samples), **STALE** (no ad for
-20 min) and **SHORT** (< 1.5 h on a fresh cell - no slope yet).
+Also flags **REC COUNTER FROZEN** (recording-elapsed unchanged over 3 samples - a real stop and
+an advertisement-telemetry freeze look identical from the ads, so the row is still forecast and
+the advice says *confirm by connecting*; SF07 2026-09-06 05:36-05:56 was a freeze, not a stop),
+**STALE** (no ad for 20 min) and **SHORT** (< 1.5 h on a fresh cell - no slope yet).
 
 ## Install / test
 

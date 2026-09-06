@@ -124,17 +124,18 @@ function Get-BatteryForecast {
         $r = [ordered]@{ Label = $lab; Volts = $last.Volts; Pct = $last.Pct; Ts = $last.Ts
                          AgeMin = [math]::Round($ageMin, 1); Status = 'OK'; SlopeMvH = $null
                          SlopeErr = $null; SpanH = $null; SegH = $null; ExitAt = $null; StopAt = $null
-                         SwapBy = $null; FullAt = $null; CardRate = $null; Note = '' }
+                         SwapBy = $null; FullAt = $null; CardRate = $null; Note = ''; RecFrozen = $false }
         if ($ageMin -gt $StaleMinutes) {
             $r.Status = 'STALE'; $r.Note = ('last ad {0} min ago' -f [math]::Round($ageMin))
             $out += [pscustomobject]$r; continue
         }
-        # auto-stopped: recording-elapsed frozen across the last 3 samples
+        # recording-elapsed frozen across the last 3 samples = a real stop OR the advertisement's
+        # rec field freezing while V / card% keep updating (SF07 2026-09-06 05:36-05:56 was the
+        # latter - it never stopped). Flag it, keep forecasting, tell the operator to confirm.
         if ($lr.Count -ge 3) {
             $t3 = @($lr[($lr.Count-3)..($lr.Count-1)] | ForEach-Object { $_.Rec })
             if ($null -ne $t3[0] -and $t3[0] -gt 0 -and $t3[0] -eq $t3[1] -and $t3[1] -eq $t3[2]) {
-                $r.Status = 'STOPPED'; $r.Note = ('rec frozen at {0} s - auto-stopped' -f $t3[2])
-                $out += [pscustomobject]$r; continue
+                $r.RecFrozen = $true
             }
         }
         # current-cell segment: after the last upward jump >= 0.15 V (= a swap)
@@ -212,7 +213,7 @@ if ($SelfTest) {
     Add-Ref 'G' $now.AddHours(-5) 5 2.0 0 30 1000        # drains at twice the curve rate (high-power card) -> x0.6 clamp -> 2.52 h
     Add-Ref 'D' $now.AddHours(-5) 2.5 1.0 10 30 1000     # old cell (age 10 -> 12.5), then swap:
     Add-Ref 'D' $now.AddHours(-2.5) 2.5 1.0 0 0 0        #   fresh, 2.5 h on the curve -> 11.7 h left
-    Add-Ref 'E' $now.AddHours(-5) 5 1.0 0 30 1000        # E: frozen rec -> STOPPED
+    Add-Ref 'E' $now.AddHours(-5) 5 1.0 0 30 1000        # E: frozen rec -> flagged RecFrozen, still forecast (9.2 h like A)
     $rows = @($rows | ForEach-Object { if ($_.Label -eq 'E') { $_.Rec = 47719 }; $_ })
     Add-Ref 'F' $now.AddHours(-5) 4.5 1.0 0 30 1000      # F: last sample 30 min old -> STALE
     $fc = Get-BatteryForecast $rows $now 4 1.5 3.68 3.40 1.0 1.74 20
@@ -226,9 +227,10 @@ if ($SelfTest) {
     }
     Check 'A' 9.2 0.25; Check 'B' 0.7 0.15; Check 'C' 17.55 0.4; Check 'D' 11.7 0.3; Check 'G' 2.52 0.3
     $e = $fc | Where-Object { $_.Label -eq 'E' }; $f = $fc | Where-Object { $_.Label -eq 'F' }
-    Say ("SelfTest E (frozen rec): {0} -> {1}" -f $e.Status, $(if ($e.Status -eq 'STOPPED') { 'PASS' } else { 'FAIL' }))
+    $eOk = ($e.RecFrozen -and $e.Status -eq 'OK' -and $null -ne $e.StopAt -and [math]::Abs((($e.StopAt - $now).TotalHours) - 9.2) -le 0.25)
+    Say ("SelfTest E (frozen rec): status {0}, RecFrozen {1}, stop in {2:F2} h (expected 9.2, still forecast) -> {3}" -f $e.Status, $e.RecFrozen, (($e.StopAt - $now).TotalHours), $(if ($eOk) { 'PASS' } else { 'FAIL' }))
     Say ("SelfTest F (stale ad):   {0} -> {1}" -f $f.Status, $(if ($f.Status -eq 'STALE') { 'PASS' } else { 'FAIL' }))
-    if ($e.Status -ne 'STOPPED' -or $f.Status -ne 'STALE') { $ok = $false }
+    if (-not $eOk -or $f.Status -ne 'STALE') { $ok = $false }
     $hl = @(ConvertTo-HourList '17,8.25'); $hl2 = @(ConvertTo-HourList @(8.25, 19.75))
     $hlOk = ($hl.Count -eq 2 -and $hl[0] -eq 17 -and $hl[1] -eq 8.25 -and $hl2.Count -eq 2 -and $hl2[1] -eq 19.75)
     Say ("SelfTest RoundHours parse: '17,8.25' -> {0}; array -> {1} -> {2}" -f ($hl -join '/'), ($hl2 -join '/'), $(if ($hlOk) { 'PASS' } else { 'FAIL' }))
@@ -298,7 +300,7 @@ $nextRound = Get-NextRound $now $RoundHours
 $alive = @($fc | Where-Object { $_.Status -eq 'OK' } | Sort-Object StopAt)
 $dieBefore  = @($alive | Where-Object { $_.StopAt -lt $nextRound })
 $cardBefore = @($alive | Where-Object { $null -ne $_.FullAt -and $_.FullAt -lt $nextRound })
-$stopped = @($fc | Where-Object { $_.Status -eq 'STOPPED' })
+$frozen  = @($fc | Where-Object { $_.RecFrozen })
 $other   = @($fc | Where-Object { $_.Status -in 'STALE', 'SHORT' })
 
 # ---- compose ------------------------------------------------------------------------
@@ -309,7 +311,7 @@ $lines += ('-' * 100)
 $lines += ('{0,-5} {1,6} {2,9} {3,7} {4,8} {5,8} {6,8} {7,6} {8,10}  {9}' -f 'rat', 'V', 'mV/h', 'cell h', 'knee', 'STOP', 'swap by', 'card%', 'full at', 'note')
 foreach ($x in ($fc | Sort-Object { if ($_.StopAt) { $_.StopAt } else { [datetime]::MaxValue } })) {
     if ($x.Status -eq 'OK') {
-        $lines += ('{0,-5} {1,6:F2} {2,5:F0}+/-{3,-3:F0} {4,7:F1} {5,8:HH:mm} {6,8:HH:mm} {7,8:HH:mm} {8,5:F0}% {9,10:ddd HH:mm}  {10}' -f $x.Label, $x.Volts, $x.SlopeMvH, $x.SlopeErr, $x.SegH, $x.ExitAt, $x.StopAt, $x.SwapBy, $x.Pct, $x.FullAt, $x.Note)
+        $lines += ('{0,-5} {1,6:F2} {2,5:F0}+/-{3,-3:F0} {4,7:F1} {5,8:HH:mm} {6,8:HH:mm} {7,8:HH:mm} {8,5:F0}% {9,10:ddd HH:mm}  {10}' -f $x.Label, $x.Volts, $x.SlopeMvH, $x.SlopeErr, $x.SegH, $x.ExitAt, $x.StopAt, $x.SwapBy, $x.Pct, $x.FullAt, $(if ($x.RecFrozen) { 'REC COUNTER FROZEN in ads - confirm by connect; ' + $x.Note } else { $x.Note }))
     } else {
         $lines += ('{0,-5} {1,6:F2} {2,-9} {3}' -f $x.Label, $x.Volts, $x.Status, $x.Note)
     }
@@ -332,7 +334,7 @@ if ($alive.Count) {
         $advice += ('Cards OK: fullest {0} at {1:F0}% (full ~{2:ddd HH:mm}) - format at the round.' -f $fullest.Label, $fullest.Pct, $fullest.FullAt)
     }
 }
-if ($stopped.Count) { $advice += ('ALREADY STOPPED: {0}' -f (($stopped | ForEach-Object { $_.Label }) -join ', ')) }
+if ($frozen.Count)  { $advice += ('REC COUNTER FROZEN in the ads for {0} - a real stop and an ad-telemetry freeze look identical from the ads; confirm by connecting (heartbeat rec counter).' -f (($frozen | ForEach-Object { $_.Label }) -join ', ')) }
 if ($other.Count)   { $advice += ('no forecast: {0}' -f (($other | ForEach-Object { '{0} ({1})' -f $_.Label, $_.Status }) -join ', ')) }
 $lines += $advice
 $text = $lines -join "`r`n"
