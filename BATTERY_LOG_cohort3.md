@@ -9,6 +9,20 @@ froze advertisement telemetry during recording (8/31 → 9/1). Card model per ro
 operator's read-off (only the physical read is authoritative). Regenerate the table any time
 with the extraction snippet at the bottom.
 
+## THE HANDLING RULE (read this before proposing any swap)
+
+**Catching a rat is the expensive step, not the swap. Rats are caught ONCE per round, all together. Never plan a single-logger battery change, a single-logger card swap or a “while you're there” fix — if one animal has to be caught, the whole round happens, and if the round is not happening, nobody is caught.**
+
+Why: every catch disturbs sleep, which is the experiment. Two catches in a day cost twice the disturbance and buy nothing — the rats have to be caught for the next round anyway. A round takes 1–2 h of handling, so “just SF07” is never just SF07.
+
+What follows from it:
+
+- **The round is timed by the FIRST logger to reach the knee**, not by the average. Everyone gets a fresh cell at that time, even the ones with 4 h left.
+- **A weak cell installed mid-round is not swapped out early.** It either runs to its auto-stop (FM65 commits byte-exact) or it is covered by an anchor touch — it is not a reason to catch that animal again.
+- **BLE-only actions are free** (connect-only anchor touches, Record Stop/Start, Resync on an idle logger, reading telemetry): no catching, no disturbance. Use them freely instead of handling — that is the whole point of the knee-voltage anchor pass.
+- **Auto-stop is an acceptable outcome, a mid-day catch is not.** A logger that auto-stops loses recording time between the stop and the round; it does not lose the session.
+- Consequence for the forecast tools: the advice line is “START THE ROUND BY hh:mm” for the whole fleet. Per-logger swap times are the ORDER within one round, never separate trips.
+
 **Design numbers so far**
 - Regular cell on an **EVO 512** card: **12–14 h** to auto-stop (9/3 night 14.1–14.3 h is the
   record; 9/4 day cells were swapped alive at 11.8–12.0 h with 1–2 h left).
