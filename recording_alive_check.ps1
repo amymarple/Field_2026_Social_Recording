@@ -17,6 +17,12 @@
 .PARAMETER ReolinkRoot    Root holding CH** folders (default E:\Reolink_record).
 .PARAMETER ThermalRoot    Root holding thermal/visual folders (default E:\thermal_record).
 .PARAMETER ConfigPath     Slack creds (reused from the overexposure QC config).
+.PARAMETER DriftLogPath   Clock-drift log written by pc_drift_check.ps1 (4x/day NTP
+                          samples). Watched for staleness so a silently skipped drift
+                          run cannot go unnoticed (one was missed 2026-09-07 06:45).
+.PARAMETER DriftStaleHours Warn when that log's newest ROW is older than this (default
+                          8 - normal spacing is 6 h, so a single missed run is caught
+                          ~2 h after it should have landed). 0 disables the check.
 .PARAMETER RealertHours   While groups stay stalled, re-alert at most this often (default 1).
 .PARAMETER DryRun         Print status only; send nothing, update no state.
 .PARAMETER TestSlack      Send a test message to the configured destinations, then exit.
@@ -25,7 +31,9 @@
 .NOTES
     One aggregated alert lists ALL stalled groups (not one msg per channel). De-duped:
     alert on healthy->stalled, re-alert every RealertHours while stalled, recovery note
-    when all groups are healthy again. Exit: 0 all healthy, 1 one or more stalled.
+    when all groups are healthy again. Exit: 0 all healthy, 1 one or more stalled
+    (or the clock-drift log went stale - that warns once per episode and never fires
+    the RECORDING STOPPED page).
 #>
 
 [CmdletBinding()]
@@ -37,6 +45,8 @@ param(
     [string]$ConfigPath = 'E:\recording_qc\overexposure.config.psd1',
     [string]$StatePath = 'E:\recording_qc\recording_alive_state.json',
     [string]$LogPath = 'E:\recording_qc\recording_alive_log.txt',
+    [string]$DriftLogPath = 'E:\recording_qc\pc_drift_log.csv',
+    [int]$DriftStaleHours = 8,
     [int]$RealertHours = 1,
     [switch]$DryRun,
     [switch]$TestSlack,
@@ -122,6 +132,37 @@ function Get-GroupAgeMin([string]$path, [datetime]$now) {
     return [math]::Round(($now - $f.LastWriteTime).TotalMinutes, 1)
 }
 
+# --- clock-drift log freshness -----------------------------------------------------
+# pc_drift_check.ps1 is the only record of PC-clock vs true UTC, and it fails silently:
+# an unreachable NTP server still writes a FAIL row, so a MISSING row means the run
+# never happened at all. Judge by the newest ROW's own timestamp, not the file mtime -
+# a touched-but-not-appended file would look fresh. Never throws: this pager must not
+# die on a side check ($ErrorActionPreference is Stop).
+function Get-DriftStatus([string]$csv, [datetime]$now, [int]$staleHours) {
+    $r = @{ Stale = $false; Msg = ''; AgeHours = $null }
+    if ($staleHours -le 0) { return $r }   # 0 disables the check
+    try {
+        if (-not (Test-Path -LiteralPath $csv)) {
+            $r.Stale = $true
+            $r.Msg = "clock-drift log missing ($csv) - is the 'Field PC Drift Check' task still installed?"
+            return $r
+        }
+        $lines = @(Get-Content -LiteralPath $csv -ErrorAction Stop | Where-Object { $_ -match '\S' })
+        if ($lines.Count -lt 2) { $r.Stale = $true; $r.Msg = "clock-drift log has no data rows ($csv)"; return $r }
+        $stamp = ($lines[-1] -split ',')[0].Trim(' ', '"')
+        $t = [datetimeoffset]::Parse($stamp, [Globalization.CultureInfo]::InvariantCulture)
+        $r.AgeHours = [math]::Round(($now - $t.LocalDateTime).TotalHours, 2)
+        if ($r.AgeHours -gt $staleHours) {
+            $r.Stale = $true
+            $r.Msg = "clock-drift log not written for {0:F1} h (> {1}); last row {2}. A 6-hourly NTP sample was skipped - the PC->UTC drift curve is losing points." -f $r.AgeHours, $staleHours, $stamp
+        }
+    } catch {
+        $r.Stale = $true
+        $r.Msg = "clock-drift log unreadable ($csv): $($_.Exception.Message)"
+    }
+    return $r
+}
+
 # --- SELF TEST: synthetic fresh + stale groups, no Slack, no real disk state ---
 if ($SelfTest) {
     $tmp = Join-Path ([IO.Path]::GetTempPath()) ("ralive_selftest_" + [guid]::NewGuid().ToString('N'))
@@ -153,6 +194,20 @@ if ($SelfTest) {
     Say ("SelfTest expected stalled: {0}" -f ($expected -join ', '))
     Say ("SelfTest mute split: active=[{0}] muted=[{1}] -> {2}" -f ($tActive -join ','), ($tMuted -join ','), $(if ($okMute) { 'PASS' } else { 'FAIL' }))
     $ok = $ok -and $okMute
+    # drift-log freshness: fresh row quiet, 13 h old row stale, missing file stale, 0 = off
+    $dcsv = Join-Path ([IO.Path]::GetTempPath()) ("ralive_drift_" + [guid]::NewGuid().ToString('N') + '.csv')
+    $dhdr = '"local_time","utc_time","offset_ms","delay_ms","server","samples","tz_id","dst_capable","w32time","status"'
+    $drow = '"{0}","x","1","2","s","3","tz","True","Stopped","OK"'
+    Set-Content -LiteralPath $dcsv -Encoding ASCII -Value @($dhdr, ($drow -f $now.AddHours(-1).ToString('yyyy-MM-ddTHH:mm:sszzz')))
+    $dFresh = Get-DriftStatus $dcsv $now 8
+    Set-Content -LiteralPath $dcsv -Encoding ASCII -Value @($dhdr, ($drow -f $now.AddHours(-13).ToString('yyyy-MM-ddTHH:mm:sszzz')))
+    $dStale = Get-DriftStatus $dcsv $now 8
+    $dOff   = Get-DriftStatus $dcsv $now 0
+    Remove-Item -LiteralPath $dcsv -Force -EA SilentlyContinue
+    $dGone  = Get-DriftStatus $dcsv $now 8
+    $okDrift = (-not $dFresh.Stale) -and $dStale.Stale -and $dGone.Stale -and (-not $dOff.Stale)
+    Say ("SelfTest drift-log: fresh={0} stale13h={1} missing={2} disabled={3} -> {4}" -f $dFresh.Stale, $dStale.Stale, $dGone.Stale, $dOff.Stale, $(if ($okDrift) { 'PASS' } else { 'FAIL' }))
+    $ok = $ok -and $okDrift
     Say ("SelfTest: {0}" -f $(if ($ok) { 'PASS' } else { 'FAIL' })) $(if ($ok) { 'Green' } else { 'Red' })
     exit $(if ($ok) { 0 } else { 2 })
 }
@@ -184,16 +239,22 @@ $muteTag = if ($MuteGroups.Count) { " [muted: $($MuteGroups -join ',')]" } else 
 $status = "{0}/{1} groups stalled (> {2} min){3}. [{4}]" -f $nStale, $groups.Count, $StaleMinutes, $muteTag, ($detail -join ' ')
 Say $status $(if ($nActive -gt 0) { 'Red' } elseif ($nStale -gt 0) { 'Yellow' } else { 'Green' })
 
+$drift = Get-DriftStatus $DriftLogPath $now $DriftStaleHours
+$status = "{0} drift_log={1}" -f $status, $(if ($null -ne $drift.AgeHours) { '{0:F1}h' -f $drift.AgeHours } elseif ($DriftStaleHours -le 0) { 'off' } else { 'n/a' })
+if ($drift.Stale) { Say ("  warn: {0}" -f $drift.Msg) Yellow }
+elseif ($null -ne $drift.AgeHours) { Say ("  drift log ok (newest row {0:F1} h old)" -f $drift.AgeHours) Green }
+
 # --- state / de-dup ---
 # state.stalled tracks NON-MUTED groups; mutedAlerted lists muted groups already
 # paged for their current outage (one page per stop, cleared on recovery).
 $state = @{ stalled = $false; lastAlert = $null }
-$mutedAlerted = @(); $isMigration = $true
+$mutedAlerted = @(); $isMigration = $true; $driftWarned = $false
 if (Test-Path -LiteralPath $StatePath) {
     try {
         $s = Get-Content -LiteralPath $StatePath -Raw | ConvertFrom-Json
         $state.stalled = [bool]$s.stalled; $state.lastAlert = $s.lastAlert
         if ($s.PSObject.Properties['mutedAlerted']) { $mutedAlerted = @($s.mutedAlerted); $isMigration = $false }
+        if ($s.PSObject.Properties['driftWarned']) { $driftWarned = [bool]$s.driftWarned }
     } catch {}
 }
 $wasStalled = [bool]$state.stalled
@@ -249,10 +310,27 @@ if (-not $DryRun) {
         }
         $state.stalled = $false; $state.lastAlert = $null; $action = 'recovered'
     }
+    # Clock-drift log: one warn per stale episode + a recovery note. Deliberately NOT
+    # on the RECORDING STOPPED path - a skipped NTP sample is a data-quality warning,
+    # not a capture outage, and must never dilute the capture pager.
+    if ($drift.Stale -and -not $driftWarned) {
+        if ($Slack.Token -and $Slack.Channels.Count) {
+            [void](Send-SlackText $Slack.Token $Slack.Channels (":warning: Clock-drift monitor: {0}" -f $drift.Msg))
+        } else { Say "(no Slack creds; would warn: $($drift.Msg))" DarkYellow }
+        $driftWarned = $true
+        if ($action -eq 'none') { $action = 'drift-warn' }
+    } elseif (-not $drift.Stale -and $driftWarned) {
+        if ($Slack.Recovery -and $Slack.Token -and $Slack.Channels.Count) {
+            [void](Send-SlackText $Slack.Token $Slack.Channels (":white_check_mark: Clock-drift log is being written again ({0})." -f (Get-Date).ToString('HH:mm')))
+        }
+        $driftWarned = $false
+        if ($action -eq 'none') { $action = 'drift-recovered' }
+    }
+    $state.driftWarned = $driftWarned
     $state.mutedAlerted = $mutedAlerted
     ($state | ConvertTo-Json) | Set-Content -LiteralPath $StatePath -Encoding UTF8
     Add-Content -LiteralPath $LogPath -Encoding UTF8 -Value ("{0}  {1}  action={2} sent={3}" -f (Get-Date).ToString('yyyy-MM-dd HH:mm:ss'), $status, $action, $sent)
 }
 
 Say ("action={0}{1}" -f $action, $(if ($DryRun) { '  (DRY RUN - nothing sent/written)' } else { '' })) Gray
-exit $(if ($nStale -gt 0) { 1 } else { 0 })
+exit $(if ($nStale -gt 0 -or $drift.Stale) { 1 } else { 0 })
