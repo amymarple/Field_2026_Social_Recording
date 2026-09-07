@@ -123,7 +123,7 @@ them (see Rounds). Card = model on the logger during that cell.
 | 09-06 08:05 | SF10 | EVO 512 | 4.17 | 09-06 19:07 | 3.66 | 3.66 | 11.0 | manual Stop for the round; ran clean all day (no contact event) |
 | 09-06 08:08 | SF11 | EVO 512 | 4.16 | 09-06 19:04 | 3.67 | 3.66 | 10.9 | manual Stop for the round; session split by the 12:32/13:34 probe move |
 | 09-06 08:10 | SF12 | EVO 512 | 4.17 | 09-06 19:10 | 3.68 | 3.68 | 11.0 | manual Stop for the round |
-| 09-06 19:40–19:55 | all six | EVO 512 (not formatted, 39–43%) | 4.10–4.22 | (running) |  |  |  | night shift; 1000 mAh on SF08 (4.10) + SF12 (4.19) (operator 20:15); 900s (SF07/09/10/11) expected to stop ~07:50–10:00 9/7 |
+| 09-06 19:40–19:55 | all six | EVO 512 (not formatted, 39–43%) | 4.10–4.22 | (running) |  |  |  | night shift; 1000 mAh on SF08 (4.10) + SF12 (4.19) (operator 20:15); **SF11 implant fell off ~07:40 9/7 - logger retired from monitoring, its cell excluded from statistics**; 900s (SF07/09/10) expected to stop ~07:50–10:00 9/7 |
 
 ## Retired cells
 
