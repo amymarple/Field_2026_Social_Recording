@@ -6,9 +6,10 @@ lower than other cards on the loggers. This bench test measures per-card draw di
 we can standardize the fleet on the lowest-power card (see `incident_log.md` SD findings).
 
 **Rig / conventions (fill in once):**
-- Measurement point: ___ (e.g. USB SD reader on 5 V rail — implied V column cross-checks this)
-- Card state during reading: ___ (idle mounted / sustained write / formatting) — power depends
-  heavily on state, so keep ALL rows in the same state for a fair ranking.
+- Measurement point: USB SD reader on the 5 V rail (implied V column reads 5.17–5.21 V across all rows).
+- Card state during reading: **SUSTAINED WRITE for every row** (operator, 2026-09-08) — the same state
+  the logger runs in (2.48 MB/s continuous), so the ranking transfers directly and the absolute
+  watts are the write-state watts, not idle.
 - The absolute W here is at the reader's rail (~5 V); the logger runs the card at a lower rail,
   so in-logger watts differ — but the **relative ranking across cards is what transfers**.
 
