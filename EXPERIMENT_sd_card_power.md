@@ -19,27 +19,44 @@ we can standardize the fleet on the lowest-power card (see `incident_log.md` SD 
 | 3 | 128 GB Pro Endurance Samsung (#2) | 0.0752 | 0.3894 | 5.18 V | 2nd Pro Endurance sample — +11 mW vs #1 (card-to-card spread) |
 | 4 | 512 GB Samsung Sonic | 0.0687 | 0.3566 | 5.19 V | lowest so far — 512 GB draws LESS than the 128 GB cards (matches the EVO-512 field win) |
 | 5 | 512 GB Lexar Play Blue | 0.0752 | 0.3921 | 5.21 V | HIGHEST so far — and also a 512 GB, so capacity is NOT the driver; the specific card is |
+| 6 | **256 GB Samsung EVO** | **0.0563** | **0.2936** | 5.21 V | **NEW LOWEST by a wide margin — 63 mW (18%) under the Sonic 512, 100 mW under the Lexar. Bench now agrees with the field: EVO is the low-power card, and the ranking is set by the controller, not the capacity.** |
 
 ## Ranking (lowest power first) — auto-filled as rows come in
-1. 512 GB Samsung Sonic — 0.3566 W  ⭐ lowest
-2. 128 GB Insignia — 0.3783 W
-3. 128 GB Pro Endurance Samsung (#1) — 0.3791 W
-4. 128 GB Pro Endurance Samsung (#2) — 0.3894 W
-5. 512 GB Lexar Play Blue — 0.3921 W  ⚠️ highest
+
+1. **256 GB Samsung EVO — 0.2936 W  ⭐ lowest (2026-09-08)**
+2. 512 GB Samsung Sonic — 0.3566 W
+3. 128 GB Insignia — 0.3783 W
+4. 128 GB Pro Endurance Samsung (#1) — 0.3791 W
+5. 128 GB Pro Endurance Samsung (#2) — 0.3894 W
+6. 512 GB Lexar Play Blue — 0.3921 W  ⚠️ highest
 
 _Notes: (a) the two Pro Endurance samples differ by ~11 mW — unit-to-unit variation within one
 model is real, so measure the actual card that goes on each logger, not just the model.
-(b) capacity is NOT the driver: the range is 0.357 W (Samsung 512) to 0.392 W (Lexar 512) — both
-512 GB, spanning the whole spread. It's the specific card/controller. **Samsung Sonic 512 wins;
-Lexar Play Blue 512 is worst** — standardize on the Samsung, keep Lexar off the loggers.
-(c) full span so far ~36 mW ≈ the ~10 mV/h battery difference seen in the field._
+(b) capacity is NOT the driver: 0.294 W (EVO 256) to 0.392 W (Lexar 512), with a 512 GB card at
+each end of the middle — it is the specific card/controller.
+(c) **the EVO gap is the big one: 63 mW below the Sonic, 98 mW below the Lexar, vs a 36 mW spread
+across all the non-EVO cards.** Scaling the field result the same way: the non-EVO cards cost
+~10 mV/h against each other, and EVO vs non-EVO is worth ~4.5 h of battery (12.5 h vs 8.0 h on the
+same 900 mAh cells, 9/7–9/8) — so the bench ordering and the field ordering now agree in both
+sign and rough magnitude._
 
-## Caveat on the bench ranking — EVO 512 not yet benched
+## EVO benched 2026-09-08 — caveat closed
 
-The bench table above ranks only the cards that were measured. **Samsung EVO 512 — the field
-champion for battery life — has NOT been put on the bench rig yet.** So "Samsung Sonic 512 = #1"
-is provisional: it beats the 128 GB cards and the Lexar, but the field says EVO beats Sonic.
-**TODO: bench the EVO 512 under the same rig/state** to close the ranking.
+The open TODO ("EVO 512 not yet benched, so Sonic-512-is-#1 is provisional") is settled: a
+**Samsung EVO 256** measured **0.0563 A / 0.2936 W** on the same rig — the lowest of every card
+tested, by 63 mW over the next best (Sonic 512). The field verdict was right and the bench now
+shows why: **the EVO controller draws ~18% less than anything else here**, and the effect is not
+a capacity effect (this EVO is a 256 GB and still beats both 512 GB cards).
+
+Two loose ends, neither affecting the ranking:
+- The benched EVO is a **256 GB**; the fleet's field cards are **EVO 512**. Same family, but
+  measure an actual EVO 512 when one is free to confirm the 512 behaves like the 256.
+- Record the card **state** during the reading (idle-mounted vs sustained write) in the rig block
+  above — all rows must be in the same state for the ranking to hold, and the logger's real duty
+  cycle is sustained write at 2.48 MB/s.
+
+**Standing rule unchanged, now with bench backing: EVO on every logger; Sonic/PE/Insignia are
+day-shift or spare only; keep Lexar Play Blue off the loggers.**
 
 ## Field observations (in-logger, same night, cards as the only difference)
 
