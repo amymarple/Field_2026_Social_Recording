@@ -140,6 +140,7 @@ html = f"""<!doctype html><html lang="zh"><head><meta charset="utf-8">
   <div>日期:</div><div>操作者:</div><div>天气/光线:</div><div>手机−PC钟差: ______ s</div>
   <div>连续5格实测 x向: ____ mm (应300)</div><div>y向: ____ mm</div><div>板厚: ____ mm</div><div>草高(典型): ____ cm</div>
   <div>场地长边1: ______ cm</div><div>长边2: ______ cm</div><div>对角线1: ______ cm</div><div>对角线2: ______ cm</div>
+  <div>线离地高度(典型): ____ cm</div><div>地面点标记方式: 漆 / 粉笔 / ____</div><div></div><div></div>
  </div>
  {svg_str}
  <div class="legend" style="margin-top:2px">
@@ -152,6 +153,9 @@ html = f"""<!doctype html><html lang="zh"><head><meta charset="utf-8">
   <b>铁律:</b> 场上永远只有一块板 · 锥桶只做找位参考不进画面控制点 · 目标坐标≠记录坐标, 一律记实测 ·
   接缝S行位置由预检帧现场定 · 每完成一批呼叫远程QC验角点再继续 · 离场前等 _to_ 闭合并验收+备份。
   <b>地面板位同时服务 CH03/04</b>(全相机同录, 集合归属共享), 无需重复放板。
+  <b>标记纪律:</b> 全场一切哑光, 严禁反光带(炸高光/IR blooming 毁角点) · 站位识别靠 时间+顺序+位置自洽,
+  相机无需看到ID(可选: 每条线开始举哑光号码纸2秒) · 线贴地拉紧只做放样和直线验证;
+  每个刻度垂直向下用哑光标记漆点到地面, <u>对齐与测量一律以地面漆点为准</u>(真z=0), 并记线离地高度。
  </div>
  <h2 style="margin-top:6px">CH03/04 内参扫板(插在放板批次间的等待里做)</h2>
  <table>
