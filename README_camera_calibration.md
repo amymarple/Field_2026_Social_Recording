@@ -183,6 +183,30 @@ poles/shelters match the site.
 | Fri 09-18 | desk | **Acceptance.** Eyeball 8 grid overlays; held-out RMSE table; calibration-walk check on every camera (watch the pano stitch seam); `merge_cameras.py` smoke test on one hour across all 8; ledgers A/B/C complete; commit. |
 | Week 2 | desk (2–3 half-days) | WISER cross-validation + per-region accuracy map (first cut already possible Friday if the walk carried a tag); decide overlap-zone precedence. |
 
+### Single-field-day variant (operator on site only ONE day)
+
+The plan needs exactly one field visit; a full day on site is enough for everything
+physical INCLUDING same-day quality control (footage is verified from the closed
+segment right after the top of the hour — failed material is re-shot before leaving).
+
+Bring: mounted checkerboard, tape measure, a ruler, a spare UWB tag.
+
+1. Normal battery round; whenever a box is briefly empty: ruler frame in view ~5 s +
+   tape-measure interior clear W×L (both boxes).
+2. Good light: checkerboard sweep CH03 then CH04 (10 min each, 1.5–4 m from the lens,
+   ±30–45° out-of-plane tilts, 1 s holds, cover the frame).
+3. Calibration walk: 3 s at each of the 15 poles, UWB tag at ankle height (~7 min).
+4. **Stay on site** past the next top of the hour: agent extracts the just-closed
+   segments and verifies (corners detectable? walk visible on all 8? ruler frame
+   usable?). Re-shoot any failed item; verify again next hour.
+5. Optional while present: move any mic still on a USB hub to a direct rear port
+   (~1 min audio gap each; update device names in the mic config after).
+
+Before the day (agent, remote): epoch stills ×8, CH05/06 moved/not-moved verdict,
+fresh layout map. After the day (desk, any location, remote OK): all clicking,
+fitting, comparison, validation — the Wed–Fri schedule above, no field presence
+needed.
+
 **End goal (acceptance criteria):**
 
 1. 8/8 cameras have an epoch-2026-09-14 `CHxx_calib.json` with held-out error in
