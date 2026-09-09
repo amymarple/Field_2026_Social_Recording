@@ -36,18 +36,39 @@ after they are returned they are still **moving and separated**, which is exactl
 which labelling is easy. Midday, by contrast, is the sleep period (the dependent variable) AND the
 huddle — expensive and hard, so take only a few short samples there, aimed at the hard case.
 
-## Day plan (run Thursday 2026-09-10 first; decide that evening whether Fri/Sat are needed)
+## What to sample — choose by POSTURE, not by the clock (operator, 2026-09-09)
 
-Times are approximate — anchor them to the actual rounds. Sample the camera that has animals in it
-(check which box the group is in first; sample both if both are occupied).
+**One rule decides the value of a flash: how long its label survives in the surrounding IR frames, and how
+many markers the colour frame actually shows.** Look at the live IR preview first; flash only when the
+configuration is informative. The clock times below are just reminders of when to go and look.
 
-| block | when | inserts | length | why |
-|---|---|---|---|---|
-| **A** | 10–25 min after the animals are returned at the **AM round** (~07:30–08:00) | 4 | 10 s | free disturbance; animals separated and moving = cleanest labels |
-| **B** | midday sleep / huddle (**12:00–13:00**) | 3 | 5 s | **the block that matters for the ten earlier days** — it is the only one that samples their actual condition (IR daytime huddle); keep each short (sleep window) but never skip it |
-| **C** | 10–25 min after the animals are returned at the **PM round** (~18:30–19:00) | 4 | 10 s | free disturbance; second posture/lighting sample of the day |
+**Tier 1 — highest value per flash (these are what the ten earlier days look like):**
 
-Total light-on ≈ 85 s per day, of which only ~15 s falls in undisturbed sleep.
+1. **A freshly settled, loose pile** — bodies touching, most back markers still visible. The pile is
+   static, so the label propagates forward/backward through the IR for tens of minutes: one flash labels a
+   long stretch. The single best sample for the retroactive goal.
+2. **One or two animals apart, the rest piled** — the outsiders are fully labelled, the pile has one fewer
+   unknown, and this is the commonest real configuration (animals joining/leaving the huddle).
+
+**Tier 2 — the appearance dictionary the classifier needs:**
+
+3. **Each animal separated and moving** (the 10–25 min after they are returned at a round — disturbance
+   already paid): back, side and head-on views of every animal, a few of each.
+
+**Do not spend a flash on:**
+
+- a tight pile with heads buried and markers hidden — the colour frame shows nothing either;
+- animals running and rearranging — the label dies in seconds;
+- the same static configuration twice — wait until something has moved or the pile has reshuffled.
+
+**Go / no-go before pressing the button: markers of ≥ 3 animals visible in the IR preview → flash; otherwise wait.**
+
+**Enough (over the three days):** per animal ≥ 3 separated views at different angles, and ≥ 5 labelled
+pile frames in which that animal's marker is visible. Stop when reached.
+
+Flash length: 5 s in a sleeping pile (sleep is the experiment), up to 10 s when they are already awake
+after a round. When to go and look: after the AM round (~07:30–08:00), midday (12:00–13:00, the
+settled-pile window), after the PM round (~18:30–19:00).
 
 ### Per insert, record
 
