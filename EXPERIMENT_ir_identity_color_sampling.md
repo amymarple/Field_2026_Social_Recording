@@ -55,13 +55,34 @@ configuration is informative. The clock times below are just reminders of when t
 3. **Each animal separated and moving** (the 10–25 min after they are returned at a round — disturbance
    already paid): back, side and head-on views of every animal, a few of each.
 
+**Tight, buried piles — flash ONCE per pile episode, not repeatedly.** Colour contrast beats IR contrast,
+so a coban edge that merges with fur in IR can be obvious in the colour frame; one flash pulls out
+whatever is partly visible and anchors the pile's composition for the tracker. Do not flash the same
+pile again until it has reshuffled.
+
+**How a buried pile gets its labels at all (this is the key to the ten earlier days):** not from its own
+frames — a buried marker is invisible in colour too, so this is not an IR-vs-colour limitation and
+auto would not have helped. Identity in a tight pile is INHERITED by tracking from the last moment the
+markers were visible (the loose pile it formed from, or the animals that joined it). The classifier
+only has to work at the visible moments; a tracker carries the labels across the buried ones. That is
+why the transitions (loose → tight, tight → loose) are the moments worth catching.
+
+**The one hard limit:** animals that reshuffle while buried and never surface a marker. Their
+arrangement in that stretch is unrecoverable by any method. Even then two layers survive:
+- **composition** (which animals are in the pile): WISER box occupancy minus the identified
+  outsiders — already available for all ten days, no flash needed; answers who-sleeps-with-whom;
+- **arrangement** (who is next to whom inside): from the visible moments + tracking — what this
+  sampling buys;
+- frame-by-frame identity inside a buried, reshuffled pile: not obtainable. Decide which layer the
+  analysis actually needs; that bounds the sampling effort.
+
 **Do not spend a flash on:**
 
-- a tight pile with heads buried and markers hidden — the colour frame shows nothing either;
 - animals running and rearranging — the label dies in seconds;
 - the same static configuration twice — wait until something has moved or the pile has reshuffled.
 
-**Go / no-go before pressing the button: markers of ≥ 3 animals visible in the IR preview → flash; otherwise wait.**
+**Go / no-go before pressing the button:** loose pile or animals apart with markers showing → flash; a
+tight pile → flash once for this episode if you have not already; the same unchanged configuration → wait.
 
 **Enough (over the three days):** per animal ≥ 3 separated views at different angles, and ≥ 5 labelled
 pile frames in which that animal's marker is visible. Stop when reached.
