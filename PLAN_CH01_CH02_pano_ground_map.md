@@ -57,6 +57,18 @@ pick any day with good daylight and dry weather; the ~4 h budget includes layout
 placements, closure waits, and re-shoots. Both cameras record simultaneously — one
 physical session serves both.
 
+**Solo execution is fine** (nothing needs a second pair of hands), with three notes:
+(1) anchor the tape end (stake through the ring) for the long edge/diagonal measures —
+or better, use a laser distance meter; (2) pre-print the log sheet with IDs/targets/set
+assignments and only write deviations — placement timestamps recover from the footage
+itself (or phone voice memos, phone-vs-PC clock offset noted once); do NOT use two
+identical boards simultaneously (duplicate ids confuse detection); (3) the agent acts
+as remote QC: after each batch, it extracts the just-closed segments and verifies
+corner counts while the operator is still on site. **The session may be split across
+2–3 shorter days** — cameras are fixed, so this is equivalent, provided each day starts
+with a fresh-still structure comparison confirming no camera moved, and ends with the
+backup verification.
+
 ### A. Taut-line field basis (~45–60 min)
 
 Re-verify field edge lengths + diagonals with tape (design grid ≠ measured truth).
