@@ -8,9 +8,13 @@ existing 20-point 2nd-order polys, fit RMSE 55.9 / 51.3 cm (fit error, not held-
 
 New assets this plan is built around:
 
-- **ChArUco board: 9×12 squares, 60 mm square, 45 mm marker, 5-bit dictionary**
-  → physical 540×720 mm, 8×11 = 88 chessboard corners, marker dict DICT_5X5_*
-  (exact variant to be confirmed from the generator; detector will auto-try 50/100/250/1000).
+- **ChArUco board: 12×9 squares, 60 mm square, 45 mm marker** — VERIFIED 2026-09-09 by
+  running detection on the board's source image (`calibration.png`, cv env, OpenCV 5.0.0):
+  54 markers, ids 0–53, dictionary **DICT_5X5_100** (250/1000 also match — nested
+  prefixes — but 100 is the smallest containing id 53, use it), all 11×8 = 88 inner
+  corners interpolate. Canonical constructor:
+  `cv2.aruco.CharucoBoard((12, 9), 0.060, 0.045, cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_5X5_100))`
+  (non-legacy pattern; physical 720×540 mm).
 - Soccer cones (position pre-marking, string anchoring — not clicked as control points).
 - Taut ground strings ("拉线") along known pole rows, with pre-marked ticks.
 
