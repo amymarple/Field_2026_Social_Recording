@@ -91,9 +91,14 @@ pre-assigned sets.
    ≤ 2 cm), board orientation reference. **Position, not design, is the recorded
    truth** (audit rule). Sets are pre-assigned per stop — 12 train / 6 validation /
    6 final-test per camera, assignment shared across both cameras (no leakage).
-3. **Before leaving:** wait for segments to close, extract, verify: decode counts in
-   the near zone, outer corners resolvable at the far stops, strings visible
-   end-to-end in both panos. Re-shoot failures immediately.
+3. **Before leaving:** wait for `_to_` files to actually appear (the top of the hour
+   does not guarantee closure), then do a short-window, low-load extraction of just the
+   needed frames (no bulk sweeps — heavy compute belongs on the analysis machine) and
+   verify: decode counts in the near zone, outer corners resolvable at the far stops,
+   strings visible end-to-end in both panos. Re-shoot failures immediately.
+4. **Optional UWB consistency check:** static tag dwells at 3–5 already-measured
+   positions, 10–20 s each, tag height and antenna reference logged. Consistency
+   evidence only — never a substitute for the independent test set.
 
 ## Offline pipeline (new script: `charuco_ground_map.py` in the CV folder)
 
