@@ -33,9 +33,11 @@ Operator has unrestricted field control time. Governing docs:
       geometry conflict by direct measurement); target-plane material per audit §3.C
       (12 measured positions per plane: 6/3/3) + photos identifying exactly which
       plane (roof? floor? window frame?) the old June clicks were on.
-- [ ] **CH07/CH08**: interior clear dims, floor height, interior origin position +
-      orientation relative to the field, numbered/ruler frames on camera, inner-vs-
-      outer corner disambiguation photos.
+- [ ] **CH07/CH08 — DEFERRED by operator decision 2026-09-09**: box positions are
+      recoverable from video later, so no in-box field session. NON-NEGOTIABLE
+      remainder: the boxes' interior clear dims + wall thickness + floor height cannot
+      be recovered from video — tape-measure the boxes before they are disposed of
+      (they may simply be kept after teardown; 5 minutes whenever convenient).
 - [ ] **Static UWB dwells**: tag at 5–10 measured positions, 10–20 s each, tag height
       + antenna reference logged (last chance for camera↔WISER consistency evidence).
 - [ ] Night-check clips: one short controlled-target capture after dark per camera

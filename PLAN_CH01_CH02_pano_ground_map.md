@@ -73,13 +73,20 @@ backup verification.
 
 Re-verify field edge lengths + diagonals with tape (design grid ≠ measured truth).
 Lay **7 lines across the field width** at x = **60, 240, 420, 600, 780, 960, 1140 cm**;
-mark 5 board-origin stations per line at y = **30, 150, 270, 390, 510 cm** →
-**35 training placements**. Board long edge (72 cm) along +x, short edge along +y.
-Stations are stakeout targets — the RECORDED coordinate is always the measured one.
-Cones are visual aids only, never control points. String intersections may serve as
-extra ground marks; strings LOOKING curved in the pano is expected, not an error.
-Obstructed stations get moved and re-measured; the valid region only ever covers
-ground actually sampled and validated.
+5 stations per line at y = **30, 150, 270, 390, 510 cm** → **35 training placements**.
+
+**Station accuracy comes from a construction chain, not per-station taping**
+(operator-simplified 2026-09-09): tape each line's x from the corners along BOTH long
+walls (14 numbers, logged) → stretch the line taut at soil level → dab a matte paint
+dot on the ground at each pre-marked y tick (the dot IS the station) → lay the board
+with its **origin corner on the dot and its 54 cm short edge hugging the line**, which
+fixes position AND orientation by construction → checkbox on the sheet. Only a board
+that cannot land on its dot (obstruction → moved) gets hand-measured coordinates.
+Station IDs are paper bookkeeping only (identification = time + order + position
+self-consistency); nothing reflective anywhere on the field (glare/IR blooming kills
+nearby corner detection); cones optional, purely for spotting stations from afar.
+Strings stay down (straightness validation); a string LOOKING curved in the pano is
+expected. The valid region only ever covers ground actually sampled and validated.
 
 ### B. Training placements (~60–90 min)
 
