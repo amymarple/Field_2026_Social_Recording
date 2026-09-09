@@ -87,3 +87,28 @@ Then:
 - 2026-09-09 19:11 — first sample taken, CH07, ~3 s (before this plan existed). Segment
   `CH07_2026-09-09_19-00-00_to_20-00-00.mp4`. It sits inside the loggers' post-restart settle-in
   window (restarts 18:38–18:50), so it costs nothing extra.
+
+## Branch (2026-09-09 evening): if auto day/night gives stable colour in the box
+
+If CH07 on **auto** yields stable colour during the day, the daytime identity problem is solved
+directly and the IR calibration is only needed for (a) the earlier IR-only days and (b) night-time
+in-box bouts. The sampling discipline then simply inverts: brief **forced B&W** inserts (5 s) during
+colour mode give the colour↔IR adjacent pairs, and the dawn auto-switch (animals usually in the box)
+gives one free pair per day. Heterogeneity is acceptable: two predictable transitions per day, mode
+detectable per frame, switch times logged. Hedge: auto on CH07 only, CH08 stays IR-locked.
+
+**The one hard risk — exposure.** In a dim box, colour mode makes the camera lengthen the shutter
+(Reolink can drop to 1/15–1/4 s). The container fps stays nominal (`-c copy`), but the sensor
+delivers duplicated frames and motion-blurred ones — both fatal for tracking. IR mode is immune
+(the LEDs supply the light).
+
+**Test before adopting (2026-09-10):**
+1. Check the camera's Exposure / Shutter setting; if a shutter floor exists, set it (≥ 1/30 s).
+   A darker, noisier colour image is still colour for identity purposes.
+2. Switch CH07 to auto ~07:30 after the AM round so the **08:00–09:00** segment is fully auto;
+   once it closes at 09:00, measure on the closed file (no open-segment reads):
+   unique-frame count by frame differencing (duplicates = stretched shutter), packet-timestamp
+   gaps (dropped frames), and a visual check of frames with a moving animal (blur).
+3. Verdict: full effective fps and no blur → adopt auto for the remaining days; fps drops but a
+   shutter floor is available → set it and re-test one segment; neither → stay IR-locked and run
+   the sampling plan above unchanged.
