@@ -1,143 +1,156 @@
-# CH01/CH02 (Duo3 panoramas) → field cm: dense ground-map plan
+# CH01/CH02 (Duo3 panoramas) → field cm: dense ground-map plan — v2
 
-Scope: concrete calibration plan for the two stitched 180° panoramas only.
-Complies with [CAMERA_CALIBRATION_AUDIT_PLAN.md](CAMERA_CALIBRATION_AUDIT_PLAN.md)
-(placement-level train/validation/test, measured-not-designed coordinates, region
-masks, validation-only model selection, test reported once). Baseline to beat: the
-existing 20-point 2nd-order polys, fit RMSE 55.9 / 51.3 cm (fit error, not held-out).
+v2 (2026-09-09): merged with GPT's independent plan for the same task. Complies with
+[CAMERA_CALIBRATION_AUDIT_PLAN.md](CAMERA_CALIBRATION_AUDIT_PLAN.md) and
+[AUDIT_RESPONSE_2026-09-09.md](AUDIT_RESPONSE_2026-09-09.md). CH01/CH02 are the sole
+priority. Deliverables per camera: pixel → field-cm mapping, valid-region mask,
+independent error report, and an **orthorectified top view**; plus a joint two-camera
+top-view mosaic.
 
-New assets this plan is built around:
+Baseline to beat: existing 20-point 2nd-order polys, fit RMSE 55.9 / 51.3 cm
+(fit error, not held-out).
 
-- **ChArUco board: 12×9 squares, 60 mm square, 45 mm marker** — VERIFIED 2026-09-09 by
-  running detection on the board's source image (`calibration.png`, cv env, OpenCV 5.0.0):
-  54 markers, ids 0–53, dictionary **DICT_5X5_100** (250/1000 also match — nested
-  prefixes — but 100 is the smallest containing id 53, use it), all 11×8 = 88 inner
-  corners interpolate. Canonical constructor:
-  `cv2.aruco.CharucoBoard((12, 9), 0.060, 0.045, cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_5X5_100))`
-  (non-legacy pattern; physical 720×540 mm).
-- Soccer cones (position pre-marking, string anchoring — not clicked as control points).
-- Taut ground strings ("拉线") along known pole rows, with pre-marked ticks.
+## Board (verified) and method
 
-## Why this method (state-of-the-art audit, condensed)
+- **ChArUco 12×9 squares, 60 mm square, 45 mm marker — VERIFIED 2026-09-09** by running
+  detection on `calibration.png` in this PC's cv env (OpenCV 5.0.0): 54 markers,
+  ids 0–53, dictionary **DICT_5X5_100** (smallest containing id 53; 250/1000 are nested
+  supersets), all 11×8 = 88 inner corners interpolate, non-legacy pattern. Constructor:
+  `cv2.aruco.CharucoBoard((12, 9), 0.060, 0.045, getPredefinedDictionary(DICT_5X5_100))`.
+  Physical 720×540 mm. **The detection environment exists on the field PC** — no
+  analysis-machine prep needed for this step.
+- Remaining physical checks: measure 5 consecutive squares in both directions
+  (must be 300 mm; if not, use measured pitch); mount thin/rigid/flat/matte; mark the
+  origin corner and long-edge direction; record board thickness.
+- Method: **taut-line measured coordinates + flat ChArUco placements + regional
+  nonlinear ground map.** Not claimed "proven SOTA for Duo3" — chosen because it is the
+  only route that validates directly in ground-cm. Whole-image single-lens models don't
+  apply to a stitched dual-lens pano (ChArUco locally is fine — the objection is to the
+  global central-projection assumption, not to the fiducials). Generic per-pixel models
+  remain research-grade for this. **Camera stitching settings are FROZEN** (vendor
+  confirms stitch varies with object distance; ghosting/missing possible); any future
+  change to stitch settings = new epoch.
 
-1. **Single-lens models don't apply.** Zhang planar / Kannala-Brandt fisheye /
-   Scaramuzza omni all assume one physical lens; the Duo3 output is a proprietary
-   software stitch of two lenses. No single (K, D) exists, and the stitch warp is a
-   black box.
-2. **The actual SOTA for uncalibratable optics is generic/dense models** (per-pixel or
-   spline generic camera calibration à la Schöps et al. CVPR 2020, driven by dense
-   fiducial observations). Restricted to a single plane — which is all we use — the
-   equivalent is: **dense ground control points + a flexible regularized 2D→2D map,
-   validated on spatially held-out positions.** That is exactly what a ChArUco board
-   laid flat on the ground enables: 88 auto-detected subpixel corners per placement
-   instead of one hand-clicked pole base (±2–3 px).
-3. **ChArUco over plain checkerboard** is current OpenCV-recommended practice: unique
-   marker IDs make partial views and oblique views usable — essential for a flat board
-   seen at grazing angle.
-4. **Lines are first-class ground control** — the sports-field registration literature
-   (broadcast soccer → pitch coordinates) registers cameras primarily on known field
-   LINES, not points. Our taut strings along pole rows are exactly such lines: a
-   string's image must map to a straight field line, giving a continuous validation
-   constraint across the whole field, including far zones where boards are sparse.
-5. Fiducial tiles on the floor for ground-truthing camera networks is standard robotics
-   practice; per-placement pose (x, y, θ) can be refined inside the fit if anchor
-   measurement proves the bottleneck (v2; v1 uses measured anchors directly).
+## Desk prep (half a day, before the field session)
 
-Verdict: dense flat-ChArUco control in the near/mid zone + board-outer-corner targets
-and string-line constraints in the far zone + piecewise/regularized map selection on a
-placement-level validation set. Per-half lens modeling of the Duo3 is research-grade
-effort for no gain on a ground-plane-only task.
+1. **Residual plots of the existing 20-pt calibs** (CH01/CH02): check landmark
+   correspondence, old coordinates, rotation; ~56/51 cm is old fit error, not yet
+   attributable to the model.
+2. **Lock pixel space**: the exact decode orientation the tracking pipeline uses
+   (stored 2160×7680, rotated); save rotation/scale/crop rules; calibration and
+   inference must share them, and a scaled image must map the same point to the same
+   field coordinate (checked in acceptance).
+3. **Record sheet**: per placement — position ID, start/end time, measured board-origin
+   field coords, orientation (origin + second long-edge reference point), plane height,
+   set membership (train/validation/test).
+4. **Preflight, 3 positions per camera** (near / far / near-seam) from closed footage:
+   a placement counts only if ≥12 dispersed corners spanning ≥3 rows AND ≥3 columns
+   detect. Where the board fails at range, fall back to **measured large flat cross
+   markers clicked manually** (or the board's own outline corners) — do not declare the
+   board unusable wholesale. Prior from pixel math: flat-marker decode dies ≈4 m from
+   the camera, so pre-mark the log sheet with expected-manual positions.
 
-## Board detection envelope (estimate — verify on site day 1)
+## Field session — EMPTY FIELD, reserve ~4 h
 
-Pixel scale ≈ 42.7 px/° horizontal (7680/180°), ≈ 39 px/° vertical (2160/55°), camera
-height ≈ 2.44 m (layout value — verify). A 45 mm marker needs ~14 px on its short
-(foreshortened) axis to decode (7 modules × ~2 px):
+Operator confirms unrestricted field control time (2026-09-09), so scheduling is free —
+pick any day with good daylight and dry weather; the ~4 h budget includes layout,
+placements, closure waits, and re-shoots. Both cameras record simultaneously — one
+physical session serves both.
 
-| Distance from camera | marker px (H × V, flat on ground) | decodes? |
-|---|---|---|
-| 3 m | ~37 × 21 | yes |
-| 4 m | ~25 × 13 | marginal — the empirical boundary |
-| 5 m | ~20 × 9 | no |
+### A. Taut-line field basis (~45–60 min)
 
-So: **ChArUco auto-corners work within ~4 m of each pano camera** (both sit near field
-center → the union disc covers roughly the central 60–70% of the field). Beyond that,
-the board's **outer corners** stay clickable to 8+ m (720 mm ≈ 220 px at 8 m): far
-placements contribute 4 manual corners each, on the same flat, metrically known target.
-One target type for the whole field; cones only mark where it goes.
+Re-verify field edge lengths + diagonals with tape (design grid ≠ measured truth).
+Lay **7 lines across the field width** at x = **60, 240, 420, 600, 780, 960, 1140 cm**;
+mark 5 board-origin stations per line at y = **30, 150, 270, 390, 510 cm** →
+**35 training placements**. Board long edge (72 cm) along +x, short edge along +y.
+Stations are stakeout targets — the RECORDED coordinate is always the measured one.
+Cones are visual aids only, never control points. String intersections may serve as
+extra ground marks; strings LOOKING curved in the pano is expected, not an error.
+Obstructed stations get moved and re-measured; the valid region only ever covers
+ground actually sampled and validated.
 
-**On-site check is mandatory:** after the first 3 placements, extract the closed
-segment and count decoded corners before committing to the full pattern.
+### B. Training placements (~60–90 min)
 
-## Field procedure (~45–60 min of the audit's half-day visit, two people ideal)
+Per station: align board origin AND the second long-edge reference to measured marks →
+step clear of both cameras' views → hold **8–10 s** → log ID + time. Extract 3–5 clean
+frames per placement and aggregate stable corners; **one placement = one sample**
+regardless of frames or corner count. Log board thickness + grass height; where board
+height above effective ground makes parallax non-negligible, switch that zone to thin
+flat markers rather than forcing z=0.
 
-**Prep (indoors, before the day):** confirm the board's dictionary variant; mount the
-board rigid + matte; measure the ACTUAL square pitch after mounting; prepare 3 strings
-with ticks every 61 cm (measured, taped); print the placement log sheet with
-pre-assigned sets.
+### C. Validation & final-test placements (~40–60 min)
 
-1. **Strings (15–20 min):** stretch taut ground strings along pole rows A, B, C
-   (known lines y = 0 / 304.8 / 609.6). Cones anchor ends and pre-mark the ~32
-   placement spots. Strings STAY DOWN for the whole session (they double as
-   validation lines and are recorded continuously).
-2. **Placements (~25–40 min):** one board moved through **~32 stops**, 8–10 s flat and
-   stable per stop (press into grass, weight corners if windy):
-   - 25 = 5×5 audit sketch grid (10/30/50/70/90% of length × width);
-   - 4 = field corners, ~1 m in from the walls;
-   - 3–4 extra straddling each pano's **stitch-seam band** (the ground line along each
-     camera's aim direction, at ~1.5 / 3 / 5 m from the camera).
-   Per stop, log: sequence ID, PC-clock time (hh:mm:ss), measured anchor coordinates
-   (distance-along-string tick + perpendicular offset by rigid stick/tape, target
-   ≤ 2 cm), board orientation reference. **Position, not design, is the recorded
-   truth** (audit rule). Sets are pre-assigned per stop — 12 train / 6 validation /
-   6 final-test per camera, assignment shared across both cameras (no leakage).
-3. **Before leaving:** wait for `_to_` files to actually appear (the top of the hour
-   does not guarantee closure), then do a short-window, low-load extraction of just the
-   needed frames (no bulk sweeps — heavy compute belongs on the analysis machine) and
-   verify: decode counts in the near zone, outer corners resolvable at the far stops,
-   strings visible end-to-end in both panos. Re-shoot failures immediately.
-4. **Optional UWB consistency check:** static tag dwells at 3–5 already-measured
-   positions, 10–20 s each, tag height and antenna reference logged. Consistency
-   evidence only — never a substitute for the independent test set.
+**24 interleaved positions** between the training grid:
+x = **150, 330, 510, 690, 870, 1050**; y = **90, 210, 330, 450** — split alternately
+into **12 model-selection validation + 12 final-test** positions; each placement
+belongs to exactly one set, shared across both cameras.
 
-## Offline pipeline (new script: `charuco_ground_map.py` in the CV folder)
+Seam extras per camera: one group near / mid / far along each pano's seam. Ghosting,
+local stretching, or corner jumps ⇒ sample both sides and treat the seam band as its
+own (possibly invalid) region — never force one continuous model across it. Seam and
+edge regions each need ≥3 independent test positions; short = add placements. No
+extrapolation toward the walls beyond sampled coverage.
 
-1. **Extract** one frame per placement from the logged time (median over the hold);
-   record source file, PTS, and rotation handling so the pixel space provably matches
-   the tracking pipeline's decode orientation (Duo3 stored rotated 90°).
-2. **Detect**: ChArUco corners near-zone; manual 4-corner clicks far-zone (tool
-   prompts per placement). Output a control table:
-   `placement_id, set, corner_id, u, v, X_cm, Y_cm`.
-3. **Fit on train only**, three candidates:
-   (a) normalized 2nd-order poly — the recomputed baseline;
-   (b) **piecewise-affine on a Delaunay triangulation** of control points (audit's
-   suggestion);
-   (c) thin-plate spline over a regularization-λ grid.
-4. **Select on validation** (placement-level). Freeze. **Report final test once.**
-   If the test drives a model change, it demotes to validation and a new test set is
-   collected (audit rule).
-5. **Region mask** = control-point coverage; the seam band and pano edges are separate
-   regions with their own numbers. **String report**: click ~15 points along each
-   imaged string, map, fit a line, report perpendicular residuals along the full
-   length — continuous far-field evidence between placements.
-6. Session-folder outputs per audit §4.5: raw labeled points, model params, masks,
-   error-arrow map, string residual curves, epoch entry in the README ledger.
+### D. Before leaving
 
-## Acceptance (audit §5 thresholds)
+Only short-window, low-load extraction from `_to_` files that actually exist (top of
+the hour guarantees nothing). Check: which stations are usable per camera (occlusion by
+the person/structures), far boards resolvable, seam corners trustworthy, all three sets
+cover the intended use region. Re-shoot failures on the spot. Optional: static UWB tag
+dwells at 3–5 measured positions (10–20 s, tag height + antenna reference logged) —
+consistency evidence only.
 
-| Region | Final-test target |
+## Offline: models, top view, interfaces
+
+No dependence on CH03/04; no "flatten the pano first" step.
+
+- Corner field-coords from measured board origin + orientation + measured pitch.
+  **Equal total weight per placement** (near boards contribute 88 corners, far ones 4 —
+  don't let the near zone dominate).
+- Three candidates on identical training data: (1) normalized 2nd-order poly
+  (baseline), (2) **piecewise-affine Delaunay — the default, interpretable choice**,
+  (3) TPS with smoothing λ from the fixed set {0, 1e-6, 1e-4, 1e-2, 1}, chosen on
+  validation positions only. Normalize pixel and field coords first. Reject models with
+  folding, multi-valued mapping, or acceptance-region coverage gaps BEFORE comparing;
+  then pick by validation position-RMSE; **within 1 cm, prefer piecewise-affine**.
+- Seam bands with detected discontinuity become invalid regions; fit each side
+  separately. No trusted coordinates outside control coverage — out-of-region queries
+  return an explicit invalid value, never a silent number.
+- **Top view**: field extent 1219.2×609.6 cm at 1 cm/px (~1220×610 px — a display
+  sampling rate, not an accuracy claim), rendered through the SAME validated invertible
+  mapping (no separately fitted, unvalidated inverse poly). Deliver per-camera views
+  first; the joint mosaic picks the source per region by local validated error and
+  keeps source labels + blank invalid regions. Caveat: only the GROUND is rectified —
+  rat bodies, poles, box roofs carry parallax.
+- **Interface**: keep the existing pixel→field entry point; add model type, valid
+  region, and validity in the return. Per camera, archive: source-frame description,
+  board definition, measured positions, set split, model, region/seam masks,
+  forward+inverse mapping, top view, independent error report, calibration version.
+  June parameters are preserved; current results do NOT auto-apply to historical
+  footage.
+
+## Acceptance (first-round targets) and failure branches
+
+| Region | Independent final-test requirement |
 |---|---|
-| Mid-field (dense ChArUco zone) | RMSE ≤ 10 cm |
-| Pano edges & seam band (each region) | RMSE ≤ 20 cm, max error reported |
+| Main activity area | position RMSE ≤ 10 cm, max ≤ 20 cm |
+| Edges + usable seam neighborhoods | position RMSE ≤ 20 cm, max ≤ 30 cm |
+| CH01/CH02 common ground | report both cameras' error vs the SAME measured point (two cameras agreeing ≠ both correct) |
 
-≥ 3 independent test positions per claimed region; regions that fail get a mask
-(published as unvalidated), never a relaxed threshold. Beat-the-baseline check: the
-current 20-point polys (55.9 / 51.3 cm fit RMSE) must be exceeded by a wide margin in
-the covered region or something is wrong with the pipeline.
+≥12 independent final-test positions per camera, each reported individually and
+classified near/mid/far/edge/seam. Final-test is opened only after the model is frozen;
+a test-driven model change demotes that test set and requires new test positions.
 
-## Bonus (out of scope here, note for CH03/04)
+Engineering checks: wrong board ID/rotation/units must raise, not produce numbers;
+scale-invariance of the pixel pipeline; forward/inverse consistency with no triangle
+flips; repeated placements/frames never leak across sets; invalid regions and seam
+ghosts never enter valid tracks.
 
-The same ChArUco board improves the CH03/04 intrinsics session: partial views are
-usable, so image-edge coverage no longer requires the whole board in frame — the
-"can't reach the top corners from the ground" limitation largely dissolves. Requires a
-ChArUco-aware path in `intrinsics.py` (small addition, same detector as this plan).
+Failure triage order: measured coordinates → board height/orientation → pixel
+correspondence → spatial coverage → model. Local failures get more points or a smaller
+valid region — never averaged away.
+
+Scope: this round accepts DAYTIME geometry under the frozen stitch settings. Night and
+historical periods need separate consistency checks. Animal reference-point definition,
+cross-camera identity, and body-height parallax belong to trajectory validation, not to
+this static calibration's scorecard.
