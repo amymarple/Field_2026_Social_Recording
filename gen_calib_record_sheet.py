@@ -92,8 +92,8 @@ def row(sid, st, x, y):
     tx = f"{x:g}" if x is not None else ""
     ty = f"{y:g}" if y is not None else ""
     return (f'<tr><td class="id">{sid}</td><td>{st}</td><td>{tx}</td><td>{ty}</td>'
-            '<td class="w"></td><td class="w"></td><td class="c"></td>'
-            '<td class="c"></td><td class="c"></td><td class="note"></td></tr>')
+            '<td></td><td class="c"></td><td class="c"></td>'
+            '<td class="w"></td><td class="note"></td></tr>')
 
 rows = [row(*s[:2], s[2], s[3]) for s in stations]
 for i in range(1, 7):
@@ -103,8 +103,8 @@ for i in range(1, 7):
 
 def table(rws):
     return ('<table><thead><tr><th>ID</th><th>集合</th><th>目标x</th><th>目标y</th>'
-            '<th>实测x*</th><th>实测y*</th><th>贴线压点</th><th>放稳8-10s</th>'
-            '<th>QC过</th><th>备注 (遮挡/移位/高度)</th></tr></thead><tbody>'
+            '<th style="width:120px">贴线对旗 ✓</th><th>放稳8-10s</th>'
+            '<th>QC过</th><th>移位时实测x,y*</th><th>备注</th></tr></thead><tbody>'
             + "".join(rws) + '</tbody></table>')
 
 # per-line wall-end measurement table (the ONLY per-station-chain tape work)
@@ -114,9 +114,9 @@ line_rows = "".join(
     for i, x in enumerate(TRAIN_X, 1))
 vt_note = ", ".join(str(x) for x in VT_X)
 line_table = ('<table><thead><tr><th>线</th><th>目标x</th><th>A墙端实测x</th><th>C墙端实测x</th>'
-              '<th>5漆点done</th><th>备注</th></tr></thead><tbody>' + line_rows +
+              '<th>拉紧+旗OK</th><th>备注</th></tr></thead><tbody>' + line_rows +
               '</tbody></table>'
-              f'<div class="foot">验证/终测线 (x={vt_note}) 用同法或从相邻训练线量偏移; 打点后线可留在原位(直线验证用)。</div>')
+              f'<div class="foot">验证/终测线 (x={vt_note}) 用同法(旗改@ 90/210/330/450); 线整场留原位(直线验证用), cone压端。</div>')
 
 # survey page: poles + cameras (the real tape-measure work)
 pole_rows = "".join(
@@ -165,7 +165,7 @@ html = f"""<!doctype html><html lang="zh"><head><meta charset="utf-8">
   <div>日期:</div><div>操作者:</div><div>天气/光线:</div><div>手机−PC钟差: ______ s</div>
   <div>连续5格实测 x向: ____ mm (应300)</div><div>y向: ____ mm</div><div>板厚: ____ mm</div><div>草高(典型): ____ cm</div>
   <div>场地长边1: ______ cm</div><div>长边2: ______ cm</div><div>对角线1: ______ cm</div><div>对角线2: ______ cm</div>
-  <div>线离地高度(典型): ____ cm</div><div>地面点标记方式: 漆 / 粉笔 / ____</div><div></div><div></div>
+  <div>线离地高度(典型): ____ cm</div><div>训练线旗距@30/150/270/390/510 预量✓: ___</div><div>验证线旗距@90/210/330/450 预量✓: ___</div><div></div>
  </div>
  {svg_str}
  <div class="legend" style="margin-top:2px">
@@ -173,13 +173,14 @@ html = f"""<!doctype html><html lang="zh"><head><meta charset="utf-8">
   <span>● 杆 (A/B/C 0-4)</span><span>◆ 相机</span><span>┊ 接缝走向(近似, 以预检帧为准)</span>
  </div>
  <div class="rules">
-  <b>放样流程(精度靠构造链, 不逐板量):</b> ① 沿两侧长墙用卷尺从 A0/C0 量出每条线的 x, 墙端做标记(右表记实测)
-  ② 两端拉紧线, 贴地 ③ 在线上每个 y 刻度垂直向下点一个<u>哑光漆点</u> = 板位落点
-  ④ 放板: <b>原点角压漆点, 54cm短边贴线</b> → 位置+朝向同时对齐, 表上打勾即可
-  ⑤ 板落不到漆点(障碍/移位)才量实测坐标填表(*号列只在此时用) ⑥ 人不挡任何相机到板的视线(侧移2–3米, 入镜无妨), 保持8–10秒。
+  <b>放样流程(默认全部打勾, 不逐板量):</b> ⓪ 室内预备: 7条线绳各贴5个胶带旗@ 30/150/270/390/510 cm(量一次, 7条同规格)
+  ① 现场沿两侧长墙用卷尺从 A0/C0 量出每条线的x, 墙端做标记(下表记实测) ② 两端拉紧线绳贴地(<b>cone压两端</b>)
+  ③ 放板: <b>54cm短边贴线, 原点角对准胶带旗</b> → 位置+朝向一步对齐, 表上打勾
+  ④ 板落不到旗位(障碍)才移位并量实测坐标(表尾*列, 仅此时用) ⑤ 人不挡任何相机到板的视线(侧移2–3米, 入镜无妨), 保持8–10秒。
   <b>ID只是表格行号</b>(T34=第3条线第4位), 场上不做ID标记, 相机不需要看到; 识别靠 时间+顺序+位置自洽。
-  <b>铁律:</b> 场上永远只有一块板 · 全场一切哑光严禁反光带 · 锥桶可选只帮远处找位 ·
-  接缝S行由预检帧现场定 · 每批呼叫远程QC验角点 · 离场前等 _to_ 闭合并验收+备份 · 地面板位同时服务CH03/04。
+  <b>Cone 的工作:</b> 压线两端 + 放在下一批板位旁帮远处找位; <u>永远不当精确基准</u>(锥底中心±几cm歧义)。
+  <b>铁律:</b> 场上永远只有一块板 · 全场一切哑光严禁反光带 · 接缝S行由预检帧现场定 ·
+  每批呼叫远程QC验角点 · 离场前等 _to_ 闭合并验收+备份 · 地面板位同时服务CH03/04。
  </div>
  <h2 style="margin-top:6px">线端实测(构造链的地基 — 每条线两个数)</h2>
  {line_table}
@@ -204,7 +205,7 @@ html = f"""<!doctype html><html lang="zh"><head><meta charset="utf-8">
 <div class="page">
  <h2>记录表 2/2 — 验证/终测(续) + 接缝 S1–S6 + 补拍/移位 X1–X6</h2>
  {t2}
- <div class="foot">* 实测列只在板未落到漆点时填; 打勾"贴线压点"= 坐标取目标值。接缝行: 先看预检帧定实际落点,
+ <div class="foot">* 实测列只在板未落到旗位时填; 打勾"贴线对旗"= 坐标取目标值。接缝行: 先看预检帧定实际落点,
  近/中/远各一组, 两侧都采, 坐标实测。QC过 = 远程抽帧确认该板位角点合格。</div>
 </div>
 

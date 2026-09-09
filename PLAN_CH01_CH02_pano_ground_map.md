@@ -76,12 +76,14 @@ Lay **7 lines across the field width** at x = **60, 240, 420, 600, 780, 960, 114
 5 stations per line at y = **30, 150, 270, 390, 510 cm** → **35 training placements**.
 
 **Station accuracy comes from a construction chain, not per-station taping**
-(operator-simplified 2026-09-09): tape each line's x from the corners along BOTH long
-walls (14 numbers, logged) → stretch the line taut at soil level → dab a matte paint
-dot on the ground at each pre-marked y tick (the dot IS the station) → lay the board
-with its **origin corner on the dot and its 54 cm short edge hugging the line**, which
-fixes position AND orientation by construction → checkbox on the sheet. Only a board
-that cannot land on its dot (obstruction → moved) gets hand-measured coordinates.
+(operator-simplified 2026-09-09): pre-flag 7 identical cords indoors with tape flags
+at y = 30/150/270/390/510 cm (measured once) → on site, tape each line's x from the
+corners along BOTH long walls (14 numbers, logged) → stretch the cord taut at soil
+level, ends weighted by cones → lay the board with its **54 cm short edge hugging the
+cord and the origin corner at the flag**, which fixes position AND orientation in one
+motion → checkbox on the sheet. Only a board that cannot land at its flag
+(obstruction → moved) gets hand-measured coordinates. Cones weight cord ends and mark
+upcoming stations for wayfinding — never a precision datum (a cone base is ±several cm).
 Station IDs are paper bookkeeping only (identification = time + order + position
 self-consistency); nothing reflective anywhere on the field (glare/IR blooming kills
 nearby corner detection); cones optional, purely for spotting stations from afar.
