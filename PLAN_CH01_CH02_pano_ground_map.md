@@ -31,6 +31,22 @@ Baseline to beat: existing 20-point 2nd-order polys, fit RMSE 55.9 / 51.3 cm
   confirms stitch varies with object distance; ghosting/missing possible); any future
   change to stitch settings = new epoch.
 
+## Kit / shopping list (assembled 2026-09-10)
+
+Already on hand: board artwork (`calibration.png`), soccer cones, spare UWB tag.
+
+| Item | Spec / why | Where |
+|---|---|---|
+| Board print | matte large-format print of `calibration.png` at exactly 720×540 mm; verify 5-square span = 300 mm after mounting | print shop / plotter |
+| Mounting backer | 1/8" hardboard/MDF ~2×4 ft, cut to board size — heavier than foam board so wind can't flip it (nothing may be laid ON the pattern as a weight) + spray adhesive (e.g. 3M Super 77) | Home Depot/Lowe's lumber + paint aisles |
+| Mason line | braided #18, one 500 ft roll (13 lines × ~6.5 m + spare); fluorescent color fine — high-vis ≠ retroreflective | masonry/concrete aisle |
+| Flagging tape | cord flags, line labels | safety/marking aisle |
+| Masking tape | wall-end x marks (sticks to walls better than flagging tape) | paint aisle |
+| Open-reel tape measure | 100 ft / 30 m fiberglass — field edges, diagonals, line-x from corners, pole survey | tool aisle |
+| Tent stakes (few) | windy-day backup for cord ends (cones are the default weights) | camping/garden |
+| Laser distance meter (optional) | solo survey speed-up (e.g. Bosch GLM series) | tool aisle / Amazon |
+| Clipboard, pencils, printout | the 4-page record sheet | — |
+
 ## Desk prep (half a day, before the field session)
 
 1. **Residual plots of the existing 20-pt calibs** (CH01/CH02): check landmark
