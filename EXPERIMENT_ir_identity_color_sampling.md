@@ -13,6 +13,11 @@ one box), which is the hardest case for visual ID.
 WISER is not a substitute: its resolution tells you **which box** an animal is in, not where it is
 inside the box. So in-box identity has to come from the video.
 
+**Governing goal (2026-09-09, operator): ten days of IR-only in-box footage already exist and must be
+analysed. Everything collected from here on is in service of THOSE ten days** — i.e. it must produce
+labelled IR examples under the same conditions (IR, daytime, huddle), not a separate colour dataset.
+That single requirement settles the auto question: see the branch at the bottom.
+
 **What the colour light actually buys:** not a colour→IR-grey lookup (near-IR reflectance does not
 follow visible colour — red and green cobans can be the same grey at 850 nm), but **ground-truth
 identity at a known instant**, which lets you (a) label the adjacent IR frames, (b) learn what each
@@ -39,7 +44,7 @@ Times are approximate — anchor them to the actual rounds. Sample the camera th
 | block | when | inserts | length | why |
 |---|---|---|---|---|
 | **A** | 10–25 min after the animals are returned at the **AM round** (~07:30–08:00) | 4 | 10 s | free disturbance; animals separated and moving = cleanest labels |
-| **B** | midday sleep / huddle (**12:00–13:00**) | 3 | 5 s | the HARD case you actually need to solve; keep short — this is the sleep window |
+| **B** | midday sleep / huddle (**12:00–13:00**) | 3 | 5 s | **the block that matters for the ten earlier days** — it is the only one that samples their actual condition (IR daytime huddle); keep each short (sleep window) but never skip it |
 | **C** | 10–25 min after the animals are returned at the **PM round** (~18:30–19:00) | 4 | 10 s | free disturbance; second posture/lighting sample of the day |
 
 Total light-on ≈ 85 s per day, of which only ~15 s falls in undisturbed sleep.
@@ -70,8 +75,9 @@ Total light-on ≈ 85 s per day, of which only ~15 s falls in undisturbed sleep.
 
 Then:
 
-- **3 works** → the method is proven. Friday + Saturday: run **block A only** each day (4 inserts,
-  free window) to cover appearance drift — coban shifts and gets dirty over days — and stop there.
+- **3 works** → the method is proven. **Run all three blocks on Friday and Saturday too**: A/C cover
+  appearance drift (coban shifts and gets dirty), and every extra B adds huddle configurations to the
+  validation set for the ten earlier days (~3 configurations per day, ~9 over the three days).
 - **3 fails but 2 works when separated** → honest conclusion: in-box IR ID is possible only when the
   animals are apart, not in a pile. Change what is measured for the huddle (e.g. number of animals
   in contact rather than who-with-whom), and skip further sampling — more samples will not fix it.
@@ -88,7 +94,15 @@ Then:
   `CH07_2026-09-09_19-00-00_to_20-00-00.mp4`. It sits inside the loggers' post-restart settle-in
   window (restarts 18:38–18:50), so it costs nothing extra.
 
-## Branch (2026-09-09 evening): if auto day/night gives stable colour in the box
+## Branch (2026-09-09 evening) — DROPPED the same evening: auto day/night
+
+**Not used.** Auto would optimise the remaining three days at the expense of the ten IR days already
+recorded: a colour daytime removes the IR huddle frames from exactly the condition the classifier must
+learn, and colour↔IR pairs would occur only at the two uncontrolled dawn/dusk switches. IR-locked +
+short colour inserts keeps 13 days homogeneous in IR and labels them — strictly better for the
+retroactive goal. The fps test below is therefore NOT run on 2026-09-10. Kept for the record only.
+
+### (superseded) if auto day/night had given stable colour in the box
 
 If CH07 on **auto** yields stable colour during the day, the daytime identity problem is solved
 directly and the IR calibration is only needed for (a) the earlier IR-only days and (b) night-time
