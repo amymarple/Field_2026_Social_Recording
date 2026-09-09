@@ -161,3 +161,35 @@ Desk work first (any time): CH05/06 verification → CH01/02 poly → layout ent
 CH07/08. Field actions (three, all cheap): ① 10 min checkerboard per side cam in
 daylight; ② ruler + tape measure per box at the next animal-free moment; ③ one
 calibration walk — it feeds every Phase-5 validation at once.
+
+---
+
+## Execution plan — week of 2026-09-14
+
+Design: **one ~30 min field slot all week**, piggybacked on the regular AM battery
+round; everything else is desk work from closed segments. Recorders untouched.
+
+**Prep (this week, ~1 h):** print + board-mount the checkerboard (A1 foam board,
+10×7 squares @ ~75 mm, matte); reconcile the external (GPT) review of
+`METHOD_camera_calibration_for_review.md`; regenerate `field_layout_map.png` and verify
+poles/shelters match the site.
+
+| Day | Where | Work |
+|---|---|---|
+| Mon 09-14 | desk | **Epoch day.** Pull 8 reference stills from closed daytime segments (this date = epoch-2 `valid_from`). CH05/06: overlay old grid on fresh still → carry over (add redundant pole-base points) or redo on the spot. Start ledger A. |
+| Tue 09-15 | **field (AM round +25 min)** | ① Checkerboard sweep CH03 then CH04 (10 min each, daylight); ② calibration walk — 3 s at each of the 15 poles (~5 min), **carrying a spare UWB tag at ankle height** so WISER cross-validation data comes for free; ③ opportunistic: if a box is empty during handling, ruler frame + tape-measure interior dims. PM: extract windows after segments close; fill ledger C. **Rain slides this to Wed/Thu (dry board required); desk days move up.** |
+| Wed 09-16 | desk | CH01/02 poly: click every visible pole base (90°-rotation orientation!), hold 2–3 out. Write the plumb-line script (new, ~150 lines, lives in the CV folder) and fit CH03/04: straighten wall lines → undistort → homography from pole base + wall-top clicks. |
+| Thu 09-17 | desk | Run checkerboard `intrinsics.py` for CH03/04; compare vs plumb-line **on the same held-out points**; keep the winner (this also answers review question 2 empirically). Finalize CH03/04. CH07/08: layout + specs entries, click interior floor corners → homography (mark *pending* if interior dims not yet measured — the only item allowed to slip). |
+| Fri 09-18 | desk | **Acceptance.** Eyeball 8 grid overlays; held-out RMSE table; calibration-walk check on every camera (watch the pano stitch seam); `merge_cameras.py` smoke test on one hour across all 8; ledgers A/B/C complete; commit. |
+| Week 2 | desk (2–3 half-days) | WISER cross-validation + per-region accuracy map (first cut already possible Friday if the walk carried a tag); decide overlap-zone precedence. |
+
+**End goal (acceptance criteria):**
+
+1. 8/8 cameras have an epoch-2026-09-14 `CHxx_calib.json` with held-out error in
+   target: CH05–08 < 3 cm; CH01/02 < 10 cm mid-field / < 20 cm at pano edges;
+   CH03/04 < 15–20 cm far field.
+2. All grid overlays pass visual inspection.
+3. One test hour merges 8-camera tracks into field-cm end to end.
+4. Ledgers filled; drift-check baseline (epoch stills + saved landmark pixels) in
+   place — any future camera bump becomes a 10-minute "recalibrate or not" decision.
+5. (Week 2) WISER cross-validation error map; overlap-zone precedence decided.
