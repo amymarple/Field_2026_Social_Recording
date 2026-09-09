@@ -54,7 +54,15 @@ Baseline to beat: existing 20-point 2nd-order polys, fit RMSE 55.9 / 51.3 cm
 
 Operator confirms unrestricted field control time (2026-09-09), so scheduling is free —
 pick any day with good daylight and dry weather; the ~4 h budget includes layout,
-placements, closure waits, and re-shoots. Both cameras record simultaneously — one
+placements, closure waits, and re-shoots. **Preferred slot: right after cohort-3 close —
+mow the field first** (harmless once the experiment ends; mowing changes nothing about
+camera geometry, so the calibration still covers the summer's footage): boards seat
+flat, cords visible, far grazing sightlines clear. If the session must run DURING
+cohort 3, do NOT mow (grass is habitat mid-experiment) — flatten only each board's
+~1×0.6 m footprint and navigate by cones/flags; only grass within tens of cm of a
+board can block a sightline anyway. Log typical grass height either way (the summer's
+rats walked on the grass mat, a few cm above the calibrated soil plane — handled in
+the animal-reference-point validation, not here). Both cameras record simultaneously — one
 physical session serves both.
 
 **Solo execution is fine** (nothing needs a second pair of hands), with three notes:
