@@ -103,6 +103,20 @@ own (possibly invalid) region — never force one continuous model across it. Se
 edge regions each need ≥3 independent test positions; short = add placements. No
 extrapolation toward the walls beyond sampled coverage.
 
+### C2. Same-session service for CH03/CH04 (operator-confirmed 2026-09-09)
+
+All cameras record simultaneously, so every ground placement visible to CH03/CH04 is a
+free ground control point for them too — same log sheet, same measured coordinates,
+same set membership (the audit's shared-assignment rule). The x=60 and x=1140 lines
+are each end camera's near zone. The ONLY extra field work for CH03/04 is their
+**intrinsics sweep**: hand-held board, 20–30 held poses (1–2 s each) varying
+distance/position/tilt (±30–45°), ~10–15 min per camera, slotted into the waits
+between placement batches; CH03 first → remote QC on a closed segment → then CH04.
+"Step clear" during placements means *do not occlude any camera's line of sight to
+the board* (2–3 m to the side suffices) — being in frame elsewhere is harmless.
+CH03/04 fitting still follows the audit's order (CH03 pilot) and is not a dependency
+of the CH01/02 pipeline.
+
 ### D. Before leaving
 
 Only short-window, low-load extraction from `_to_` files that actually exist (top of
