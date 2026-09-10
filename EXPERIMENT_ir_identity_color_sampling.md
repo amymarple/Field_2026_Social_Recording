@@ -233,37 +233,51 @@ New habit from Thursday: **write down the release order and time at every round*
 Questions: does CH07's box receive five animals at 09:49:49-09:50:15 (=> CH07 = house_2); video time of each
 placement vs the WISER time (= WISER event precision); placed by hand vs walked in.
 
-## Pilot 1 conclusion (operator, 2026-09-09 late) and the labelling budget for Thu-Sat
+## Pilot 1 conclusion (operator, 2026-09-09 late) - and Thu-Sat is COLLECTION, not labelling
 
-**Verdict: identity IS trackable in the in-box IR footage, but only with long-duration observation** - by
-following the same animal continuously, a side view eventually exposes its features (tape pattern / head /
-back mark). So the method is: track continuously, assign identity at the moments features show, carry the
-label along the track. (Partial labelling of the pilot; enough to decide.)
+**Verdict:** identity IS trackable in the in-box IR footage, but only by long-duration observation: follow the same
+animal continuously and a side view eventually exposes its features (tape pattern / head / back mark). So the
+method is track-then-assign: tracks carry identity between the moments the features show. Partial labelling of the
+pilot was enough to decide; the pilot stops here.
 
-**Role of the colour flashes, settled:** ground-truth seeds and a held-out test set for that tracking -
-NOT colour calibration.
+**Operator decision:** the three remaining days (Thu 9/10 - Sat 9/12) go to collecting what cannot be collected
+after teardown, not to labelling. Three days is too short for a pilot; labelling happens after the cohort, from the
+notes made now. Nothing in this changes the ten-day analysis plan (label sources 1-3 above).
 
-### Manual labelling budget for the three days: ~60-80 frames, 150-200 clicks, ~1 h/day
+**Role of the colour flashes, settled:** an identity oracle for the IR frames next to them - NOT colour calibration
+and NOT the training domain. The training domain is IR. A flash turns into labelled IR frames because a sleeping
+pile does not move in the seconds around the switch. So the unit is *flash episodes* (distinct configurations), not
+seconds of colour: a static pile yields one independent sample per flash however long the light stays on.
 
-1. **Flash frames - 18 (6/day: 2 after the AM round, 2 midday settled pile, 2 after the PM round).** Every
-   visible marker labelled (typically 3-4 animals) -> ~70 identity labels. Split 12 train / **6 held-out
-   test** (never used for tuning). Coverage target: every animal in >= 5 frames with a readable side view
-   and >= 3 frames inside a pile.
-2. **Track-survival checks - 40-50 frames.** For each seed, one frame at +2, +10 and +30 min; the question is
-   only "is the tracked animal still who we think" (one click). This is both positive training data for the
-   tracker and the quantitative form of Q3 (how long a label survives -> how dense the seeds must be for
-   the ten earlier days).
-3. **Placement frames - ~30, nearly free.** At each round the animals are placed one by one; WISER gives the
-   order (2026-09-05: SF09, SF07, SF11, SF10, SF12 within 26 s) and the operator's release note confirms
-   it; the operator marks the entry frame (PLACED). Separated, moving views = the classifier's appearance
-   dictionary; the ten earlier days hold ~100 more such events retroactively.
+### Measured switch behaviour, CH07 2026-09-09 (D: copy of the closed 19:00 segment, signalstats on every frame)
 
-**Where a seed goes matters more than how many:** at the START of a long stable episode (a freshly settled
-pile) and right AFTER a reshuffle - one label then covers the whole track segment until the next occlusion
-or swap. Seeds placed while the animals are rearranging die within seconds.
+- Colour ON 19:10:25.8, OFF 19:10:39.3 = **13.5 s**. The operator's note said "19:11, about 3 s": the operator's
+  clock ran ~35 s ahead of the video clock, and the light was on four times longer than it felt.
+- Switching to colour: a dark dip (YAVG 70) then an auto-exposure overshoot; settled after **~3.5 s** (SATAVG steady
+  at 4.9, YAVG 99 from 19:10:29).
+- Switching back to IR: a **white-out** (YAVG up to 247) for ~1 s; settled after **~3 s** (YAVG 111 from 19:10:42).
+- The recording stream was untouched: 20 packets/s, a keyframe every 2 s, no pts gap through either switch.
+- Consequence: an **8-s flash** gives ~4.5 s of usable colour, and the IR seed frame is at OFF + 3 s. 5 s is too short.
 
-Not in this budget: detector box annotation (if a detector is trained) - it needs neither identity nor
-colour and can be done later from any footage; it must not consume the three handling days.
+### Collection plan Thu-Sat (per day)
 
-Nightly routine: Claude cuts the flash clips from the operator's ON/OFF times (`extract_labeling_clips.ps1`)
-plus the +2/+10/+30-min check frames; the operator labels ~20 min in `ir_identity_labeler.html`.
+| item | when / how | colour on the box cameras | what it yields |
+|---|---|---|---|
+| Colour placement | AM + PM rounds. Both box cameras to colour BEFORE the first rat goes in; hold each rat 2-3 s in view of the camera, then release; note the order; back to IR ~2 min after the last rat. | 2 x ~2.5 min = ~5 min | 5 identity-certain animals, separated and moving, in colour and then (after the switch) in IR = the in-domain IR dictionary. WISER placement order confirmed. Zero sleep cost: the animals are awake after handling. |
+| Pile flashes | 6/day at ~10:00, 11:30, 13:00, 14:30, 16:00, 17:30 (phone alarms); CH07 then CH08; **8 s** each; skip only if the preview shows the box empty. | 6 x 8 s = 48 s | 6 labelled pile configurations/day: seeds and held-out test for the tracking. |
+| In-hand atlas (phone) | At both rounds, every rat, ~30 s, natural light (a lamp at the dusk PM round, the same lamp every time): say the ID aloud first; top view of the back, left side, right side, head-on, rear, one slow turn; same spot, distance and background; one still of the back from above. | none | 30 clips: the human reference for every marker, the tape state on the last days, colour crops. |
+| Release note | Every round: which rat, which box, hh:mm. To the minute is enough - the switch and the entries are visible in the video. | none | Turns the WISER placement sequence into certain labels. |
+
+Three-day totals: 6 placement episodes (30 identity-certain separated sequences), 18 pile configurations (~70-90
+in-pile identity instances, so the accuracy of tracking-propagated labels is estimated to about +/-8 %), 30 atlas
+clips; ~15 min of colour on the box cameras in total, of which ~2.5 min falls in sleep.
+
+Why not more flashes: each one is a light pulse into sleep, the dependent variable; 6/day at 90-min spacing bounds
+the perturbation, and the EEG itself measures the arousal each flash causes (5 min before vs after) - that
+comparison is part of the analysis. Why not fewer: below ~15 configurations the accuracy estimate is too coarse to
+decide whether the tracked labels hold for the ten IR-only days.
+
+Nothing is extracted nightly. E: is not read during the cohort beyond what the operator asks for; the flash and
+placement clips are cut after the cohort from D: copies (throttled robocopy, recorder check before and after, then
+`extract_labeling_clips.ps1`). The exact ON/OFF instants come from a keyframe signalstats scan of the D: copy
+(~80 s per hour of footage), so no operator note has to be exact. Log of every episode: `COLOUR_SAMPLING_LOG_cohort3.md`.
