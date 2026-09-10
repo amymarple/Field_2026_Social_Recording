@@ -37,8 +37,8 @@ Fill the operator columns at the time; the video columns are filled after the co
 
 ## In-hand atlas clips (phone, natural light; lamp at the PM round)
 
-Per clip: say the ID aloud first; top view of the back, left side, right side, head-on, rear, one slow turn; same
-spot, distance and background every time; one still of the back from above. Tick when done.
+No posing: ~20 s from above with the lid open while the rat walks, one still of the back when it pauses. The 9/10 AM
+set is the reference; later rows are only for a re-wrapped coban / lost tape, and one final set at the Sat PM round.
 
 | date | round | SF07 | SF08 | SF09 | SF10 | SF12 | where the files went |
 |---|---|---|---|---|---|---|---|
