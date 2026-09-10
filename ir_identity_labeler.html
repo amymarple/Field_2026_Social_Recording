@@ -192,7 +192,7 @@
     S.folderName = files[0].webkitRelativePath.split('/')[0] || 'folder';
     const mf = files.find(f => f.name === 'manifest.json');
     if (mf) {
-      try { S.manifest = JSON.parse(await mf.text()); } catch (err) { S.manifest = null; status('manifest.json unreadable: ' + err.message); }
+      try { S.manifest = JSON.parse((await mf.text()).replace(/^﻿/, '')); } catch (err) { S.manifest = null; status('manifest.json unreadable: ' + err.message); }
     } else S.manifest = null;
     const mp4s = files.filter(f => /\.mp4$/i.test(f.name)).map(f => f.name).sort();
     S.clips = mp4s.map(name => {
