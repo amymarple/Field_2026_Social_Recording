@@ -9,7 +9,7 @@ Fill the operator columns at the time; the video columns are filled after the co
 | date | kind | camera(s) | ON (operator) | OFF (operator) | ON-OFF (video) | notes (who is in the box, posture, anything odd) |
 |---|---|---|---|---|---|---|
 | 2026-09-09 | test flash | CH07 | 19:11 | ~19:11 | 19:10:25.8-19:10:39.3 (13.5 s) | first colour-vs-IR comparison; settle 3.5 s after ON, white-out ~3 s after OFF; stream continuous |
-| 2026-09-10 | AM placement | CH07+CH08 | | | | |
+| 2026-09-10 | AM placement | CH07+CH08 | done (operator) | | | colour ON at placement, switched to IR after; segments not yet read |
 | 2026-09-10 | flash 10:00 | CH07, CH08 | | | | |
 | 2026-09-10 | flash 11:30 | CH07, CH08 | | | | |
 | 2026-09-10 | flash 13:00 | CH07, CH08 | | | | |
@@ -41,7 +41,7 @@ spot, distance and background every time; one still of the back from above. Tick
 
 | date | round | SF07 | SF08 | SF09 | SF10 | SF12 | where the files went |
 |---|---|---|---|---|---|---|---|
-| 2026-09-10 | AM | | | | | | |
+| 2026-09-10 | AM | x | x | x | x | x | D:/07_08_camera/SF07.MOV ... SF12.MOV, 07:54-08:19, 33-52 s each, 1080p30 portrait HEVC with audio. Filmed through the acrylic tub wall, rat loose on bedding: coban and back patches clear in the top-down frames; several frames blurred or glared; few clean side or head-on views; coloured tape bits on the bedding. Filming notes revised in the EXPERIMENT table. |
 | 2026-09-10 | PM | | | | | | |
 | 2026-09-11 | AM | | | | | | |
 | 2026-09-11 | PM | | | | | | |
