@@ -93,6 +93,16 @@
         <label><input type="checkbox" value="guess"> none / guess <kbd>N</kbd></label>
       </div>
       <div class="row"><input type="text" id="cueDetail" placeholder="cue detail, e.g. 'dark stripe left of midline', 'pale rump patch' (optional)"></div>
+      <div class="row" style="margin-top:6px">
+        <span>Label type:</span>
+        <select id="ltype">
+          <option value="head">head (identity at this frame)</option>
+          <option value="enter">ENTER — this animal crosses into the box now</option>
+          <option value="exit">EXIT — this animal leaves the box now</option>
+          <option value="placed">PLACED — put into the box by hand now</option>
+          <option value="removed">REMOVED — taken out by hand now</option>
+        </select>
+      </div>
       <div class="row">
         <span>Confidence:</span>
         <button class="conf" data-v="sure">sure <kbd>C</kbd></button>
@@ -283,7 +293,7 @@
     const t = video.currentTime || 0;
     S.labels.push({ id: Date.now() + Math.random().toString(16).slice(2, 6), clip: S.cur.file, moment: S.cur.moment, camera: S.cur.camera || '',
       t: +t.toFixed(3), frame: Math.round(t * S.fps), abs: absTime(t), x: Math.round(x), y: Math.round(y),
-      rat: S.rat, cue: cues().join('|'), cue_detail: $('cueDetail').value.trim(), conf: S.conf, note: $('note').value.trim(), labeler: $('labeler').value.trim(), created: new Date().toISOString() });
+      type: $('ltype').value, rat: S.rat, cue: cues().join('|'), cue_detail: $('cueDetail').value.trim(), conf: S.conf, note: $('note').value.trim(), labeler: $('labeler').value.trim(), created: new Date().toISOString() });
     S.selected = S.labels[S.labels.length - 1].id; autosave(); draw(); renderList();
   });
   function draw() {
@@ -300,7 +310,7 @@
   }
   function renderList() {
     const el = $('labelList'); const ls = labelsHere();
-    el.innerHTML = ls.map(l => `<div class="${l.id === S.selected ? 'sel' : ''}" data-id="${l.id}"><span class="sw" style="background:${(ratById[l.rat] || ratById.unknown).colour}"></span><b>${l.rat}</b><span class="grow">${l.abs}  (${l.x},${l.y})  ${(l.cue || '').replace(/\|/g, ' + ') || 'no cue'}${l.cue_detail ? ' [' + l.cue_detail + ']' : ''}, ${l.conf}${l.note ? ' — ' + l.note : ''}</span></div>`).join('') || '<span class="muted">none</span>';
+    el.innerHTML = ls.map(l => `<div class="${l.id === S.selected ? 'sel' : ''}" data-id="${l.id}"><span class="sw" style="background:${(ratById[l.rat] || ratById.unknown).colour}"></span><b>${l.rat}</b><span class="grow">${l.abs}  ${l.type && l.type !== 'head' ? l.type.toUpperCase() + '  ' : ''}(${l.x},${l.y})  ${(l.cue || '').replace(/\|/g, ' + ') || 'no cue'}${l.cue_detail ? ' [' + l.cue_detail + ']' : ''}, ${l.conf}${l.note ? ' — ' + l.note : ''}</span></div>`).join('') || '<span class="muted">none</span>';
     [...el.children].forEach(d => d.onclick = () => { S.selected = d.dataset.id; if (S.showAll) { const l = S.labels.find(x => x.id === S.selected); if (l) seekTo(l.t); } draw(); renderList(); });
     const nClip = S.labels.filter(l => S.cur && l.clip === S.cur.file).length;
     $('counts').textContent = `${nClip} in this clip, ${S.labels.length} total`;
@@ -309,7 +319,7 @@
   $('delSel').onclick = deleteSelected;
   $('applySel').onclick = () => {
     const l = S.labels.find(x => x.id === S.selected); if (!l) { status('select a label first'); return; }
-    Object.assign(l, { rat: S.rat, cue: cues().join('|'), cue_detail: $('cueDetail').value.trim(), conf: S.conf, note: $('note').value.trim(), edited: new Date().toISOString() });
+    Object.assign(l, { type: $('ltype').value, rat: S.rat, cue: cues().join('|'), cue_detail: $('cueDetail').value.trim(), conf: S.conf, note: $('note').value.trim(), edited: new Date().toISOString() });
     autosave(); draw(); renderList();
   };
   $('showAll').onclick = () => { S.showAll = !S.showAll; $('showAll').classList.toggle('active', S.showAll); draw(); renderList(); };
@@ -345,9 +355,9 @@
   function download(name, text, type) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }
   const stamp = () => new Date().toISOString().replace(/[:T]/g, '-').slice(0, 16);
   $('exportCsv').onclick = () => {
-    const cols = ['clip', 'moment', 'camera', 'abs_time_local', 't_in_clip_s', 'frame_idx', 'x_px', 'y_px', 'rat', 'cues', 'cue_detail', 'confidence', 'note', 'labeler', 'created_at'];
+    const cols = ['clip', 'moment', 'camera', 'abs_time_local', 't_in_clip_s', 'frame_idx', 'x_px', 'y_px', 'type', 'rat', 'cues', 'cue_detail', 'confidence', 'note', 'labeler', 'created_at'];
     const esc = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-    const rows = S.labels.map(l => [l.clip, l.moment, l.camera, l.abs, l.t, l.frame, l.x, l.y, l.rat, l.cue, l.cue_detail, l.conf, l.note, l.labeler, l.created].map(esc).join(','));
+    const rows = S.labels.map(l => [l.clip, l.moment, l.camera, l.abs, l.t, l.frame, l.x, l.y, l.type || 'head', l.rat, l.cue, l.cue_detail, l.conf, l.note, l.labeler, l.created].map(esc).join(','));
     download(`ir_labels_${S.folderName}_${stamp()}.csv`, [cols.join(','), ...rows].join('\r\n'), 'text/csv');
   };
   $('exportJson').onclick = () => download(`ir_labels_${S.folderName}_${stamp()}.json`, JSON.stringify({ folder: S.folderName, manifest: S.manifest, notes: S.notes, labels: S.labels }, null, 1), 'application/json');
