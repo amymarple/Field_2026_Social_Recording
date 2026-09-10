@@ -10,6 +10,7 @@ Fill the operator columns at the time; the video columns are filled after the co
 |---|---|---|---|---|---|---|
 | 2026-09-09 | test flash | CH07 | 19:11 | ~19:11 | 19:10:25.8-19:10:39.3 (13.5 s) | first colour-vs-IR comparison; settle 3.5 s after ON, white-out ~3 s after OFF; stream continuous |
 | 2026-09-10 | AM placement | CH07+CH08 | done (operator) | | | colour ON at placement, switched to IR after; segments not yet read |
+| 2026-09-10 | extra colour->IR transition | CH07/CH08 (tbc) | before 09:11 | ~09:11 | | supplementary colour-to-IR hand-off done at ~09:11 (operator clock), after the AM placement; segments not yet read |
 | 2026-09-10 | flash 10:00 | CH07, CH08 | | | | |
 | 2026-09-10 | flash 11:30 | CH07, CH08 | | | | |
 | 2026-09-10 | flash 13:00 | CH07, CH08 | | | | |
