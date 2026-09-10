@@ -53,3 +53,16 @@ Outputs: `E:\recording_qc\neurologger_battery_forecast.txt` (latest table + advi
 `neurologger_battery_forecast_log.txt` (one line per run). Mute with the shared
 `E:\recording_qc\neurologger_alive_MUTED.txt`. Exit codes: 0 ok, 1 warning, 2 no data.
 Read-only on everything except `E:\recording_qc`.
+
+## Frozen advertised voltage (added 2026-09-10)
+
+On 2026-09-10 the ADC / "microphone" lane was switched on for body temperature on all five loggers
+(Stop -> config -> Start). From then on the battery voltage in the advertisements stopped updating
+on every logger (33-42 consecutive ads at one value over 3 h while rec and card% kept advancing);
+the 18:01 run read 5 mV/h and announced that everyone would outlast the round. The tool now flags
+`VFROZEN` when the voltage has not changed for >= 2 h (>= 20 ads) on the current cell while the rec
+counter advanced (`-VFrozenHours`, default 2.0 in the core function): no StopAt, a loud line first in
+the advice, exit 1 (Slack head :warning:). Plan such a night by cell-hours and read the real
+voltage from the heartbeat (0xAF) by connecting. Whether the logger's internal battery reading (and
+so the ~3.40 V auto-stop) is also frozen in that mode was to be tested at the 2026-09-10 evening
+connects - see the incident log. Self-test cases H (frozen 3 h -> VFROZEN) and I (flat 1 h -> OK).

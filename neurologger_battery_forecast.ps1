@@ -113,7 +113,7 @@ function Get-RefAge([double]$v) {
 function Get-BatteryForecast {
     param([object[]]$Rows, [datetime]$Now, [double]$SlopeWindowHours, [double]$MinSpanHours,
           [double]$KneeVolts, [double]$StopVolts, [double]$MarginHours, [double]$CardFillDefault,
-          [int]$StaleMinutes)
+          [int]$StaleMinutes, [double]$VFrozenHours = 2.0)
     $out = @()
     $labels = @($Rows | Where-Object { $_.Label } | ForEach-Object { $_.Label } | Sort-Object -Unique)
     foreach ($lab in $labels) {
@@ -124,7 +124,8 @@ function Get-BatteryForecast {
         $r = [ordered]@{ Label = $lab; Volts = $last.Volts; Pct = $last.Pct; Ts = $last.Ts
                          AgeMin = [math]::Round($ageMin, 1); Status = 'OK'; SlopeMvH = $null
                          SlopeErr = $null; SpanH = $null; SegH = $null; ExitAt = $null; StopAt = $null
-                         SwapBy = $null; FullAt = $null; CardRate = $null; Note = ''; RecFrozen = $false }
+                         SwapBy = $null; FullAt = $null; CardRate = $null; Note = ''; RecFrozen = $false
+                         VFrozen = $false; VFrozenSince = $null }
         if ($ageMin -gt $StaleMinutes) {
             $r.Status = 'STALE'; $r.Note = ('last ad {0} min ago' -f [math]::Round($ageMin))
             $out += [pscustomobject]$r; continue
@@ -143,6 +144,24 @@ function Get-BatteryForecast {
         for ($i = 1; $i -lt $lr.Count; $i++) { if (($lr[$i].Volts - $lr[$i-1].Volts) -ge 0.15) { $segStart = $i } }
         $seg = @($lr[$segStart..($lr.Count-1)])
         $r.SegH = [math]::Round(($last.Ts - $seg[0].Ts).TotalHours, 2)
+        # Battery-voltage field frozen: V unchanged for >= VFrozenHours (>= 20 ads) while the rec
+        # counter keeps advancing = the advertisement's battery sample stopped updating (all five
+        # loggers 2026-09-10 from ~15:15, right after the ADC/microphone lane was switched on; the
+        # 18:01 run then said "5 mV/h, everyone outlasts the round"). A real cell at cohort load never
+        # sits on one 20 mV step for 2 h (slowest plateau seen: 26 mV/h = one step per ~45 min).
+        # The voltage forecast is meaningless then: no StopAt, loud status, plan by cell-hours.
+        $tail = $seg.Count - 1
+        while ($tail -gt 0 -and $seg[$tail-1].Volts -eq $last.Volts) { $tail-- }
+        $tailH = ($last.Ts - $seg[$tail].Ts).TotalHours
+        $tailN = $seg.Count - $tail
+        $tailRecs = @($seg[$tail..($seg.Count-1)] | Where-Object { $null -ne $_.Rec } | ForEach-Object { $_.Rec })
+        $recAdv = $false
+        for ($k = 1; $k -lt $tailRecs.Count; $k++) { if ($tailRecs[$k] -gt $tailRecs[$k-1]) { $recAdv = $true; break } }
+        if ($tailH -ge $VFrozenHours -and $tailN -ge 20 -and $recAdv) {
+            $r.VFrozen = $true; $r.VFrozenSince = $seg[$tail].Ts; $r.Status = 'VFROZEN'
+            $r.Note = ('BATTERY V FROZEN in the ads since {0:HH:mm} ({1:F1} h at {2:F2} V while rec advanced) - forecast blind; {3:F1} h on this cell: plan by cell-hours, read the real V from the heartbeat by connecting' -f $seg[$tail].Ts, $tailH, $last.Volts, $r.SegH)
+            $out += [pscustomobject]$r; continue
+        }
         $winStart = $Now.AddHours(-$SlopeWindowHours)
         $win = @($seg | Where-Object { $_.Ts -ge $winStart })
         if ($win.Count -lt 2) { $win = $seg }
@@ -216,6 +235,12 @@ if ($SelfTest) {
     Add-Ref 'E' $now.AddHours(-5) 5 1.0 0 30 1000        # E: frozen rec -> flagged RecFrozen, still forecast (9.2 h like A)
     $rows = @($rows | ForEach-Object { if ($_.Label -eq 'E') { $_.Rec = 47719 }; $_ })
     Add-Ref 'F' $now.AddHours(-5) 4.5 1.0 0 30 1000      # F: last sample 30 min old -> STALE
+    Add-Ref 'H' $now.AddHours(-5) 5 1.0 0 30 1000        # H: V frozen for the last 3 h, rec advancing -> VFROZEN, no forecast
+    $hh = @($rows | Where-Object { $_.Label -eq 'H' }); $vH = $hh[24].Volts
+    for ($k = 24; $k -lt $hh.Count; $k++) { $hh[$k].Volts = $vH }
+    Add-Ref 'I' $now.AddHours(-5) 5 1.0 0 30 1000        # I: V flat for only the last 1 h (a plateau step) -> still OK
+    $ii = @($rows | Where-Object { $_.Label -eq 'I' }); $vI = $ii[48].Volts
+    for ($k = 48; $k -lt $ii.Count; $k++) { $ii[$k].Volts = $vI }
     $fc = Get-BatteryForecast $rows $now 4 1.5 3.68 3.40 1.0 1.74 20
     $ok = $true
     function Check([string]$lab, [double]$expH, [double]$tol) {
@@ -231,6 +256,12 @@ if ($SelfTest) {
     Say ("SelfTest E (frozen rec): status {0}, RecFrozen {1}, stop in {2:F2} h (expected 9.2, still forecast) -> {3}" -f $e.Status, $e.RecFrozen, (($e.StopAt - $now).TotalHours), $(if ($eOk) { 'PASS' } else { 'FAIL' }))
     Say ("SelfTest F (stale ad):   {0} -> {1}" -f $f.Status, $(if ($f.Status -eq 'STALE') { 'PASS' } else { 'FAIL' }))
     if (-not $eOk -or $f.Status -ne 'STALE') { $ok = $false }
+    $h = $fc | Where-Object { $_.Label -eq 'H' }; $i = $fc | Where-Object { $_.Label -eq 'I' }
+    $hOk = ($h.Status -eq 'VFROZEN' -and $h.VFrozen -and $null -eq $h.StopAt)
+    $iOk = ($i.Status -eq 'OK' -and -not $i.VFrozen -and $null -ne $i.StopAt)
+    Say ("SelfTest H (V frozen 3 h): status {0}, VFrozen {1}, since {2:HH:mm} -> {3}" -f $h.Status, $h.VFrozen, $h.VFrozenSince, $(if ($hOk) { 'PASS' } else { 'FAIL' }))
+    Say ("SelfTest I (V flat 1 h):   status {0}, VFrozen {1} -> {2}" -f $i.Status, $i.VFrozen, $(if ($iOk) { 'PASS' } else { 'FAIL' }))
+    if (-not $hOk -or -not $iOk) { $ok = $false }
     $hl = @(ConvertTo-HourList '17,8.25'); $hl2 = @(ConvertTo-HourList @(8.25, 19.75))
     $hlOk = ($hl.Count -eq 2 -and $hl[0] -eq 17 -and $hl[1] -eq 8.25 -and $hl2.Count -eq 2 -and $hl2[1] -eq 19.75)
     Say ("SelfTest RoundHours parse: '17,8.25' -> {0}; array -> {1} -> {2}" -f ($hl -join '/'), ($hl2 -join '/'), $(if ($hlOk) { 'PASS' } else { 'FAIL' }))
@@ -301,7 +332,8 @@ $alive = @($fc | Where-Object { $_.Status -eq 'OK' } | Sort-Object StopAt)
 $dieBefore  = @($alive | Where-Object { $_.StopAt -lt $nextRound })
 $cardBefore = @($alive | Where-Object { $null -ne $_.FullAt -and $_.FullAt -lt $nextRound })
 $frozen  = @($fc | Where-Object { $_.RecFrozen })
-$other   = @($fc | Where-Object { $_.Status -in 'STALE', 'SHORT' })
+$vfrozen = @($fc | Where-Object { $_.VFrozen })
+$other   = @($fc | Where-Object { $_.Status -in 'STALE', 'SHORT', 'VFROZEN' })
 
 # ---- compose ------------------------------------------------------------------------
 $lines = @()
@@ -318,6 +350,9 @@ foreach ($x in ($fc | Sort-Object { if ($_.StopAt) { $_.StopAt } else { [datetim
 }
 $lines += ''
 $advice = @()
+if ($vfrozen.Count) {
+    $advice += ('BATTERY V FROZEN in the ads for {0} - the advertised voltage stopped updating (seen 2026-09-10 after the ADC/mic lane went on); the voltage forecast is BLIND for them: plan the round by cell-hours ({1}) and read the real V from the heartbeat by connecting.' -f (($vfrozen | ForEach-Object { $_.Label }) -join ', '), (($vfrozen | ForEach-Object { '{0} {1:F1} h' -f $_.Label, $_.SegH }) -join ', '))
+}
 if ($alive.Count) {
     $startBy = ($alive | ForEach-Object { $_.SwapBy } | Sort-Object | Select-Object -First 1)
     $first = $alive[0]
@@ -341,7 +376,7 @@ $text = $lines -join "`r`n"
 $lines | ForEach-Object { Write-Host $_ }
 
 $exit = 0
-if ($dieBefore.Count -or $cardBefore.Count -or $stopped.Count) { $exit = 1 }
+if ($dieBefore.Count -or $cardBefore.Count -or $stopped.Count -or $vfrozen.Count) { $exit = 1 }
 
 if (-not $DryRun) {
     Set-Content -LiteralPath $StatusPath -Encoding ASCII -Value $text
