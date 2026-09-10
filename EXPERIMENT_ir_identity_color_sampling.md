@@ -232,3 +232,38 @@ New habit from Thursday: **write down the release order and time at every round*
 09:49:20-09:50:45 release on CH07, manifest with wall-clock starts, README with the expected WISER events.
 Questions: does CH07's box receive five animals at 09:49:49-09:50:15 (=> CH07 = house_2); video time of each
 placement vs the WISER time (= WISER event precision); placed by hand vs walked in.
+
+## Pilot 1 conclusion (operator, 2026-09-09 late) and the labelling budget for Thu-Sat
+
+**Verdict: identity IS trackable in the in-box IR footage, but only with long-duration observation** - by
+following the same animal continuously, a side view eventually exposes its features (tape pattern / head /
+back mark). So the method is: track continuously, assign identity at the moments features show, carry the
+label along the track. (Partial labelling of the pilot; enough to decide.)
+
+**Role of the colour flashes, settled:** ground-truth seeds and a held-out test set for that tracking -
+NOT colour calibration.
+
+### Manual labelling budget for the three days: ~60-80 frames, 150-200 clicks, ~1 h/day
+
+1. **Flash frames - 18 (6/day: 2 after the AM round, 2 midday settled pile, 2 after the PM round).** Every
+   visible marker labelled (typically 3-4 animals) -> ~70 identity labels. Split 12 train / **6 held-out
+   test** (never used for tuning). Coverage target: every animal in >= 5 frames with a readable side view
+   and >= 3 frames inside a pile.
+2. **Track-survival checks - 40-50 frames.** For each seed, one frame at +2, +10 and +30 min; the question is
+   only "is the tracked animal still who we think" (one click). This is both positive training data for the
+   tracker and the quantitative form of Q3 (how long a label survives -> how dense the seeds must be for
+   the ten earlier days).
+3. **Placement frames - ~30, nearly free.** At each round the animals are placed one by one; WISER gives the
+   order (2026-09-05: SF09, SF07, SF11, SF10, SF12 within 26 s) and the operator's release note confirms
+   it; the operator marks the entry frame (PLACED). Separated, moving views = the classifier's appearance
+   dictionary; the ten earlier days hold ~100 more such events retroactively.
+
+**Where a seed goes matters more than how many:** at the START of a long stable episode (a freshly settled
+pile) and right AFTER a reshuffle - one label then covers the whole track segment until the next occlusion
+or swap. Seeds placed while the animals are rearranging die within seconds.
+
+Not in this budget: detector box annotation (if a detector is trained) - it needs neither identity nor
+colour and can be done later from any footage; it must not consume the three handling days.
+
+Nightly routine: Claude cuts the flash clips from the operator's ON/OFF times (`extract_labeling_clips.ps1`)
+plus the +2/+10/+30-min check frames; the operator labels ~20 min in `ir_identity_labeler.html`.
