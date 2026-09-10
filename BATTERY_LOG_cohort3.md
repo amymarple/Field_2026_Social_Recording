@@ -182,7 +182,7 @@ them (see Rounds). Card = model on the logger during that cell.
 | 09-09 18:45 | SF10 | EVO 512 | 4.19 | 09-10 07:18 | 3.48 | 3.48 | 12.6 | manual Stop **minutes before auto-stop** (3.48 under load; holder contact reads low) |
 | 09-09 18:47 | SF12 | EVO 512 | 4.10 | 09-10 07:43 | 3.55 | 3.55 | 12.9 | “1000 mAh” finished inside the 900 pack; manual Stop; probe advanced 1/4 at the round (08:30) |
 | 09-09 18:50 | SF08 | EVO 512 | 4.12 | 09-10 07:21 | 3.62 | 3.62 | 12.5 | “1000 mAh” ran as a 900 again (3.74 at 11.5 h, then 46 mV/h); manual Stop |
-| 09-10 08:24–08:35 | all five | EVO 512 (24%, not formatted) | 4.19–4.25 | (running) |  |  |  | day shift, all 900 mAh, every cell ≥ 4.18; knee ~19:40–20:40, auto-stop ~21:00–22:00; evening round 18:00 |
+| 09-10 08:24–08:35 | all five | EVO 512 (24%, not formatted) | 4.19–4.25 | (running) |  |  |  | day shift, all 900 mAh, every cell ≥ 4.18; knee ~19:40–20:40, auto-stop ~21:00–22:00; evening round 18:00. **14:40–14:54: ADC (“microphone”) lane switched ON on all five for body temperature → every session split by a BLE Stop/Start (new Starts 14:42–14:54), cells untouched; the lane adds load → compare tonight's slope with the 61–66 mV/h measured before 14:40** |
 
 ## Retired cells
 
