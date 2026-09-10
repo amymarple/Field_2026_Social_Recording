@@ -15,6 +15,7 @@ Fill the operator columns at the time; the video columns are filled after the co
 | 2026-09-10 | flash 11:30 | CH07, CH08 | | | | |
 | 2026-09-10 | flash (midday) | CH07/CH08 (tbc) | 12:27 | ~12:27:20 | | 20 s colour sample (operator); all cobans visible = pile sample #1 of 18; video ON/OFF to be measured |
 | 2026-09-10 | flash (midday) | CH07/CH08 (tbc) | 12:52 | ~12:52:08 | | 8 s; animals more spread out than at 12:27 = pile sample #2 of 18 (a different arrangement) |
+| 2026-09-10 | flash (afternoon) | CH07/CH08 (tbc) | 13:52 | ~13:52:08 | | 8 s = pile sample #3 of 18 |
 | 2026-09-10 | flash 14:30 | CH07, CH08 | | | | |
 | 2026-09-10 | flash 16:00 | CH07, CH08 | | | | |
 | 2026-09-10 | flash 17:30 | CH07, CH08 | | | | |
