@@ -1,91 +1,103 @@
-# Neurologger (CE64X / WILD) 每日 Resync 协议
+# Neurologger (CE64X / WILD) daily resync protocol
 
-> ## ⚠️ SUPERSEDED (2026-08-30) — cohort 3 起按新版协议执行
-> 本文档写于 cohort 2(每日一次 4PM reset+resync),**其中"连上瞬间立刻 reset"与现行规则冲突**。
-> 现行协议(源码验证版)在 Notion cohort-3 页面 "Daily sync check + Sync mechanics" 一节,核心变化:
-> 1. **Resync 只在 Record Start 之前做,录制中绝不 Resync/reset**;
-> 2. 每次换电池 = 双锚点仪式:拔电池前保持连接 ~30–60 s 等 `Sync[Live]`(end anchor,记 `dev=`)
->    → Record Stop → 换电池 → 重连 Resync → Record Start → 连着再等 ~30–60 s(start anchor);
-> 3. 锚点以 ~5 s 节奏写入 logger 自己的 SD 卡(analogin.dat),PC 端不存任何 sync 关键数据;
-> 4. 离线验收:`WILD_generate_pc_time.py <session> --summary-plot`,两端锚点齐 + 残差平。
-> 下文仅作 cohort-2 历史记录保留。
+> ## ⚠️ SUPERSEDED (2026-08-30) — from cohort 3 on, follow the new protocol
+> This document was written for cohort 2 (one reset + resync per day at 4 PM). **Its "reset the instant it
+> connects" step conflicts with the current rule.**
+> The current protocol (verified against the source) is on the Notion cohort-3 page, section "Daily sync check +
+> Sync mechanics". Core changes:
+> 1. **Resync only BEFORE Record Start; never Resync or reset while recording**;
+> 2. every battery change = the double-anchor ritual: before pulling the battery stay connected ~30–60 s and wait
+>    for `Sync[Live]` (end anchor, note `dev=`) → Record Stop → change the battery → reconnect, Resync →
+>    Record Start → stay connected another ~30–60 s (start anchor);
+> 3. anchors are written to the logger's own SD card (analogin.dat) at a ~5 s cadence; the PC stores no
+>    sync-critical data;
+> 4. offline acceptance: `WILD_generate_pc_time.py <session> --summary-plot`, anchors present at both ends and
+>    flat residuals.
+> The rest of this file is kept only as the cohort-2 historical record.
 
-**目的**:logger 平时一直在自己的 SD 卡上连续录制,但它的板载时钟会和主 PC 时间越差越远
-(实测:一台差 12 分 43 秒,另一台差 58 分 34 秒)。每天做一次 reset + resync,把设备 RTC
-重新锚定到主 PC 时间,保证电生理数据能和相机视频 / PC 时间对齐;同时也清掉 device 卡死、
-BLE 反复 reconnect 之类的积累状态。
+**Purpose**: the logger records continuously to its own SD card, but its on-board clock drifts further and
+further from the main PC time (measured: one unit 12 min 43 s off, another 58 min 34 s). One reset + resync per
+day re-anchors the device RTC to the main PC time, so the electrophysiology can be aligned with the camera video
+and PC time; it also clears accumulated state such as a wedged device or repeated BLE reconnects.
 
-**版本依据**:wild_console 3.4.2.132(2026-08-17 反编译确认的机制,见文末"原理"一节)。
-
----
-
-## 每日流程(每天固定时间做一次,每台 logger 依次做)
-
-**用主 PC 做,不要用 mini PC**(主 PC 天线信号强;mini PC 信号太弱,连接慢、容易断)。
-
-1. **连接**:打开 wild_console,在 Device List 选中目标 logger,点 **Connect**。
-2. **连上瞬间立刻点 Reset device**(每天例行,不管连接快慢都 reset):
-   - 如果连接超过 **60 秒**还没连上,或连上后总是自动 reconnect —— 说明 device 卡了,
-     更要在连上的瞬间马上点 reset。
-   - Reset 会让设备重启并**停止当前录制**(会产生每天一次的短暂录制间隙,属于预期)。
-3. **等待重连稳定**:reset 后设备重启、重新广播,console 重连。等状态栏 **`Cmd:` 计数涨到
-   ≥ 256** 再进行下一步(此时 RTC 写入 0x8A、初始对时 `Sync[InitTrain]` 都已自动完成,
-   遥测心跳稳定)。
-4. **检查对时**:状态栏应出现 **`Sync[Live]`**,健康标准:
-   - `dev=00:00.0xx`(分:秒.毫秒,应接近 0)
-   - `err=±几毫秒`,**不能是** `err=outlier(...)`,也不能是几百毫秒/几秒级
-   - 不达标 → 点 **Resync**;还不行 → 再 reset 一次,从第 3 步重来。
-5. **点 Record Start**,确认真的开录了:
-   - **Recording time 从 00:00 开始走、Storage Used(MB) 在涨** = 已在录制。
-   - 如果 States 显示 `record start failed:` 但上面两项都在动 → 是 BLE ack 超时的假报警,
-     忽略即可(确认已开录后,设备会通过 rec-time 流补确认)。
-   - 如果 Recording time 不走 → 再点一次 Record Start。
-6. **记录到每日表格**(见下),然后 **Disconnect**,让设备继续自己录。
+**Version basis**: wild_console 3.4.2.132 (mechanism confirmed by decompilation on 2026-08-17; see "How it
+works" at the end).
 
 ---
 
-## 每日记录表
+## Daily procedure (once a day at a fixed time, one logger after another)
 
-| 日期 | 时间 | 设备 ID | reset 前 dev 值 | resync 后 err | 电压(V) | Storage(MB) | 备注 |
-|------|------|---------|----------------|---------------|---------|-------------|------|
-|      |      | CE64X_CACB6D600151 |     |               |         |             |      |
-|      |      | CE64X_A7F8EDC4A051 |     |               |         |             |      |
+**Use the main PC, not the mini PC** (the main PC's antenna is strong; the mini PC's signal is too weak: slow to
+connect, drops easily).
 
-> **`reset 前 dev` 必须记**:它就是前一天那段录制相对 PC 时间的时钟偏差,事后对齐
-> 前一天的数据全靠这个数。reset 之后这个偏差信息在设备上就没有了。
+1. **Connect**: open wild_console, select the target logger in the Device List, click **Connect**.
+2. **Click Reset device the instant it connects** (daily routine, regardless of how fast it connected):
+   - If connecting takes more than **60 s**, or it keeps auto-reconnecting after connecting, the device is
+     wedged — all the more reason to click reset the instant it connects.
+   - Reset reboots the device and **stops the current recording** (one short recording gap per day; expected).
+3. **Wait for the reconnect to settle**: after the reset the device reboots and advertises again, and the console
+   reconnects. Wait until the status bar's **`Cmd:` count reaches ≥ 256** before the next step (by then the RTC
+   write 0x8A and the initial time sync `Sync[InitTrain]` have completed automatically and the telemetry
+   heartbeat is steady).
+4. **Check the time sync**: the status bar should show **`Sync[Live]`**; healthy means:
+   - `dev=00:00.0xx` (min:sec.ms, should be near 0)
+   - `err=±a few ms`; it must **not** be `err=outlier(...)`, nor hundreds of ms or seconds
+   - Not healthy → click **Resync**; still not → reset once more and restart from step 3.
+5. **Click Record Start** and confirm it really started:
+   - **Recording time counting up from 00:00 and Storage Used (MB) growing** = recording.
+   - If States shows `record start failed:` but both of the above are moving → a false alarm from a BLE ack
+     timeout; ignore it (once recording is confirmed, the device confirms through the rec-time stream).
+   - If Recording time does not move → click Record Start again.
+6. **Fill in the daily table** (below), then **Disconnect** and let the device record on its own.
 
 ---
 
-## 故障处理速查
+## Daily record table
 
-| 现象 | 处理 |
-|------|------|
-| Connect 超过 60 秒 | 断开重连;连上的瞬间马上点 reset |
-| 连上后反复 reconnect | device 卡了 —— 连上瞬间马上 reset |
-| reset 后 `Sync[Live]` 仍是 outlier 或误差很大 | 先检查主 PC 时间对不对(time.is),再点 Resync / 再 reset |
-| `record start failed:` 但 Recording time 在走、Storage 在涨 | 假报警,忽略 |
-| `record start failed:` 且 Recording time 不走 | 再点 Record Start;仍失败则 reset 后重来 |
+| date | time | device ID | dev before reset | err after resync | voltage (V) | Storage (MB) | notes |
+|------|------|-----------|------------------|------------------|-------------|--------------|-------|
+|      |      | CE64X_CACB6D600151 |                  |                  |             |              |       |
+|      |      | CE64X_A7F8EDC4A051 |                  |                  |             |              |       |
+
+> **`dev before reset` must be recorded**: it is the clock offset of the previous day's recording relative to PC
+> time, and aligning that day's data afterwards depends entirely on this number. After the reset the offset is
+> gone from the device.
 
 ---
 
-## 自动监控(2026-08-18 起)
+## Troubleshooting quick reference
 
-`neurologger_alive_check.ps1`(SYSTEM 任务,每 5 分钟)读取 wild_console 持续刷新的
-`C:\Users\Cornell\AppData\Local\CE32_console\discovered_devices.csv`,某台 logger
-超过 60 分钟没被 BLE 听到就发 Slack 告警(附手机排查步骤);CSV 本身超过 15 分钟没
-更新(console 被关掉)也会告警。低电量(<3.60 V)和存储(≥90%)各有一次性提醒。
-详见 `change_log/2026-08-18-neurologger-alive-check.md`。
-**前提:主 PC 上 wild_console 必须保持开着并在扫描** —— 这现在是 rig 的一部分。
+| Symptom | Action |
+|---|---|
+| Connect takes more than 60 s | Disconnect and reconnect; click reset the instant it connects |
+| Repeated reconnects after connecting | Device wedged — reset the instant it connects |
+| `Sync[Live]` still outlier or a large error after reset | First check the main PC time (time.is), then Resync / reset again |
+| `record start failed:` but Recording time moving and Storage growing | False alarm, ignore |
+| `record start failed:` and Recording time not moving | Click Record Start again; if it still fails, reset and start over |
 
-## 原理(为什么这样做,来自 3.4.2.132 反编译)
+---
 
-- 连接建立后 console 自动发 **RTC push (0x8A)** 把主机时间写进设备 RTC,再发 sync start
-  启动初始对时(`Sync[InitTrain] ... n=N` 是设备自动跑的对时交换),之后进入 `Sync[Live]`
-  周期对时。**RTC 只在这个阶段被重写** —— 所以要每天 reset 重连一次来重新锚定时钟。
-- `Cmd:` 是设备→console 的协议消息累计数(状态心跳约 1 条/秒 + 对时响应 + 操作 ack)。
-  等它涨到 ~256 只是"连接已稳定、初始化已完成"的经验判据,不是某条指令。
-- `Sync[Live] dev=... err=... dly=...`:dev = 设备钟与主机钟的偏差;err = 每次对时的
-  测量误差(超过阈值显示 `outlier` 并被剔除,不参与统计);dly = BLE 往返延迟。
-- Record Start 实际只发一条 3 字节 `record start` 命令然后等 ack;ack 走丢就会留下
-  `record start failed:` 的残留状态,但命令本身往往已生效 —— 以 Recording time / Storage
-  为准。
+## Automatic monitoring (from 2026-08-18)
+
+`neurologger_alive_check.ps1` (SYSTEM task, every 5 min) reads the continuously refreshed
+`C:\Users\Cornell\AppData\Local\CE32_console\discovered_devices.csv` written by wild_console and sends a Slack
+alert when a logger has not been heard over BLE for more than 60 min (with phone troubleshooting steps); it also
+alerts when the CSV itself has not been updated for 15 min (console closed). Low battery (<3.60 V) and storage
+(≥90 %) each get a one-time reminder. Details: `change_log/2026-08-18-neurologger-alive-check.md`.
+**Prerequisite: wild_console must stay open and scanning on the main PC** — it is now part of the rig.
+
+## How it works (why this procedure; from the 3.4.2.132 decompilation)
+
+- Once connected, the console automatically sends an **RTC push (0x8A)** that writes the host time into the
+  device RTC, then a sync start that launches the initial time sync (`Sync[InitTrain] ... n=N` is the device's
+  automatic sync exchange), after which it enters periodic `Sync[Live]` syncing. **The RTC is rewritten only in
+  this phase** — hence one reset + reconnect per day to re-anchor the clock.
+- `Cmd:` is the cumulative count of device→console protocol messages (status heartbeat ~1/s + sync responses +
+  operation acks). Waiting for ~256 is only an empirical "connection stable, initialisation done" criterion, not
+  a specific command.
+- `Sync[Live] dev=... err=... dly=...`: dev = offset between the device clock and the host clock; err =
+  measurement error of each sync (shown as `outlier` and discarded above a threshold, not used in the
+  statistics); dly = BLE round-trip delay.
+- Record Start actually sends one 3-byte `record start` command and waits for the ack; a lost ack leaves the
+  residual `record start failed:` state, but the command itself usually took effect — go by Recording time /
+  Storage.

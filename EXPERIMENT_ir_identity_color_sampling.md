@@ -254,7 +254,6 @@ on WISER + tracking, and the Fri/Sat flashes can drop to 4 per day (operator dec
 
 ## Pilot 1 conclusion (operator, 2026-09-09 late) - and Thu-Sat is COLLECTION, not labelling
 
-
 **Verdict:** identity IS trackable in the in-box IR footage, but only by long-duration observation: follow the same
 animal continuously and a side view eventually exposes its features (tape pattern / head / back mark). So the
 method is track-then-assign: tracks carry identity between the moments the features show. Partial labelling of the
