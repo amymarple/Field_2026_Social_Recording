@@ -34,17 +34,6 @@ Fill the operator columns at the time; the video columns are filled after the co
 | 2026-09-12 | flash 17:30 | CH07, CH08 | | | | |
 | 2026-09-12 | PM placement | CH07+CH08 | | | | |
 
-## Release order at every round (which rat, which box, hh:mm)
-
-| date | round | 1st | 2nd | 3rd | 4th | 5th | box per rat / notes |
-|---|---|---|---|---|---|---|---|
-| 2026-09-10 | AM | | | | | | |
-| 2026-09-10 | PM | | | | | | |
-| 2026-09-11 | AM | | | | | | |
-| 2026-09-11 | PM | | | | | | |
-| 2026-09-12 | AM | | | | | | |
-| 2026-09-12 | PM | | | | | | |
-
 ## In-hand atlas clips (phone, natural light; lamp at the PM round)
 
 Per clip: say the ID aloud first; top view of the back, left side, right side, head-on, rear, one slow turn; same
