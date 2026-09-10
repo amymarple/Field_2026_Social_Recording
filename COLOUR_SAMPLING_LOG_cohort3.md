@@ -13,6 +13,7 @@ Fill the operator columns at the time; the video columns are filled after the co
 | 2026-09-10 | extra colour->IR transition | CH07/CH08 (tbc) | before 09:11 | ~09:11 | | supplementary colour-to-IR hand-off done at ~09:11 (operator clock), after the AM placement; segments not yet read |
 | 2026-09-10 | flash 10:00 | CH07, CH08 | | | | |
 | 2026-09-10 | flash 11:30 | CH07, CH08 | | | | |
+| 2026-09-10 | flash (midday) | CH07/CH08 (tbc) | 12:27 | ~12:27:20 | | 20 s colour sample (operator); video ON/OFF to be measured |
 | 2026-09-10 | flash 13:00 | CH07, CH08 | | | | |
 | 2026-09-10 | flash 14:30 | CH07, CH08 | | | | |
 | 2026-09-10 | flash 16:00 | CH07, CH08 | | | | |
