@@ -281,3 +281,20 @@ Nothing is extracted nightly. E: is not read during the cohort beyond what the o
 placement clips are cut after the cohort from D: copies (throttled robocopy, recorder check before and after, then
 `extract_labeling_clips.ps1`). The exact ON/OFF instants come from a keyframe signalstats scan of the D: copy
 (~80 s per hour of footage), so no operator note has to be exact. Log of every episode: `COLOUR_SAMPLING_LOG_cohort3.md`.
+
+### WISER within-box resolution, tested on the 12:27 flash (2026-09-10 14:25)
+
+Question (operator): if animals sleep at the two ends of the 24-in house, can WISER tell them apart?
+Test: the D: snapshot (refreshed hourly; 14:05 copy) for 12:23:30-12:26:30, the 3 min before the flash, against the
+colour frame at 12:27:08 (D:/07_08_camera/flash_2026-09-10_1227/).
+- Fix rate ~3.7 Hz per tag. A resting tag scatters median 2-4 in, p90 5-10 in per fix, so a 3-min mean is precise to
+  well under 1 in (its bias is unknown).
+- SF08 sat 21-30 in from the other four (WISER y 708 vs 725-739) in every window from 12:23 to 14:08; the colour frame
+  shows the red coban alone at one end of the box and four animals piled at the other end. The two-ends case is
+  resolved, and the assignment matches.
+- Inside the pile the 3-min means are 3-14 in apart, more than the per-fix scatter, so an arrangement at the ~10-in
+  scale may be recoverable - but the WISER-to-camera axis mapping is not established yet and the tag sits on the head,
+  not the body centre. Operator compares the frame with the map.
+- Clock note: the OSD burned into the CH07 frames reads 11:27:28 where the file/PC time is 12:27:08 - the NVR clock is
+  59 min 40 s behind PC time. File names, WISER and the operator phone are on PC time; never read the OSD time.
+- Colour ON-OFF from the video: 12:27:03-12:27:25 (22 s); operator note 12:27, 20 s.

@@ -13,7 +13,7 @@ Fill the operator columns at the time; the video columns are filled after the co
 | 2026-09-10 | extra colour->IR transition | CH07/CH08 (tbc) | before 09:11 | ~09:11 | | supplementary colour-to-IR hand-off done at ~09:11 (operator clock), after the AM placement; segments not yet read |
 | 2026-09-10 | flash 10:00 | CH07, CH08 | | | | |
 | 2026-09-10 | flash 11:30 | CH07, CH08 | | | | |
-| 2026-09-10 | flash (midday) | CH07/CH08 (tbc) | 12:27 | ~12:27:20 | | 20 s colour sample (operator); all cobans visible = pile sample #1 of 18; video ON/OFF to be measured |
+| 2026-09-10 | flash (midday) | CH07 | 12:27 | ~12:27:20 | 12:27:03-12:27:25 (22 s) | 20 s colour sample (operator); all cobans visible = pile sample #1 of 18; all five in house_2 per WISER; colour + IR frames and the WISER map in D:/07_08_camera/flash_2026-09-10_1227; WISER two-ends check PASSED (SF08 alone at one end) |
 | 2026-09-10 | flash (midday) | CH07/CH08 (tbc) | 12:52 | ~12:52:08 | | 8 s; animals more spread out than at 12:27 = pile sample #2 of 18 (a different arrangement) |
 | 2026-09-10 | flash (afternoon) | CH07/CH08 (tbc) | 13:52 | ~13:52:08 | | 8 s = pile sample #3 of 18 |
 | 2026-09-10 | flash (afternoon) | CH07/CH08 (tbc) | 14:08? (typed 14:.8) | ~14:08:08 | | 8 s = pile sample #4 of 18; exact minute from the video |
