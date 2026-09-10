@@ -174,13 +174,13 @@ delivers duplicated frames and motion-blurred ones — both fatal for tracking. 
 Purpose (operator): establish how hard in-box IR identity actually is and how to spend the remaining
 sampling days — by MANUAL inspection only; no automatic detection or identification was attempted.
 
-- Source: the operator's copy `D:_08_camera\CH07_2026-09-05_08-00-00_to_09-00-00.mp4` (2560×1920,
+- Source: the operator's copy `D:\07_08_camera\CH07_2026-09-05_08-00-00_to_09-00-00.mp4` (2560×1920,
   20 fps, GOP 2 s). Nothing under `E:` was touched; the recorders were checked before and after each
   decode step (all channels GROWING, CPU 6–23%).
 - Selection was by a keyframe motion trace only (0.5 fps, I-frames): three still stretches (08:04:44,
   08:11:10, 08:30:22), two motion onsets (08:15:10, 08:38:54), one active stretch (08:25:40), the round
   start (08:45:42). 08:00–08:40 is nearly flat — a sleeping pile can sit still for 30+ min.
-- Materials in `D:_08_camera\pilot_CH07_2026-09-05_08h\`: `clips_fullres\` (seven 22-s stream-copied
+- Materials in `D:\07_08_camera\pilot_CH07_2026-09-05_08h\`: `clips_fullres\` (seven 22-s stream-copied
   full-resolution clips + `manifest.json` with exact keyframe start times + the labeler), `frames\`
   (−10/−5/0/+5/+10 s full-res stills), `strip_*.png` (1 fps ±10 s thumbnails), the hour's contact sheet and
   motion trace, `LABELING_SHEET.md` (marker reference + the five pilot questions).
