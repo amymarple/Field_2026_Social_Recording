@@ -189,3 +189,46 @@ sampling days — by MANUAL inspection only; no automatic detection or identific
   click the head; cue + confidence + note per label; autosaves in the browser; exports CSV/JSON with
   absolute wall-clock time and source-pixel coordinates. Intended to be reused for the ten-day
   retroactive labelling.
+
+## 2026-09-09 late evening: three label sources, colour is the most expensive one (plan approved)
+
+Colour flashes are NOT the only way to put identity on the in-box IR footage. Ranked by cost:
+
+1. **WISER box entry/exit events - free, retroactive, all ten days.** WISER cannot resolve position inside
+   a box but it resolves WHICH box, so every crossing is a tag transition with a wall-clock time; the animal
+   crossing the door on video at that time is that tag. Script `wiser_box_transitions.py` (analysis repo,
+   `wiser_tracking_analysis/scripts/`; reads snapshots only). Calibration finding: the house rectangles in
+   `wiser_rois.json` are ~1 in short of where the pile lies (the 9/7 pile at (628,732) is outside house_2's
+   x-extent), so at the raw boundary a motionless pile flickers ENTER/EXIT dozens of times per hour;
+   dilating the rect by 15 in + 6-s smoothing + 20-s minimum dwell removes it (9/5 08:00-08:47: all six
+   inside, zero flicker). Validated on 9/5: all six EXIT house_2 together at 08:47:08 (taken out as a group
+   after the BLE Stops 08:34-08:42); five ENTER house_2 one by one 09:49:49-09:50:15 (SF09, SF07, SF11,
+   SF10, SF12; SF08 -> house_1) after the loggers were started outside 09:32-09:47. Placement order =
+   identity order; pairs 2-3 s apart need the operator's release-order note.
+2. **BLE round events - demoted to an order check.** Stop/Start are within +/-1-2 min of the WISER events
+   but not in the same order (Stop = "connected and stopped" before the catch; Start = "started outside"
+   before the placement). No RSSI history exists to read entries from signal strength.
+3. **Colour flashes - Thu-Sat only.** Reserved for identity INSIDE a static pile (arrangement layer) and for
+   validating labels carried into the pile by tracking from source 1. The dictionary of each animal's IR
+   appearance comes for free from source 1 (crossings are separated, moving animals).
+
+New habit from Thursday: **write down the release order and time at every round** (rat, box door, hh:mm:ss).
+
+### Decision matrix: pilot answers -> Thu-Sat protocol
+- **A. context helps (Q3 yes) and the huddle is assignable (Q4 yes):** sparse flashes only - one per settled
+  loose pile and per one-apart-rest-piled moment (5 s), 3-5/day, all three days; effort goes into source 1.
+- **B. Q3 yes, Q4 no:** arrangement layer abandoned; composition (who shares the pile) is already complete
+  from source 1 for all ten days. Flashes only at one-apart-rest-piled moments (<= 2/day) to confirm the
+  tracked boundary; no midday flashes; Fri/Sat optional.
+- **C. Q3 no (labels die within seconds):** tracking cannot bridge -> pile identity unobtainable at any flash
+  rate. Stop flashing after Thursday; analysis moves to crossing-based social measures (who enters whose
+  box, co-occupancy, order), fully supported by source 1 for ten days.
+- **D. Q2 no (nothing discriminable even when apart):** stop flashing; the only lever is a non-saturating
+  IR marker (matte, e.g. dyed/shaved pattern) applied at Thursday's AM round while the animals are in hand
+  - helps Thu-Sat only, changes appearance (segment the analysis), operator's call.
+
+### Validation set for source 1 (pending the operator's labels)
+`D:\07_08_camera\pilot_CH07_2026-09-05_08h\validation_clips\`: the 08:44:30-08:48:00 removal and the
+09:49:20-09:50:45 release on CH07, manifest with wall-clock starts, README with the expected WISER events.
+Questions: does CH07's box receive five animals at 09:49:49-09:50:15 (=> CH07 = house_2); video time of each
+placement vs the WISER time (= WISER event precision); placed by hand vs walked in.
