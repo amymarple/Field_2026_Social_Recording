@@ -10,6 +10,13 @@ streams to `E:` right now. There is no build system, package manager, or test fr
 script is standalone PowerShell 5.1 run via
 `powershell -NoProfile -ExecutionPolicy Bypass -File <script>`.
 
+## Language of everything written down
+
+All files in this repo - EXPERIMENT files, logs, READMEs, plans, commit messages, code comments - and the field
+logs it mirrors (the E: incident log, the field2026-sync notes) are written in **English**. Chinese is only the
+chat language with the operator; never write Chinese into a file. (Operator rule, 2026-09-10.)
+
+
 ## Live-system safety rules
 
 - **Network topology (verified 2026-08-19): this field PC reaches ONLY the analysis PC**

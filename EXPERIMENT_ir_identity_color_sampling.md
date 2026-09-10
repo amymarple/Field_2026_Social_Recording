@@ -233,7 +233,27 @@ New habit from Thursday: **write down the release order and time at every round*
 Questions: does CH07's box receive five animals at 09:49:49-09:50:15 (=> CH07 = house_2); video time of each
 placement vs the WISER time (= WISER event precision); placed by hand vs walked in.
 
+### Source 4 (added 2026-09-10 afternoon): WISER position INSIDE the house - the arrangement layer, possibly for free
+
+The 12:27 flash showed that WISER separates the two ends of the house beyond doubt (SF08 alone, 21-30 in from the
+pile, matching the colour frame), and that the 3-min mean positions of the four piled animals differ by 3-14 in,
+more than the per-fix scatter (median 2-4 in). If the frame-vs-map comparison by the operator confirms that the
+order of the piled animals along the box matches the order of their WISER means, the arrangement layer (who lies
+where in the pile) comes from WISER for all ten IR-only days, and the colour flashes become its calibration and
+test rather than the only source. Needed before it can be used:
+1. The camera-to-WISER axis mapping for each house (which image direction is +x / +y) - once, from the colour
+   frames: coban positions vs WISER means at the flash instants.
+2. A bias estimate: the tag is on the head, and a resting animal has sub-inch statistical error in its 3-min mean
+   but an unknown offset (multipath inside the box). Every flash with >= 3 cobans visible is one calibration point:
+   WISER mean vs coban position.
+3. Until measured, trust separations > 15 in per fix and > 8 in for 1-min means; treat smaller ones as candidates
+   to be checked against a flash.
+Plan update: the flash count stays at 18 and every flash is also a WISER-in-box calibration point. Decision at the
+Thursday-evening review: if the order matches in >= 4 of the first 5 flashes, the ten-day arrangement analysis runs
+on WISER + tracking, and the Fri/Sat flashes can drop to 4 per day (operator decides).
+
 ## Pilot 1 conclusion (operator, 2026-09-09 late) - and Thu-Sat is COLLECTION, not labelling
+
 
 **Verdict:** identity IS trackable in the in-box IR footage, but only by long-duration observation: follow the same
 animal continuously and a side view eventually exposes its features (tape pattern / head / back mark). So the
