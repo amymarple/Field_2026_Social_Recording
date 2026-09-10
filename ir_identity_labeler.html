@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IR identity labeler</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 13px/1.35 system-ui, Segoe UI, sans-serif; background: #f4f4f2; color: #1b1b1b; }
+  header { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 8px 12px; background: #fff; border-bottom: 1px solid #ddd; }
+  header h1 { font-size: 15px; margin: 0 12px 0 0; }
+  header label { display: inline-flex; gap: 6px; align-items: center; }
+  main { display: grid; grid-template-columns: 1fr 340px; gap: 0; height: calc(100vh - 52px); }
+  #stageWrap { position: relative; overflow: hidden; background: #111; cursor: crosshair; }
+  #stageInner { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+  #stageInner video { display: block; }
+  #overlay { position: absolute; left: 0; top: 0; pointer-events: none; }
+  #hud { position: absolute; left: 8px; top: 8px; background: rgba(0,0,0,.6); color: #fff; font: 12px/1.4 ui-monospace, Consolas, monospace; padding: 4px 8px; border-radius: 4px; pointer-events: none; white-space: pre; }
+  aside { overflow: auto; background: #fff; border-left: 1px solid #ddd; padding: 10px 12px; display: flex; flex-direction: column; gap: 10px; }
+  fieldset { border: 1px solid #ddd; border-radius: 6px; padding: 8px 10px; margin: 0; }
+  legend { font-weight: 600; padding: 0 4px; }
+  button { font: inherit; padding: 4px 8px; border: 1px solid #bbb; border-radius: 5px; background: #fafafa; cursor: pointer; }
+  button:hover { background: #eee; }
+  button.active { outline: 2px solid #1b1b1b; outline-offset: 1px; }
+  .rats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .rats button { font-weight: 600; color: #fff; text-shadow: 0 0 2px #000; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  input[type=range] { width: 100%; }
+  input[type=text], textarea, select { font: inherit; width: 100%; padding: 3px 5px; border: 1px solid #bbb; border-radius: 4px; }
+  textarea { min-height: 54px; resize: vertical; }
+  table.ref { border-collapse: collapse; width: 100%; font-size: 12px; }
+  table.ref td, table.ref th { border-bottom: 1px solid #eee; padding: 2px 4px; text-align: left; }
+  .sw { display: inline-block; width: 12px; height: 12px; border: 1px solid #555; vertical-align: middle; margin-right: 4px; }
+  #labelList { max-height: 180px; overflow: auto; font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+  #labelList div { display: flex; gap: 6px; align-items: center; padding: 2px 0; border-bottom: 1px dotted #ddd; }
+  #labelList div.sel { background: #fff3c4; }
+  #labelList span.grow { flex: 1; }
+  .muted { color: #666; }
+  kbd { font: 11px ui-monospace, Consolas, monospace; background: #eee; border: 1px solid #ccc; border-bottom-width: 2px; border-radius: 3px; padding: 0 4px; }
+  #status { font-size: 12px; color: #2a6; }
+</style>
+</head>
+<body>
+<header>
+  <h1>IR identity labeler</h1>
+  <label>Folder (clips + manifest.json): <input type="file" id="dirPick" webkitdirectory multiple></label>
+  <label>Clip: <select id="clipSel"></select></label>
+  <label>Labeler: <input type="text" id="labeler" value="HC" style="width:60px"></label>
+  <button id="exportCsv">Export CSV</button>
+  <button id="exportJson">Export JSON</button>
+  <label>Import JSON: <input type="file" id="importJson" accept=".json"></label>
+  <span id="status"></span>
+</header>
+<main>
+  <div id="stageWrap">
+    <div id="stageInner">
+      <video id="video" muted playsinline preload="auto"></video>
+      <canvas id="overlay"></canvas>
+    </div>
+    <div id="hud">no clip loaded</div>
+  </div>
+  <aside>
+    <fieldset>
+      <legend>Transport</legend>
+      <div class="row">
+        <button id="b_m1s" title="Shift+←">−1 s</button>
+        <button id="b_mf" title="←">◀ frame</button>
+        <button id="b_play" title="Space">▶ play</button>
+        <button id="b_pf" title="→">frame ▶</button>
+        <button id="b_p1s" title="Shift+→">+1 s</button>
+      </div>
+      <input type="range" id="scrub" min="0" max="1000" value="0">
+      <div class="row">
+        <span>Zoom:</span>
+        <button id="z_out">−</button><button id="z_reset">1×</button><button id="z_in">+</button>
+        <span class="muted">wheel = zoom at cursor, right-drag = pan</span>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Rat (select first, then click the head)</legend>
+      <div class="rats" id="ratBtns"></div>
+      <div class="row" style="margin-top:8px">
+        <span>Cue:</span>
+        <select id="cue">
+          <option value="head colour">head colour</option>
+          <option value="pattern">tape pattern (side view)</option>
+          <option value="body size">body size</option>
+          <option value="tracking">tracking from neighbouring frames</option>
+          <option value="elimination">elimination</option>
+          <option value="guess">none / guess</option>
+        </select>
+      </div>
+      <div class="row">
+        <span>Confidence:</span>
+        <button class="conf" data-v="sure">sure <kbd>C</kbd></button>
+        <button class="conf" data-v="likely">likely <kbd>L</kbd></button>
+        <button class="conf" data-v="guess">guess <kbd>G</kbd></button>
+      </div>
+      <div class="row"><input type="text" id="note" placeholder="note for the next label (optional)"></div>
+      <div class="muted">Keys: <kbd>1</kbd>–<kbd>6</kbd> = SF07…SF12, <kbd>0</kbd> = unknown, <kbd>←</kbd>/<kbd>→</kbd> frame, <kbd>Shift</kbd>+arrows 1 s, <kbd>Space</kbd> play, <kbd>Backspace</kbd> delete last, <kbd>Delete</kbd> delete selected.</div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Labels on this frame (±0.5 s) — click to select</legend>
+      <div id="labelList"></div>
+      <div class="row" style="margin-top:6px">
+        <button id="delSel">Delete selected</button>
+        <button id="showAll">Show all labels of this clip</button>
+        <span class="muted" id="counts"></span>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Clip notes (saved with the labels)</legend>
+      <textarea id="clipNote" placeholder="e.g. tight pile, heads buried; tape facing camera saturated; black head easy; could not separate SF08/SF12"></textarea>
+    </fieldset>
+
+    <fieldset>
+      <legend>Marker reference (Notion cohort page)</legend>
+      <table class="ref" id="refTable"></table>
+      <div class="muted" style="margin-top:4px">Reflective tape saturates when facing the camera — pattern readable from the side only. Black head = easiest.</div>
+    </fieldset>
+  </aside>
+</main>
+
+<script>
+(() => {
+  // ---- rats, colours, reference -----------------------------------------------
+  const RATS = [
+    { id: 'SF07', key: '1', colour: '#2e8b3a', coban: 'green',           sticker: 'orange', pattern: 'x' },
+    { id: 'SF08', key: '2', colour: '#c62828', coban: 'red',             sticker: 'silver', pattern: 'none' },
+    { id: 'SF09', key: '3', colour: '#222222', coban: 'pink/black/brown',sticker: 'blue',   pattern: 'star' },
+    { id: 'SF10', key: '4', colour: '#1e5bd6', coban: 'blue',            sticker: 'yellow', pattern: 'square with cross' },
+    { id: 'SF11', key: '5', colour: '#9e9e9e', coban: 'white',           sticker: 'green',  pattern: 'circle (implant lost 9/7)' },
+    { id: 'SF12', key: '6', colour: '#d4a300', coban: 'yellow',          sticker: 'red',    pattern: 'two lines' },
+    { id: 'unknown', key: '0', colour: '#ff00ff', coban: '—', sticker: '—', pattern: '—' },
+  ];
+  const ratById = Object.fromEntries(RATS.map(r => [r.id, r]));
+
+  // ---- state --------------------------------------------------------------------
+  const S = {
+    folderName: '', files: {}, manifest: null, clips: [], cur: null, // cur = manifest clip entry
+    fps: 20, rat: 'SF07', conf: 'sure', labels: [], notes: {}, selected: null, showAll: false,
+    zoom: 1, panX: 0, panY: 0, panning: false, panStart: null,
+  };
+
+  // ---- dom ----------------------------------------------------------------------
+  const $ = id => document.getElementById(id);
+  const video = $('video'), overlay = $('overlay'), inner = $('stageInner'), wrap = $('stageWrap'), hud = $('hud');
+  const ctx = overlay.getContext('2d');
+
+  // reference table + rat buttons
+  const rt = $('refTable');
+  rt.innerHTML = '<tr><th>rat</th><th>coban</th><th>sticker</th><th>tape pattern</th></tr>' +
+    RATS.filter(r => r.id !== 'unknown').map(r => `<tr><td><span class="sw" style="background:${r.colour}"></span>${r.id}</td><td>${r.coban}</td><td>${r.sticker}</td><td>${r.pattern}</td></tr>`).join('');
+  const rb = $('ratBtns');
+  RATS.forEach(r => {
+    const b = document.createElement('button'); b.textContent = `${r.id} `; b.style.background = r.colour;
+    const k = document.createElement('kbd'); k.textContent = r.key; b.appendChild(k);
+    b.dataset.rat = r.id; b.onclick = () => setRat(r.id); rb.appendChild(b);
+  });
+  function setRat(id) { S.rat = id; [...rb.children].forEach(b => b.classList.toggle('active', b.dataset.rat === id)); }
+  function setConf(v) { S.conf = v; document.querySelectorAll('.conf').forEach(b => b.classList.toggle('active', b.dataset.v === v)); }
+  document.querySelectorAll('.conf').forEach(b => b.onclick = () => setConf(b.dataset.v));
+  setRat('SF07'); setConf('sure');
+
+  // ---- folder loading -----------------------------------------------------------
+  $('dirPick').addEventListener('change', async e => {
+    const files = [...e.target.files];
+    if (!files.length) return;
+    S.files = {}; files.forEach(f => S.files[f.name] = f);
+    S.folderName = files[0].webkitRelativePath.split('/')[0] || 'folder';
+    const mf = files.find(f => f.name === 'manifest.json');
+    if (mf) {
+      try { S.manifest = JSON.parse(await mf.text()); } catch (err) { S.manifest = null; status('manifest.json unreadable: ' + err.message); }
+    } else S.manifest = null;
+    const mp4s = files.filter(f => /\.mp4$/i.test(f.name)).map(f => f.name).sort();
+    S.clips = mp4s.map(name => {
+      const m = S.manifest && S.manifest.clips.find(c => c.file === name);
+      if (m) return { ...m, camera: S.manifest.camera, segStart: S.manifest.segment_start_local, fps: S.manifest.fps || 20, w: S.manifest.width, h: S.manifest.height };
+      // fall back: parse ..._absHH-MM-SS_... from the file name
+      const mm = name.match(/abs(\d\d)-(\d\d)-(\d\d)/);
+      const abs = mm ? (+mm[1]) * 3600 + (+mm[2]) * 60 + (+mm[3]) : null;
+      return { file: name, moment: name.replace(/\.mp4$/i, ''), abs_start_s: abs != null ? abs - 8 * 3600 : null, abs_start_local: mm ? `${mm[1]}:${mm[2]}:${mm[3]}` : '?', camera: '?', segStart: null, fps: 20, why: '' };
+    });
+    const sel = $('clipSel'); sel.innerHTML = '';
+    S.clips.forEach((c, i) => { const o = document.createElement('option'); o.value = i; o.textContent = `${c.moment} — ${c.abs_start_local}${c.why ? ' — ' + c.why : ''}`; sel.appendChild(o); });
+    restoreAutosave();
+    if (S.clips.length) loadClip(0);
+    status(`${S.clips.length} clips from "${S.folderName}"${S.manifest ? ' (manifest OK)' : ' (no manifest — times from file names)'}`);
+  });
+  $('clipSel').addEventListener('change', e => loadClip(+e.target.value));
+
+  function loadClip(i) {
+    const c = S.clips[i]; if (!c) return;
+    S.cur = c; S.fps = c.fps || 20; S.selected = null;
+    $('clipSel').value = i;
+    $('clipNote').value = S.notes[c.file] || '';
+    video.pause();
+    if (video.src) URL.revokeObjectURL(video.src);
+    video.src = URL.createObjectURL(S.files[c.file]);
+    video.addEventListener('loadedmetadata', () => { fitStage(); seekTo(Math.max(0, (c.centre_s != null && c.abs_start_s != null) ? c.centre_s - c.abs_start_s : 0)); }, { once: true });
+  }
+
+  // ---- stage geometry / zoom / pan ----------------------------------------------
+  function fitStage() {
+    const vw = video.videoWidth || 2560, vh = video.videoHeight || 1920;
+    const sw = wrap.clientWidth, sh = wrap.clientHeight;
+    const s = Math.min(sw / vw, sh / vh);
+    video.style.width = (vw * s) + 'px'; video.style.height = (vh * s) + 'px';
+    overlay.width = Math.round(vw * s); overlay.height = Math.round(vh * s);
+    overlay.style.width = overlay.width + 'px'; overlay.style.height = overlay.height + 'px';
+    S.zoom = 1; S.panX = (sw - vw * s) / 2; S.panY = (sh - vh * s) / 2; applyT(); draw();
+  }
+  function applyT() { inner.style.transform = `translate(${S.panX}px, ${S.panY}px) scale(${S.zoom})`; }
+  function zoomAt(factor, cx, cy) {
+    const nz = Math.min(6, Math.max(0.5, S.zoom * factor));
+    // keep the point under the cursor fixed
+    S.panX = cx - (cx - S.panX) * (nz / S.zoom); S.panY = cy - (cy - S.panY) * (nz / S.zoom); S.zoom = nz; applyT();
+  }
+  wrap.addEventListener('wheel', e => { e.preventDefault(); const r = wrap.getBoundingClientRect(); zoomAt(e.deltaY < 0 ? 1.2 : 1 / 1.2, e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+  $('z_in').onclick = () => zoomAt(1.25, wrap.clientWidth / 2, wrap.clientHeight / 2);
+  $('z_out').onclick = () => zoomAt(1 / 1.25, wrap.clientWidth / 2, wrap.clientHeight / 2);
+  $('z_reset').onclick = fitStage;
+  wrap.addEventListener('contextmenu', e => e.preventDefault());
+  wrap.addEventListener('mousedown', e => { if (e.button === 2) { S.panning = true; S.panStart = { x: e.clientX - S.panX, y: e.clientY - S.panY }; } });
+  window.addEventListener('mousemove', e => { if (S.panning) { S.panX = e.clientX - S.panStart.x; S.panY = e.clientY - S.panStart.y; applyT(); } });
+  window.addEventListener('mouseup', () => { S.panning = false; });
+  window.addEventListener('resize', () => { if (video.videoWidth) fitStage(); });
+
+  // ---- transport ----------------------------------------------------------------
+  const frameDur = () => 1 / S.fps;
+  function seekTo(t) { video.pause(); video.currentTime = Math.max(0, Math.min(video.duration || 1e9, t)); }
+  $('b_mf').onclick = () => seekTo(video.currentTime - frameDur());
+  $('b_pf').onclick = () => seekTo(video.currentTime + frameDur());
+  $('b_m1s').onclick = () => seekTo(video.currentTime - 1);
+  $('b_p1s').onclick = () => seekTo(video.currentTime + 1);
+  $('b_play').onclick = () => { if (video.paused) video.play(); else video.pause(); };
+  video.addEventListener('play', () => $('b_play').textContent = '⏸ pause');
+  video.addEventListener('pause', () => $('b_play').textContent = '▶ play');
+  $('scrub').addEventListener('input', e => { if (video.duration) seekTo(e.target.value / 1000 * video.duration); });
+  const tick = () => { updateHud(); if (video.requestVideoFrameCallback) video.requestVideoFrameCallback(tick); };
+  if (video.requestVideoFrameCallback) video.requestVideoFrameCallback(tick); else video.addEventListener('timeupdate', updateHud);
+  video.addEventListener('seeked', updateHud);
+
+  function absTime(t) { // t = seconds into clip -> wall-clock string
+    const c = S.cur; if (!c || c.abs_start_s == null) return '?';
+    let s = c.abs_start_s + t; let base = 8 * 3600;
+    if (c.segStart) { const m = c.segStart.match(/T(\d\d):(\d\d):(\d\d)/); if (m) base = (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]); }
+    s += base; const hh = Math.floor(s / 3600) % 24, mm = Math.floor(s / 60) % 60, ss = s % 60;
+    return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${ss.toFixed(2).padStart(5, '0')}`;
+  }
+  function updateHud() {
+    const t = video.currentTime || 0;
+    if (video.duration) $('scrub').value = Math.round(t / video.duration * 1000);
+    const c = S.cur;
+    hud.textContent = c ? `${c.moment}  clip ${t.toFixed(2)} s  frame ${Math.round(t * S.fps)}\nabs ${absTime(t)}  (${c.camera || '?'})\nzoom ${S.zoom.toFixed(2)}×  rat ${S.rat}  ${S.conf}  ${$('cue').value}` : 'no clip loaded';
+    draw(); renderList();
+  }
+
+  // ---- labels -------------------------------------------------------------------
+  function labelsHere() {
+    if (!S.cur) return [];
+    const t = video.currentTime || 0;
+    return S.labels.filter(l => l.clip === S.cur.file && (S.showAll || Math.abs(l.t - t) <= 0.5));
+  }
+  wrap.addEventListener('click', e => {
+    if (e.button !== 0 || !S.cur || !video.videoWidth) return;
+    const r = video.getBoundingClientRect();
+    // position inside the (possibly zoomed) video element in CSS px -> source px
+    const x = (e.clientX - r.left) / r.width * video.videoWidth, y = (e.clientY - r.top) / r.height * video.videoHeight;
+    if (x < 0 || y < 0 || x > video.videoWidth || y > video.videoHeight) return;
+    const t = video.currentTime || 0;
+    S.labels.push({ id: Date.now() + Math.random().toString(16).slice(2, 6), clip: S.cur.file, moment: S.cur.moment, camera: S.cur.camera || '',
+      t: +t.toFixed(3), frame: Math.round(t * S.fps), abs: absTime(t), x: Math.round(x), y: Math.round(y),
+      rat: S.rat, cue: $('cue').value, conf: S.conf, note: $('note').value.trim(), labeler: $('labeler').value.trim(), created: new Date().toISOString() });
+    S.selected = S.labels[S.labels.length - 1].id; autosave(); draw(); renderList();
+  });
+  function draw() {
+    ctx.clearRect(0, 0, overlay.width, overlay.height);
+    if (!video.videoWidth) return;
+    const sx = overlay.width / video.videoWidth, sy = overlay.height / video.videoHeight;
+    labelsHere().forEach(l => {
+      const col = (ratById[l.rat] || ratById.unknown).colour, X = l.x * sx, Y = l.y * sy, rad = 14 / S.zoom;
+      ctx.lineWidth = (l.id === S.selected ? 4 : 2.5) / S.zoom; ctx.strokeStyle = col; ctx.fillStyle = col;
+      ctx.beginPath(); ctx.arc(X, Y, rad, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(X, Y, 2.5 / S.zoom, 0, Math.PI * 2); ctx.fill();
+      ctx.font = `bold ${13 / S.zoom}px system-ui`; ctx.lineWidth = 3 / S.zoom; ctx.strokeStyle = '#000'; ctx.strokeText(l.rat, X + rad + 2, Y + 4); ctx.fillText(l.rat, X + rad + 2, Y + 4);
+    });
+  }
+  function renderList() {
+    const el = $('labelList'); const ls = labelsHere();
+    el.innerHTML = ls.map(l => `<div class="${l.id === S.selected ? 'sel' : ''}" data-id="${l.id}"><span class="sw" style="background:${(ratById[l.rat] || ratById.unknown).colour}"></span><b>${l.rat}</b><span class="grow">${l.abs}  (${l.x},${l.y})  ${l.cue}, ${l.conf}${l.note ? ' — ' + l.note : ''}</span></div>`).join('') || '<span class="muted">none</span>';
+    [...el.children].forEach(d => d.onclick = () => { S.selected = d.dataset.id; if (S.showAll) { const l = S.labels.find(x => x.id === S.selected); if (l) seekTo(l.t); } draw(); renderList(); });
+    const nClip = S.labels.filter(l => S.cur && l.clip === S.cur.file).length;
+    $('counts').textContent = `${nClip} in this clip, ${S.labels.length} total`;
+  }
+  function deleteSelected() { if (!S.selected) return; S.labels = S.labels.filter(l => l.id !== S.selected); S.selected = null; autosave(); draw(); renderList(); }
+  $('delSel').onclick = deleteSelected;
+  $('showAll').onclick = () => { S.showAll = !S.showAll; $('showAll').classList.toggle('active', S.showAll); draw(); renderList(); };
+  $('clipNote').addEventListener('input', () => { if (S.cur) { S.notes[S.cur.file] = $('clipNote').value; autosave(); } });
+
+  // ---- keyboard -----------------------------------------------------------------
+  window.addEventListener('keydown', e => {
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+    const r = RATS.find(x => x.key === e.key); if (r) { setRat(r.id); updateHud(); return; }
+    switch (e.key) {
+      case 'ArrowLeft': e.preventDefault(); seekTo(video.currentTime - (e.shiftKey ? 1 : frameDur())); break;
+      case 'ArrowRight': e.preventDefault(); seekTo(video.currentTime + (e.shiftKey ? 1 : frameDur())); break;
+      case ' ': e.preventDefault(); $('b_play').onclick(); break;
+      case 'c': case 'C': setConf('sure'); updateHud(); break;
+      case 'l': case 'L': setConf('likely'); updateHud(); break;
+      case 'g': case 'G': setConf('guess'); updateHud(); break;
+      case 'Backspace': e.preventDefault(); if (S.cur) { const mine = S.labels.filter(l => l.clip === S.cur.file); if (mine.length) { S.labels = S.labels.filter(l => l.id !== mine[mine.length - 1].id); autosave(); draw(); renderList(); } } break;
+      case 'Delete': e.preventDefault(); deleteSelected(); break;
+    }
+  });
+
+  // ---- persistence --------------------------------------------------------------
+  const lsKey = () => 'irlabels:' + S.folderName;
+  function autosave() { try { localStorage.setItem(lsKey(), JSON.stringify({ labels: S.labels, notes: S.notes })); status('autosaved ' + new Date().toLocaleTimeString()); } catch (e) { status('autosave failed: ' + e.message); } }
+  function restoreAutosave() { try { const raw = localStorage.getItem(lsKey()); if (raw) { const o = JSON.parse(raw); S.labels = o.labels || []; S.notes = o.notes || {}; status(`restored ${S.labels.length} labels from this browser's autosave`); } } catch (e) {} }
+  function download(name, text, type) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }
+  const stamp = () => new Date().toISOString().replace(/[:T]/g, '-').slice(0, 16);
+  $('exportCsv').onclick = () => {
+    const cols = ['clip', 'moment', 'camera', 'abs_time_local', 't_in_clip_s', 'frame_idx', 'x_px', 'y_px', 'rat', 'cue', 'confidence', 'note', 'labeler', 'created_at'];
+    const esc = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const rows = S.labels.map(l => [l.clip, l.moment, l.camera, l.abs, l.t, l.frame, l.x, l.y, l.rat, l.cue, l.conf, l.note, l.labeler, l.created].map(esc).join(','));
+    download(`ir_labels_${S.folderName}_${stamp()}.csv`, [cols.join(','), ...rows].join('\r\n'), 'text/csv');
+  };
+  $('exportJson').onclick = () => download(`ir_labels_${S.folderName}_${stamp()}.json`, JSON.stringify({ folder: S.folderName, manifest: S.manifest, notes: S.notes, labels: S.labels }, null, 1), 'application/json');
+  $('importJson').addEventListener('change', async e => {
+    const f = e.target.files[0]; if (!f) return;
+    try { const o = JSON.parse(await f.text()); const have = new Set(S.labels.map(l => l.id)); let n = 0; (o.labels || []).forEach(l => { if (!have.has(l.id)) { S.labels.push(l); n++; } }); Object.assign(S.notes, o.notes || {}); if (S.cur) $('clipNote').value = S.notes[S.cur.file] || ''; autosave(); draw(); renderList(); status(`imported ${n} new labels`); } catch (err) { status('import failed: ' + err.message); }
+  });
+  function status(msg) { $('status').textContent = msg; }
+})();
+</script>
+</body>
+</html>
