@@ -32,6 +32,7 @@
   table.ref { border-collapse: collapse; width: 100%; font-size: 12px; }
   table.ref td, table.ref th { border-bottom: 1px solid #eee; padding: 2px 4px; text-align: left; }
   .sw { display: inline-block; width: 12px; height: 12px; border: 1px solid #555; vertical-align: middle; margin-right: 4px; }
+  .cues label { display: block; padding: 1px 0; }
   #labelList { max-height: 180px; overflow: auto; font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
   #labelList div { display: flex; gap: 6px; align-items: center; padding: 2px 0; border-bottom: 1px dotted #ddd; }
   #labelList div.sel { background: #fff3c4; }
@@ -81,17 +82,17 @@
     <fieldset>
       <legend>Rat (select first, then click the head)</legend>
       <div class="rats" id="ratBtns"></div>
-      <div class="row" style="margin-top:8px">
-        <span>Cue:</span>
-        <select id="cue">
-          <option value="head colour">head colour</option>
-          <option value="pattern">tape pattern (side view)</option>
-          <option value="body size">body size</option>
-          <option value="tracking">tracking from neighbouring frames</option>
-          <option value="elimination">elimination</option>
-          <option value="guess">none / guess</option>
-        </select>
+      <div style="margin-top:8px"><b>Cues</b> <span class="muted">(tick every cue you actually used — several is normal)</span></div>
+      <div class="cues" id="cueBoxes">
+        <label><input type="checkbox" value="head colour"> head colour (coban) <kbd>H</kbd></label>
+        <label><input type="checkbox" value="tape pattern"> reflective-tape pattern (side view) <kbd>P</kbd></label>
+        <label><input type="checkbox" value="back feature"> back feature — stripe / patch / fur mark <kbd>B</kbd></label>
+        <label><input type="checkbox" value="body size"> body size / shape <kbd>S</kbd></label>
+        <label><input type="checkbox" value="tracking"> tracking from neighbouring frames <kbd>T</kbd></label>
+        <label><input type="checkbox" value="elimination"> elimination (the others are known) <kbd>E</kbd></label>
+        <label><input type="checkbox" value="guess"> none / guess <kbd>N</kbd></label>
       </div>
+      <div class="row"><input type="text" id="cueDetail" placeholder="cue detail, e.g. 'dark stripe left of midline', 'pale rump patch' (optional)"></div>
       <div class="row">
         <span>Confidence:</span>
         <button class="conf" data-v="sure">sure <kbd>C</kbd></button>
@@ -99,13 +100,14 @@
         <button class="conf" data-v="guess">guess <kbd>G</kbd></button>
       </div>
       <div class="row"><input type="text" id="note" placeholder="note for the next label (optional)"></div>
-      <div class="muted">Keys: <kbd>1</kbd>–<kbd>6</kbd> = SF07…SF12, <kbd>0</kbd> = unknown, <kbd>←</kbd>/<kbd>→</kbd> frame, <kbd>Shift</kbd>+arrows 1 s, <kbd>Space</kbd> play, <kbd>Backspace</kbd> delete last, <kbd>Delete</kbd> delete selected.</div>
+      <div class="muted">Keys: <kbd>1</kbd>–<kbd>6</kbd> = SF07…SF12, <kbd>0</kbd> = unknown; <kbd>H</kbd>/<kbd>P</kbd>/<kbd>B</kbd>/<kbd>S</kbd>/<kbd>T</kbd>/<kbd>E</kbd>/<kbd>N</kbd> toggle cues; <kbd>C</kbd>/<kbd>L</kbd>/<kbd>G</kbd> confidence; <kbd>←</kbd>/<kbd>→</kbd> frame, <kbd>Shift</kbd>+arrows 1 s, <kbd>Space</kbd> play, <kbd>Backspace</kbd> delete last, <kbd>Delete</kbd> delete selected.</div>
     </fieldset>
 
     <fieldset>
       <legend>Labels on this frame (±0.5 s) — click to select</legend>
       <div id="labelList"></div>
       <div class="row" style="margin-top:6px">
+        <button id="applySel" title="overwrite the selected label's rat, cues, detail, confidence and note with what the panel shows now">Apply panel to selected</button>
         <button id="delSel">Delete selected</button>
         <button id="showAll">Show all labels of this clip</button>
         <span class="muted" id="counts"></span>
@@ -165,6 +167,12 @@
   function setConf(v) { S.conf = v; document.querySelectorAll('.conf').forEach(b => b.classList.toggle('active', b.dataset.v === v)); }
   document.querySelectorAll('.conf').forEach(b => b.onclick = () => setConf(b.dataset.v));
   setRat('SF07'); setConf('sure');
+  // cues: multi-select checkboxes (a label can rest on several cues at once)
+  const cueBoxes = () => [...document.querySelectorAll('#cueBoxes input')];
+  const cues = () => cueBoxes().filter(b => b.checked).map(b => b.value);
+  const cuesStr = () => cues().join(' + ') || '(no cue ticked)';
+  function toggleCue(v) { const b = cueBoxes().find(x => x.value === v); if (b) { b.checked = !b.checked; updateHud(); } }
+  cueBoxes().forEach(b => b.addEventListener('change', updateHud));
 
   // ---- folder loading -----------------------------------------------------------
   $('dirPick').addEventListener('change', async e => {
@@ -256,7 +264,7 @@
     const t = video.currentTime || 0;
     if (video.duration) $('scrub').value = Math.round(t / video.duration * 1000);
     const c = S.cur;
-    hud.textContent = c ? `${c.moment}  clip ${t.toFixed(2)} s  frame ${Math.round(t * S.fps)}\nabs ${absTime(t)}  (${c.camera || '?'})\nzoom ${S.zoom.toFixed(2)}×  rat ${S.rat}  ${S.conf}  ${$('cue').value}` : 'no clip loaded';
+    hud.textContent = c ? `${c.moment}  clip ${t.toFixed(2)} s  frame ${Math.round(t * S.fps)}\nabs ${absTime(t)}  (${c.camera || '?'})\nzoom ${S.zoom.toFixed(2)}×  rat ${S.rat}  ${S.conf}  ${cuesStr()}` : 'no clip loaded';
     draw(); renderList();
   }
 
@@ -275,7 +283,7 @@
     const t = video.currentTime || 0;
     S.labels.push({ id: Date.now() + Math.random().toString(16).slice(2, 6), clip: S.cur.file, moment: S.cur.moment, camera: S.cur.camera || '',
       t: +t.toFixed(3), frame: Math.round(t * S.fps), abs: absTime(t), x: Math.round(x), y: Math.round(y),
-      rat: S.rat, cue: $('cue').value, conf: S.conf, note: $('note').value.trim(), labeler: $('labeler').value.trim(), created: new Date().toISOString() });
+      rat: S.rat, cue: cues().join('|'), cue_detail: $('cueDetail').value.trim(), conf: S.conf, note: $('note').value.trim(), labeler: $('labeler').value.trim(), created: new Date().toISOString() });
     S.selected = S.labels[S.labels.length - 1].id; autosave(); draw(); renderList();
   });
   function draw() {
@@ -292,13 +300,18 @@
   }
   function renderList() {
     const el = $('labelList'); const ls = labelsHere();
-    el.innerHTML = ls.map(l => `<div class="${l.id === S.selected ? 'sel' : ''}" data-id="${l.id}"><span class="sw" style="background:${(ratById[l.rat] || ratById.unknown).colour}"></span><b>${l.rat}</b><span class="grow">${l.abs}  (${l.x},${l.y})  ${l.cue}, ${l.conf}${l.note ? ' — ' + l.note : ''}</span></div>`).join('') || '<span class="muted">none</span>';
+    el.innerHTML = ls.map(l => `<div class="${l.id === S.selected ? 'sel' : ''}" data-id="${l.id}"><span class="sw" style="background:${(ratById[l.rat] || ratById.unknown).colour}"></span><b>${l.rat}</b><span class="grow">${l.abs}  (${l.x},${l.y})  ${(l.cue || '').replace(/\|/g, ' + ') || 'no cue'}${l.cue_detail ? ' [' + l.cue_detail + ']' : ''}, ${l.conf}${l.note ? ' — ' + l.note : ''}</span></div>`).join('') || '<span class="muted">none</span>';
     [...el.children].forEach(d => d.onclick = () => { S.selected = d.dataset.id; if (S.showAll) { const l = S.labels.find(x => x.id === S.selected); if (l) seekTo(l.t); } draw(); renderList(); });
     const nClip = S.labels.filter(l => S.cur && l.clip === S.cur.file).length;
     $('counts').textContent = `${nClip} in this clip, ${S.labels.length} total`;
   }
   function deleteSelected() { if (!S.selected) return; S.labels = S.labels.filter(l => l.id !== S.selected); S.selected = null; autosave(); draw(); renderList(); }
   $('delSel').onclick = deleteSelected;
+  $('applySel').onclick = () => {
+    const l = S.labels.find(x => x.id === S.selected); if (!l) { status('select a label first'); return; }
+    Object.assign(l, { rat: S.rat, cue: cues().join('|'), cue_detail: $('cueDetail').value.trim(), conf: S.conf, note: $('note').value.trim(), edited: new Date().toISOString() });
+    autosave(); draw(); renderList();
+  };
   $('showAll').onclick = () => { S.showAll = !S.showAll; $('showAll').classList.toggle('active', S.showAll); draw(); renderList(); };
   $('clipNote').addEventListener('input', () => { if (S.cur) { S.notes[S.cur.file] = $('clipNote').value; autosave(); } });
 
@@ -313,6 +326,13 @@
       case 'c': case 'C': setConf('sure'); updateHud(); break;
       case 'l': case 'L': setConf('likely'); updateHud(); break;
       case 'g': case 'G': setConf('guess'); updateHud(); break;
+      case 'h': case 'H': toggleCue('head colour'); break;
+      case 'p': case 'P': toggleCue('tape pattern'); break;
+      case 'b': case 'B': toggleCue('back feature'); break;
+      case 's': case 'S': toggleCue('body size'); break;
+      case 't': case 'T': toggleCue('tracking'); break;
+      case 'e': case 'E': toggleCue('elimination'); break;
+      case 'n': case 'N': toggleCue('guess'); break;
       case 'Backspace': e.preventDefault(); if (S.cur) { const mine = S.labels.filter(l => l.clip === S.cur.file); if (mine.length) { S.labels = S.labels.filter(l => l.id !== mine[mine.length - 1].id); autosave(); draw(); renderList(); } } break;
       case 'Delete': e.preventDefault(); deleteSelected(); break;
     }
@@ -325,9 +345,9 @@
   function download(name, text, type) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }
   const stamp = () => new Date().toISOString().replace(/[:T]/g, '-').slice(0, 16);
   $('exportCsv').onclick = () => {
-    const cols = ['clip', 'moment', 'camera', 'abs_time_local', 't_in_clip_s', 'frame_idx', 'x_px', 'y_px', 'rat', 'cue', 'confidence', 'note', 'labeler', 'created_at'];
+    const cols = ['clip', 'moment', 'camera', 'abs_time_local', 't_in_clip_s', 'frame_idx', 'x_px', 'y_px', 'rat', 'cues', 'cue_detail', 'confidence', 'note', 'labeler', 'created_at'];
     const esc = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-    const rows = S.labels.map(l => [l.clip, l.moment, l.camera, l.abs, l.t, l.frame, l.x, l.y, l.rat, l.cue, l.conf, l.note, l.labeler, l.created].map(esc).join(','));
+    const rows = S.labels.map(l => [l.clip, l.moment, l.camera, l.abs, l.t, l.frame, l.x, l.y, l.rat, l.cue, l.cue_detail, l.conf, l.note, l.labeler, l.created].map(esc).join(','));
     download(`ir_labels_${S.folderName}_${stamp()}.csv`, [cols.join(','), ...rows].join('\r\n'), 'text/csv');
   };
   $('exportJson').onclick = () => download(`ir_labels_${S.folderName}_${stamp()}.json`, JSON.stringify({ folder: S.folderName, manifest: S.manifest, notes: S.notes, labels: S.labels }, null, 1), 'application/json');
