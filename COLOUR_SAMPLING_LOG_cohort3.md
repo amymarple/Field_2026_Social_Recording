@@ -17,7 +17,7 @@ Fill the operator columns at the time; the video columns are filled after the co
 | 2026-09-10 | flash (midday) | CH07/CH08 (tbc) | 12:52 | ~12:52:08 | | 8 s; animals more spread out than at 12:27 = pile sample #2 of 18 (a different arrangement) |
 | 2026-09-10 | flash (afternoon) | CH07/CH08 (tbc) | 13:52 | ~13:52:08 | | 8 s = pile sample #3 of 18 |
 | 2026-09-10 | flash (afternoon) | CH07/CH08 (tbc) | 14:08? (typed 14:.8) | ~14:08:08 | | 8 s = pile sample #4 of 18; exact minute from the video |
-| 2026-09-10 | flash 14:30 | CH07, CH08 | | | | |
+| 2026-09-10 | flash 14:33 | CH07 | 14:33 | ~14:33:08 | | 8 s = pile sample #5 of 18 |
 | 2026-09-10 | flash 16:00 | CH07, CH08 | | | | |
 | 2026-09-10 | flash 17:30 | CH07, CH08 | | | | |
 | 2026-09-10 | PM placement | CH07+CH08 | | | | |
