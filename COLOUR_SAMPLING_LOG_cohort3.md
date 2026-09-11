@@ -26,7 +26,7 @@ Fill the operator columns at the time; the video columns are filled after the co
 | 2026-09-11 | colour segment ~10:00 | CH07/CH08 (tbc) | ~10:00 | | | operator: a colour portion at ~10:00 (placement or flash - tbc); exact ON/OFF from the video |
 | 2026-09-11 | flash 11:30 | CH07, CH08 | | | | |
 | 2026-09-11 | flash 13:00 | CH07, CH08 | | | | |
-| 2026-09-11 | flash 14:30 | CH07, CH08 | | | | |
+| 2026-09-11 | flash 14:10 | CH07 | 14:10 | ~14:10:08 | | 8 s (operator: "14:10 color"); pile sample - numbering pending the 09:40/10:00 classification |
 | 2026-09-11 | flash 16:00 | CH07, CH08 | | | | |
 | 2026-09-11 | flash 17:30 | CH07, CH08 | | | | |
 | 2026-09-11 | PM placement (IR only, note the release order) | CH07+CH08 | - | - | - | |
