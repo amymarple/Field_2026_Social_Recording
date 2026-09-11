@@ -188,7 +188,7 @@ them (see Rounds). Card = model on the logger during that cell.
 | 09-10 08:29 | SF09 | EVO 512 + ADC | 4.23 | 09-10 18:48 | 3.68 | 3.68 | 10.3 | manual Stop; frozen reading 3.82 |
 | 09-10 08:32 | SF10 | EVO 512 + ADC | 4.24 | 09-10 18:50 | 3.67 | 3.67 | 10.3 | manual Stop; frozen reading 3.84 |
 | 09-10 08:35 | SF12 | EVO 512 + ADC | 4.25 | 09-10 18:51 | 3.74 | 3.74 | 10.3 | manual Stop; frozen reading 3.84; probe advanced 1/4 at 08:30 |
-| 09-10 19:33–19:47 | all five | EVO 512 + ADC (SF08 0%, others 43–44%) | 4.10–4.19 | (running) |  |  |  | **ALL FIVE 1000 mAh (803060)**, ADC lane ON → battery reading frozen at the install value, forecast blind, auto-stop presumed dead → **Stop by the clock at the 07:00 round (11.3–11.5 h), SF09 (4.10) first**; read the real V at the guard Start; format the four unformatted cards |
+| 09-10 19:33–19:47 | all five | EVO 512 + ADC (SF08 0%, others 43–44%) | 4.10–4.19 | (running) |  |  |  | **ALL FIVE 1000 mAh (803060)**, ADC lane ON → battery reading frozen at the install value, forecast blind, auto-stop presumed dead → **Stop by the clock at the 07:00 round (11.3–11.5 h), SF09 (4.10) first**; read the real V at the guard Start; format the four unformatted cards. **20:41–21:05: ADC lane switched OFF again on all five (operator: it adds noise to the neural channels) → telemetry live, forecast / 3.5 V rule / auto-stop back, the by-the-clock rule is lifted; night sessions SF07 20:44:13, SF09 20:49:12, SF10 20:56:12, SF08 21:02:46, SF12 21:05:19 on the same 1000 mAh cells (installed 19:33–19:47); readings at the Starts 4.04–4.07 V at 1.3–1.5 h; 07:00 round from the forecast as usual** |
 
 ## Retired cells
 
