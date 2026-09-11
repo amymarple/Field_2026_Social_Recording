@@ -282,7 +282,7 @@ seconds of colour: a static pile yields one independent sample per flash however
 
 | item | when / how | colour on the box cameras | what it yields |
 |---|---|---|---|
-| Colour placement | AM + PM rounds. Both box cameras to colour BEFORE the first rat goes in; place the animals any way you like - in colour the coban identifies each one on sight; back to IR ~2 min after the last rat, while they are still up and moving. The identity hand-off from colour to IR happens at that switch, so do not wait until heads are buried. | 2 x ~2.5 min = ~5 min | 5 identity-certain animals, separated and moving, in colour and then (after the switch) in IR = the in-domain IR dictionary. Zero sleep cost: the animals are awake after handling. |
+| Colour placement | AM round only - colour needs daylight through the door (usable ~08:00-19:00; the 9/10 PM attempt at ~19:50 was too dark). PM placements stay IR: note the release order (WISER entry order = the label). Both box cameras to colour BEFORE the first rat goes in; place the animals any way you like - in colour the coban identifies each one on sight; back to IR ~2 min after the last rat, while they are still up and moving. The identity hand-off from colour to IR happens at that switch, so do not wait until heads are buried. | 2 x ~2.5 min = ~5 min | 5 identity-certain animals, separated and moving, in colour and then (after the switch) in IR = the in-domain IR dictionary. Zero sleep cost: the animals are awake after handling. |
 | Pile flashes | 6/day at ~10:00, 11:30, 13:00, 14:30, 16:00, 17:30 (phone alarms); CH07 then CH08; **8 s** each; skip only if the preview shows the box empty. | 6 x 8 s = 48 s | 6 labelled pile configurations/day: seeds and held-out test for the tracking. |
 | In-hand atlas (phone) | DONE 9/10 AM (five clips, enough as the reference). No posing - the rats will not hold still and the human reference only needs one top-down view of the whole back, which the animal gives by itself while it walks on the bedding: film ~20 s from above with the lid open, take one still of the back when it pauses. Repeat only if a coban is re-wrapped or tape comes off, plus one final set at the Sat PM round for the end-state. | none | The human reference for every marker and for the dark/white patch pattern (the body-wide cue that also shows under IR). Reference material, not training data for the box camera (different camera, light, viewpoint, background). |
 | Notes at the round | None needed: the colour switch marks the placement in the video and the coban colours give the identities. The release-order habit belonged to IR placements; it matters only for the ten earlier days, where WISER order is the label. | none | - |
@@ -317,3 +317,10 @@ colour frame at 12:27:08 (D:/07_08_camera/flash_2026-09-10_1227/).
 - Clock note: the OSD burned into the CH07 frames reads 11:27:28 where the file/PC time is 12:27:08 - the NVR clock is
   59 min 40 s behind PC time. File names, WISER and the operator phone are on PC time; never read the OSD time.
 - Colour ON-OFF from the video: 12:27:03-12:27:25 (22 s); operator note 12:27, 20 s.
+
+### Day 1 tally (2026-09-10 evening)
+
+7 pile samples (12:27 20 s, then 8 s each at 12:52, 13:52, ~14:08, 14:33, 15:23, 16:30), AM colour placement plus an
+extra colour-to-IR transition at 09:11, no PM colour (too dark at ~19:50). 11 pile samples remain for Fri + Sat.
+Constraint learned: colour on the box cameras needs daylight through the door - roughly 08:00-19:00 - so evening
+placements are IR only and the release order must be noted at PM rounds.

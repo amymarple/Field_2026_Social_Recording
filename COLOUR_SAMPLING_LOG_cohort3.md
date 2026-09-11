@@ -20,8 +20,8 @@ Fill the operator columns at the time; the video columns are filled after the co
 | 2026-09-10 | flash 14:33 | CH07 | 14:33 | ~14:33:08 | | 8 s = pile sample #5 of 18 |
 | 2026-09-10 | flash 15:23 | CH07 | 15:23 | ~15:23:08 | | 8 s = pile sample #6 of 18 (after the 14:40-15:10 ADC switch-on and logger resets, animals likely disturbed - compare with 14:33) |
 | 2026-09-10 | flash 16:30 | CH07 | 16:30 | ~16:30:08 | | 8 s = pile sample #7 of 18 |
-| 2026-09-10 | flash 17:30 | CH07, CH08 | | | | |
-| 2026-09-10 | PM placement | CH07+CH08 | | | | |
+| 2026-09-10 | flash 17:30 | - | - | - | - | not done (quota already met with 7) |
+| 2026-09-10 | PM placement | CH07+CH08 | ~19:50 tried | - | - | TOO DARK after sunset: colour mode gave an unusable image, so the placement was IR only. Colour needs daylight through the door: usable roughly 08:00-19:00 (9/9 19:10 was dim but usable, 19:50 was not). PM placements are IR + release-order note from now on. |
 | 2026-09-11 | AM placement | CH07+CH08 | | | | |
 | 2026-09-11 | flash 10:00 | CH07, CH08 | | | | |
 | 2026-09-11 | flash 11:30 | CH07, CH08 | | | | |
@@ -29,7 +29,7 @@ Fill the operator columns at the time; the video columns are filled after the co
 | 2026-09-11 | flash 14:30 | CH07, CH08 | | | | |
 | 2026-09-11 | flash 16:00 | CH07, CH08 | | | | |
 | 2026-09-11 | flash 17:30 | CH07, CH08 | | | | |
-| 2026-09-11 | PM placement | CH07+CH08 | | | | |
+| 2026-09-11 | PM placement (IR only, note the release order) | CH07+CH08 | - | - | - | |
 | 2026-09-12 | AM placement | CH07+CH08 | | | | |
 | 2026-09-12 | flash 10:00 | CH07, CH08 | | | | |
 | 2026-09-12 | flash 11:30 | CH07, CH08 | | | | |
@@ -37,7 +37,7 @@ Fill the operator columns at the time; the video columns are filled after the co
 | 2026-09-12 | flash 14:30 | CH07, CH08 | | | | |
 | 2026-09-12 | flash 16:00 | CH07, CH08 | | | | |
 | 2026-09-12 | flash 17:30 | CH07, CH08 | | | | |
-| 2026-09-12 | PM placement | CH07+CH08 | | | | |
+| 2026-09-12 | PM placement (IR only, note the release order) | CH07+CH08 | - | - | - | |
 
 ## In-hand atlas clips (phone, natural light; lamp at the PM round)
 
@@ -52,3 +52,9 @@ set is the reference; later rows are only for a re-wrapped coban / lost tape, an
 | 2026-09-11 | PM | | | | | | |
 | 2026-09-12 | AM | | | | | | |
 | 2026-09-12 | PM | | | | | | |
+
+## Tally
+
+| day | pile samples | placements in colour | notes |
+|---|---|---|---|
+| 2026-09-10 (Thu) | 7 (12:27, 12:52, 13:52, ~14:08, 14:33, 15:23, 16:30) | AM (+ extra transition 09:11); PM none (too dark) | 7 of 18 done; 11 left for Fri + Sat (5-6 per day) |
