@@ -16,6 +16,15 @@ All files in this repo - EXPERIMENT files, logs, READMEs, plans, commit messages
 logs it mirrors (the E: incident log, the field2026-sync notes) are written in **English**. Chinese is only the
 chat language with the operator; never write Chinese into a file. (Operator rule, 2026-09-10.)
 
+## Field logging (rounds, anchors, probe moves, incidents, behaviour)
+
+Follow the project skill `/field-log` (`.claude/skills/field-log/SKILL.md`). In short: verify from the console
+log / telemetry first, write the full entry into `E:\recording_health_reports\incident_log.md` (mirrored into the
+sync repo), battery facts into `BATTERY_LOG_cohort3.md`, animal behaviour into the Notion behaviour table plus
+`field2026-sync/from-field/behaviour_observations_cohort3.csv`, and only a 4-8 line digest with
+`Details → incident_log HH:MM` pointers into the Notion day row. Nothing is deleted from Notion without a verbatim
+archive first (`NOTION_OBSERVATION_LOG_ARCHIVE_cohort3.md`). (Operator rule, 2026-09-10.)
+
 
 ## Live-system safety rules
 
