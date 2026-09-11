@@ -22,8 +22,8 @@ Fill the operator columns at the time; the video columns are filled after the co
 | 2026-09-10 | flash 16:30 | CH07 | 16:30 | ~16:30:08 | | 8 s = pile sample #7 of 18 |
 | 2026-09-10 | flash 17:30 | - | - | - | - | not done (quota already met with 7) |
 | 2026-09-10 | PM placement | CH07+CH08 | ~19:50 tried | - | - | TOO DARK after sunset: colour mode gave an unusable image, so the placement was IR only. Colour needs daylight through the door: usable roughly 08:00-19:00 (9/9 19:10 was dim but usable, 19:50 was not). PM placements are IR + release-order note from now on. |
-| 2026-09-11 | AM placement | CH07+CH08 | | | | |
-| 2026-09-11 | flash 10:00 | CH07, CH08 | | | | |
+| 2026-09-11 | colour segment ~09:40 | CH07/CH08 (tbc) | ~09:40 | | | operator: a colour portion at ~09:40 (placement or flash - tbc); exact ON/OFF from the video |
+| 2026-09-11 | colour segment ~10:00 | CH07/CH08 (tbc) | ~10:00 | | | operator: a colour portion at ~10:00 (placement or flash - tbc); exact ON/OFF from the video |
 | 2026-09-11 | flash 11:30 | CH07, CH08 | | | | |
 | 2026-09-11 | flash 13:00 | CH07, CH08 | | | | |
 | 2026-09-11 | flash 14:30 | CH07, CH08 | | | | |
