@@ -4,20 +4,33 @@
 # Cohort start: -Enable re-enables AND starts every task immediately (no reboot needed;
 # the at-startup/at-logon triggers alone would otherwise wait for the next boot/logon).
 # Manual GUI starts remain: wild_console (BLE scan) and the WISER acquisition software.
+# 2026-09-12 (end of cohort 3): list completed with every task registered by this repo's
+# installers - the weather listener, LED sync, PC drift check, neurologger battery forecast
+# and connected log, WISER alive check and the daily health check were missing. The sibling
+# repo's tasks (WISER backup 13:00, hourly occupancy) are analysis jobs and are NOT touched.
 param([switch]$Enable)
 
 $tasks = @(
+    # recorders / producers first
     'Reolink RTSP Recorder'
     'EmpireTech Thermal Cameras Recorder'
     'Field UltraMic Recorder'
     'Field RTSP Failover Recorder'
+    'Field Weather Listener'
+    'Field LED Sync'
+    # watchdogs / QC
     'Field Recording Alive Check'
     'Field Neurologger Alive Check'
+    'Field Neurologger Battery Forecast'
+    'Field Neurologger Connected Log'
+    'Field WISER Alive Check'
+    'Field PC Drift Check'
     'Field Overexposure Check (Finished)'
     'Field Overexposure Check (Sunrise Active)'
     'Field Recording Continuity Check'
     'Field Disk Space Check'
     'Field Capped Keyframe Check'
+    'Recording Health Check'
 )
 
 $admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
