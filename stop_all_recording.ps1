@@ -8,7 +8,11 @@
 # installers - the weather listener, LED sync, PC drift check, neurologger battery forecast
 # and connected log, WISER alive check and the daily health check were missing. The sibling
 # repo's tasks (WISER backup 13:00, hourly occupancy) are analysis jobs and are NOT touched.
-param([switch]$Enable)
+# -Exclude takes wildcard patterns matched against the task names below and leaves those
+# tasks alone (added 2026-09-16 for the temperature-sensor run: the rig comes back up but the
+# three neurologger tasks stay off because the loggers are run from the other laptop).
+#   ...\stop_all_recording.ps1 -Enable -Exclude 'Field Neurologger*'
+param([switch]$Enable, [string[]]$Exclude)
 
 $tasks = @(
     # recorders / producers first
@@ -37,6 +41,11 @@ $admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
 if (-not $admin) { Write-Host 'NOT ELEVATED - run from an Administrator PowerShell.' -ForegroundColor Red; exit 1 }
 
 foreach ($t in $tasks) {
+    if ($Exclude) {
+        $skip = $false
+        foreach ($p in $Exclude) { if ($t -like $p) { $skip = $true; break } }
+        if ($skip) { Write-Host "skipped (excluded): $t" -ForegroundColor DarkGray; continue }
+    }
     if ($Enable) {
         try { Enable-ScheduledTask -TaskName $t -ErrorAction Stop | Out-Null }
         catch { Write-Host "not found: $t" -ForegroundColor Yellow; continue }
