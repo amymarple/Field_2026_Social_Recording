@@ -1,0 +1,7 @@
+CH03 window 2338-2490s: 760 frames at 5 fps, 548 with >=20 corners
+distinct poses (>=20 corners): 141
+frame coverage (4x3 cells, X = a pose centred there):
+   . X X X
+   X X X X
+   X X . X
+pose-centre span: x 222-4416 of 4512, y 712-2149 of 2512; board width 140-789 px

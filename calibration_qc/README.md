@@ -28,3 +28,18 @@ Outputs live in `E:\calibration\qc\` on the field PC; the session summaries are 
 - IR/colour: CH01 colour throughout; CH02 IR 15:08–15:24; CH03 IR from 15:40; CH04/05/06
   IR until ~14:35; no frame-level saturation > 9 %. IR frames detect at least as well.
 - Thermal 108/109 recorded only from 15:34 (cameras were powered off at session start).
+
+### Corrections after the first pass (same day)
+
+- CH03 sweep verdict corrected: over 15:38:58-15:41:30 (carrying/placing phases count as poses)
+  it has **141 poses covering 10/12 frame cells**, x 222-4416 of 4512 - adequate, no re-shoot.
+  The earlier "lower half only" came from a too-narrow census window.
+- Operator confirms T33 / T43 / F63 WERE placed (occluded near the shelter boxes / centre
+  pole). Frames at the guessed times show no board, so the guessed times are wrong, not the
+  placements. Identity of those three (and the 9 V/T-ambiguous stations) is resolved at the
+  fitting stage from all six cameras' corner sets; fallback = operator clicks the visible
+  outline corners on prepared frames.
+- CH05/CH06 (nadir shelter cams) decoded ~30 placements each (`session_2026-09-18_CH05/06_*`),
+  giving them ground control points of their own.
+- NVR OSD clock on 2026-09-18 reads PC - 59 min 25 s (was PC - 60:00 +-1 s on 08-19): the
+  NVR clock has drifted ~+35 s. Re-measure before naming any new NVR export.

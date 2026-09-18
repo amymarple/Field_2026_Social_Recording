@@ -129,6 +129,9 @@ for m in missing:
         out.append(f"   {m}: no unassigned cluster within 40 in -> probably not placed")
 txt = "\n".join(out); print(txt)
 (QC / "coverage_v3.txt").write_text(txt, encoding="utf-8")
+# refined pano maps (px/1000 -> field inches, 2nd-order): the fitting stage's initial guess
+np.savez(QC / "refined_pano_maps.npz", **{c: m for c, m in maps.items() if m is not None},
+         note="apply_poly(P, px): feats [1,x,y,x^2,xy,y^2] with x,y = px/1000; output inches; fitted on session 2026-09-18 anchors")
 with open(QC / "station_assignments.csv", "w", newline="", encoding="utf-8") as f:
     w = csv.writer(f); w.writerow(["station", "design_x_in", "design_y_in", "clock_start", "clock_end", "mapped_x_in", "mapped_y_in", "dist_in", "CH01_corners", "CH02_corners"])
     for c in clusters:
