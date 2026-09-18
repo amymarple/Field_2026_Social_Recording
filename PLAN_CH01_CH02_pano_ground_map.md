@@ -95,17 +95,24 @@ backup verification.
 
 ### A. Taut-line field basis (~45–60 min)
 
-Re-verify field edge lengths + diagonals with tape (design grid ≠ measured truth).
-Lay **7 lines across the field width** at x = **60, 240, 420, 600, 780, 960, 1140 cm**;
-5 stations per line at y = **30, 150, 270, 390, 510 cm** → **35 training placements**.
+**Units (operator rule 2026-09-18): all field staking and the record sheet are in
+INCHES** — the field is natively imperial (40×20 ft, 10-ft pole grid, WISER inches,
+US tapes); the pipeline converts ×2.54 to cm. The board itself stays metric (60 mm).
+
+Re-verify field edge lengths + diagonals with tape (expect 480 in and ~536.7 in;
+design grid ≠ measured truth). Lay **7 cords across the field width** at
+x = **24, 96, 168, 240, 312, 384, 456 in** (2-ft margins, 6 ft apart); 5 stations per
+cord at y = **12, 66, 120, 174, 228 in** → **35 training placements**. **Only
+cross-width cords are used** — the flags carry y, so length-wise cords add nothing.
 
 **Station accuracy comes from a construction chain, not per-station taping**
 (operator-simplified 2026-09-09): pre-flag 7 identical cords indoors with tape flags
-at y = 30/150/270/390/510 cm (measured once) → on site, tape each line's x from the
-corners along BOTH long walls (14 numbers, logged) → stretch the cord taut at soil
-level, ends weighted by cones → lay the board with its **54 cm short edge hugging the
-cord and the origin corner at the flag**, which fixes position AND orientation in one
-motion → checkbox on the sheet. Only a board that cannot land at its flag
+at y = 12/66/120/174/228 in from the cord's wall-A zero mark, measured once under
+deployment tension → on site, tape each cord's x from the corners along BOTH long
+walls (14 numbers, logged) → stretch the cord taut at soil level, zero mark at the
+wall face, ends weighted by cones → lay the board with its **54 cm short edge hugging
+the cord and the origin corner at the flag**, which fixes position AND orientation in
+one motion → checkbox on the sheet. Only a board that cannot land at its flag
 (obstruction → moved) gets hand-measured coordinates. Cones weight cord ends and mark
 upcoming stations for wayfinding — never a precision datum (a cone base is ±several cm).
 Station IDs are paper bookkeeping only (identification = time + order + position
@@ -126,9 +133,9 @@ flat markers rather than forcing z=0.
 ### C. Validation & final-test placements (~40–60 min)
 
 **24 interleaved positions** between the training grid:
-x = **150, 330, 510, 690, 870, 1050**; y = **90, 210, 330, 450** — split alternately
-into **12 model-selection validation + 12 final-test** positions; each placement
-belongs to exactly one set, shared across both cameras.
+x = **60, 132, 204, 276, 348, 420 in**; flags at y = **39, 93, 147, 201 in** — split
+alternately into **12 model-selection validation + 12 final-test** positions; each
+placement belongs to exactly one set, shared across both cameras.
 
 Seam extras per camera: one group near / mid / far along each pano's seam. Ghosting,
 local stretching, or corner jumps ⇒ sample both sides and treat the seam band as its
