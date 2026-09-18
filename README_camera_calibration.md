@@ -1,5 +1,9 @@
 # Camera Calibration → Common Field Coordinates (all 8 channels)
 
+> **CH01/CH02 implementation (2026-09-09):** The [offline tool and field instructions](camera_ground/README.md) implement the panorama-first plan. The [59-position field sheet](camera_ground/field_kit/field_sheet.md) is ready; its coordinates are proposed, not measured. The supplied ChArUco image has been verified (54 markers, 88 corners). No new field calibration has been accepted yet.
+
+> **Audit update (2026-09-09):** Read [the audit and execution plan](CAMERA_CALIBRATION_AUDIT_PLAN.md) before executing this protocol. It supersedes the method and scheduling advice below where they conflict, especially mixed-height homography points, legacy geometry consistency, PnP intrinsics, and independent acceptance testing. The historical ledgers below are retained; no calibration has been newly validated by this documentation update.
+
 Protocol + **recording-side ledger** for mapping every camera into the one shared field
 frame. This file lives in the RECORDING repo on purpose: calibration validity is tied to
 the physical rig timeline (a camera that got touched is a camera whose calibration is
@@ -148,8 +152,10 @@ So the analysis side can find the material inside the recordings.
 
 | Date | Action | Camera(s) | Time window (PC clock) | Notes |
 |---|---|---|---|---|
-| | checkerboard sweep | CH03 | | board size/squares: |
-| | checkerboard sweep | CH04 | | |
+| 2026-09-18 | ground board placements (ChArUco 12×9 @60 mm, DICT_5X5_100; origin corner on the cone centre, cones on the cord ticks) | all (session `E:\calibration\session_2026-09-18_13-54-34`) | 15:01–15:40 | 46/59 stations matched by QC, 9 ambiguous (V/T neighbours), T33/T43/F63 probably not placed — see `calibration_qc/README.md` |
+| 2026-09-18 | hand-held intrinsics sweep | CH03 | 15:40:27–15:41:30 | IR mode; 62 poses, LOWER HALF of frame only (5/12 cells) — upper half unconstrained |
+| 2026-09-18 | hand-held intrinsics sweep | CH04 | 15:42:33–15:45:30 | 173 poses, 9/12 frame cells — good |
+| 2026-09-18 | thermal 108/109 | 108/109 | from 15:34 only | cameras were powered off at session start |
 | | in-box ruler frame + interior tape measure | CH07 (left box) | | interior floor W×L (cm): |
 | | in-box ruler frame + interior tape measure | CH08 (right box) | | interior floor W×L (cm): |
 | | calibration walk (stand 3 s at each of the 15 poles) | all | | walker: |
