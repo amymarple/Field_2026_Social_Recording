@@ -113,14 +113,15 @@ function Close-PrevSeg([string]$name, [string]$prevName, [string]$endHms) {
     }
 }
 
-$procs = @{}; $lastName = @{}; $lastSize = @{}; $lastGrew = @{}
-$StallSeconds = 90
+$procs = @{}; $lastName = @{}; $lastSize = @{}; $lastGrew = @{}; $startedAt = @{}
+$StallSeconds   = 90
+$ConnectSeconds = 60     # no first segment within this long -> ffmpeg is stuck in the RTSP connect
 $t0 = Get-Date
 
 try {
     foreach ($s in $streams) {
         $procs[$s.Name] = Start-Stream $s
-        $lastName[$s.Name] = ''; $lastSize[$s.Name] = 0; $lastGrew[$s.Name] = Get-Date
+        $lastName[$s.Name] = ''; $lastSize[$s.Name] = 0; $lastGrew[$s.Name] = Get-Date; $startedAt[$s.Name] = Get-Date
     }
     Write-Host ("started {0} ffmpeg processes. Recording... press Ctrl+C to stop." -f $procs.Count)
 
@@ -135,11 +136,22 @@ try {
             if ($procs[$name].HasExited) {
                 Write-Host ("  {0} ffmpeg exited (code {1}); restarting" -f $name, $procs[$name].ExitCode)
                 $procs[$name] = Start-Stream $s
-                $lastGrew[$name] = Get-Date
+                $lastGrew[$name] = Get-Date; $startedAt[$name] = Get-Date
                 continue
             }
             $nf = Get-NewestSeg $name
-            if (-not $nf) { continue }
+            if (-not $nf) {
+                # ffmpeg hangs silently in the RTSP connect when the camera is unreachable (no
+                # exit, no error, no file - seen 2026-09-18 with the thermal cams powered off);
+                # it never recovers on its own once the camera returns, so restart it (our PID only).
+                if (((Get-Date) - $startedAt[$name]).TotalSeconds -gt $ConnectSeconds) {
+                    Write-Host ("  {0} no stream after {1}s (camera unreachable?); restarting its ffmpeg" -f $name, $ConnectSeconds)
+                    try { Stop-Process -Id $procs[$name].Id -Force } catch {}
+                    $procs[$name] = Start-Stream $s
+                    $lastGrew[$name] = Get-Date; $startedAt[$name] = Get-Date
+                }
+                continue
+            }
             if ($nf.Name -ne $lastName[$name]) {                       # rollover: close previous
                 if ($lastName[$name]) { Close-PrevSeg $name $lastName[$name] (($nf.BaseName -split '_')[-1]) }
                 $lastName[$name] = $nf.Name; $lastSize[$name] = 0; $lastGrew[$name] = Get-Date
@@ -150,7 +162,7 @@ try {
                 Write-Host ("  {0} stalled ({1}s no growth); restarting its ffmpeg" -f $name, $StallSeconds)
                 try { Stop-Process -Id $procs[$name].Id -Force } catch {}   # OUR child only, by PID
                 $procs[$name] = Start-Stream $s
-                $lastGrew[$name] = Get-Date
+                $lastGrew[$name] = Get-Date; $startedAt[$name] = Get-Date
             }
         }
 
