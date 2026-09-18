@@ -8,3 +8,12 @@ CH[0-9][0-9]/
 *.mp4
 *.wav
 *.flac
+
+# Offline camera-calibration environment and generated sessions
+.venv-calibration/
+__pycache__/
+*.pyc
+calibration_sessions/
+*.egg-info/
+build/
+dist/

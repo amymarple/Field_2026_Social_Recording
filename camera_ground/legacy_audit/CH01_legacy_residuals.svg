@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-40 -60 1300 730">
+<rect x="0" y="0" width="1219.2" height="609.6" fill="white" stroke="black"/>
+<text x="0" y="-20" font-size="20">Ground residuals: arrows x5; red = invalid</text>
+<circle cx="0.0" cy="304.8" r="5" fill="#007a65"/>
+<text x="7.0" y="304.8" font-size="12">B0</text>
+<path d="M0.0,304.8 l409.6652417802688,109.44672113719236" stroke="#007a65" stroke-width="2"/>
+<circle cx="304.8" cy="304.8" r="5" fill="#007a65"/>
+<text x="311.8" y="304.8" font-size="12">B1</text>
+<path d="M304.8,304.8 l-470.12000687705165,4.97905225162981" stroke="#007a65" stroke-width="2"/>
+<circle cx="609.6" cy="304.8" r="5" fill="#007a65"/>
+<text x="616.6" y="304.8" font-size="12">B2</text>
+<path d="M609.6,304.8 l-17.444968021802083,-158.6605509118732" stroke="#007a65" stroke-width="2"/>
+<circle cx="914.4" cy="304.8" r="5" fill="#007a65"/>
+<text x="921.4" y="304.8" font-size="12">B3</text>
+<path d="M914.4,304.8 l252.6405790723851,-59.99173504467791" stroke="#007a65" stroke-width="2"/>
+<circle cx="1219.2" cy="304.8" r="5" fill="#007a65"/>
+<text x="1226.2" y="304.8" font-size="12">B4</text>
+<path d="M1219.2,304.8 l-236.20491089431198,108.15596081939077" stroke="#007a65" stroke-width="2"/>
+<circle cx="0.0" cy="609.6" r="5" fill="#007a65"/>
+<text x="7.0" y="609.6" font-size="12">C0</text>
+<path d="M0.0,609.6 l346.16701056754385,-271.67806591308135" stroke="#007a65" stroke-width="2"/>
+<circle cx="304.8" cy="609.6" r="5" fill="#007a65"/>
+<text x="311.8" y="609.6" font-size="12">C1</text>
+<path d="M304.8,609.6 l-516.5997023712436,72.10687202471206" stroke="#007a65" stroke-width="2"/>
+<circle cx="609.6" cy="609.6" r="5" fill="#007a65"/>
+<text x="616.6" y="609.6" font-size="12">C2</text>
+<path d="M609.6,609.6 l252.566357580925,317.78622996443346" stroke="#007a65" stroke-width="2"/>
+<circle cx="914.4" cy="609.6" r="5" fill="#007a65"/>
+<text x="921.4" y="609.6" font-size="12">C3</text>
+<path d="M914.4,609.6 l270.9425446871654,88.35777383834511" stroke="#007a65" stroke-width="2"/>
+<circle cx="1219.2" cy="609.6" r="5" fill="#007a65"/>
+<text x="1226.2" y="609.6" font-size="12">C4</text>
+<path d="M1219.2,609.6 l-333.79499719383034,-266.71090366383" stroke="#007a65" stroke-width="2"/>
+<circle cx="127.0" cy="177.8" r="5" fill="#007a65"/>
+<text x="134.0" y="177.8" font-size="12">M2</text>
+<path d="M127.0,177.8 l50.501665644120095,-37.85490808137368" stroke="#007a65" stroke-width="2"/>
+<circle cx="127.0" cy="304.8" r="5" fill="#007a65"/>
+<text x="134.0" y="304.8" font-size="12">M3</text>
+<path d="M127.0,304.8 l19.3086886550428,44.14725975300314" stroke="#007a65" stroke-width="2"/>
+<circle cx="127.0" cy="431.8" r="5" fill="#007a65"/>
+<text x="134.0" y="431.8" font-size="12">M4</text>
+<path d="M127.0,431.8 l-25.44965434648276,105.68388513013502" stroke="#007a65" stroke-width="2"/>
+<circle cx="127.0" cy="609.6" r="5" fill="#007a65"/>
+<text x="134.0" y="609.6" font-size="12">M5</text>
+<path d="M127.0,609.6 l-59.295336933446805,-130.31464336614647" stroke="#007a65" stroke-width="2"/>
+<circle cx="165.1" cy="304.8" r="5" fill="#007a65"/>
+<text x="172.1" y="304.8" font-size="12">M6</text>
+<path d="M165.1,304.8 l-84.91199076111556,50.67141914374105" stroke="#007a65" stroke-width="2"/>
+<circle cx="1092.2" cy="609.6" r="5" fill="#007a65"/>
+<text x="1099.2" y="609.6" font-size="12">N1</text>
+<path d="M1092.2,609.6 l-52.29137419242306,-110.93434788823402" stroke="#007a65" stroke-width="2"/>
+<circle cx="1092.2" cy="431.8" r="5" fill="#007a65"/>
+<text x="1099.2" y="431.8" font-size="12">N2</text>
+<path d="M1092.2,431.8 l97.89546024815763,60.500396340355564" stroke="#007a65" stroke-width="2"/>
+<circle cx="1092.2" cy="304.8" r="5" fill="#007a65"/>
+<text x="1099.2" y="304.8" font-size="12">N3</text>
+<path d="M1092.2,304.8 l50.835002403654244,14.318344077107952" stroke="#007a65" stroke-width="2"/>
+<circle cx="1092.2" cy="177.8" r="5" fill="#007a65"/>
+<text x="1099.2" y="177.8" font-size="12">N4</text>
+<path d="M1092.2,177.8 l-81.90756691019942,55.111655673806155" stroke="#007a65" stroke-width="2"/>
+<circle cx="1054.1" cy="304.8" r="5" fill="#007a65"/>
+<text x="1061.1" y="304.8" font-size="12">N6</text>
+<path d="M1054.1,304.8 l127.49795764729583,4.879584933980539" stroke="#007a65" stroke-width="2"/>
+</svg>

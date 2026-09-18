@@ -1,0 +1,1458 @@
+{
+  "schema_version": 1,
+  "session_id": "SET_DATE_AND_EPOCH",
+  "units": "cm",
+  "status": "pending_field_capture",
+  "board": {
+    "squares_xy": [
+      12,
+      9
+    ],
+    "square_cm": 6,
+    "marker_cm": 4.5,
+    "dictionary": "DICT_5X5_100",
+    "ids": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50,
+      51,
+      52,
+      53
+    ],
+    "legacy_pattern": false,
+    "schema_version": 1,
+    "units": "cm",
+    "compatible_dictionaries": [
+      "DICT_5X5_100",
+      "DICT_5X5_250",
+      "DICT_5X5_1000"
+    ],
+    "reference_sha256": "b465e19253af0c38dc6dcc109ed1dafa5dbc24e5e1f807437972f716b86bc2c2",
+    "source_image": "C:\\Users\\Cornell\\Documents\\GitHub\\Field_2026_Social_Recording\\calibration.png",
+    "image_size": [
+      2400,
+      1800
+    ],
+    "marker_count": 54,
+    "corner_count": 88,
+    "reconstruction_difference_fraction": 0.0,
+    "physical_dimensions_verified": false,
+    "note": "Smallest compatible dictionary; original dictionary capacity is not identifiable from shared IDs",
+    "board_hash": "160137e069dbbef0d1e495c7adebe54ed9fcda8e5fd8767054c15c5131857c59"
+  },
+  "physical_board_verified": false,
+  "five_squares_measured_cm": null,
+  "target_plane": "ground",
+  "geometry_revision": null,
+  "cameras": {
+    "CH01": {
+      "image_size": [
+        2160,
+        7680
+      ],
+      "geometry_reviewed": false,
+      "stitching_settings": null,
+      "valid_from": null,
+      "valid_to": null,
+      "pixel_transform": {
+        "decoded_size": [
+          2160,
+          7680
+        ],
+        "rotate_cw": 0,
+        "crop_xywh": null,
+        "output_size": [
+          2160,
+          7680
+        ]
+      },
+      "regions": [
+        {
+          "id": "ground",
+          "threshold": "core",
+          "polygon_px": [],
+          "exclude_px": []
+        }
+      ]
+    },
+    "CH02": {
+      "image_size": [
+        2160,
+        7680
+      ],
+      "geometry_reviewed": false,
+      "stitching_settings": null,
+      "valid_from": null,
+      "valid_to": null,
+      "pixel_transform": {
+        "decoded_size": [
+          2160,
+          7680
+        ],
+        "rotate_cw": 0,
+        "crop_xywh": null,
+        "output_size": [
+          2160,
+          7680
+        ]
+      },
+      "regions": [
+        {
+          "id": "ground",
+          "threshold": "core",
+          "polygon_px": [],
+          "exclude_px": []
+        }
+      ]
+    }
+  },
+  "placements": [
+    {
+      "position_id": "T11",
+      "split": "train",
+      "proposed_origin_cm": [
+        60,
+        30
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T12",
+      "split": "train",
+      "proposed_origin_cm": [
+        60,
+        150
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T13",
+      "split": "train",
+      "proposed_origin_cm": [
+        60,
+        270
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T14",
+      "split": "train",
+      "proposed_origin_cm": [
+        60,
+        390
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T15",
+      "split": "train",
+      "proposed_origin_cm": [
+        60,
+        510
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T21",
+      "split": "train",
+      "proposed_origin_cm": [
+        240,
+        30
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T22",
+      "split": "train",
+      "proposed_origin_cm": [
+        240,
+        150
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T23",
+      "split": "train",
+      "proposed_origin_cm": [
+        240,
+        270
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T24",
+      "split": "train",
+      "proposed_origin_cm": [
+        240,
+        390
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T25",
+      "split": "train",
+      "proposed_origin_cm": [
+        240,
+        510
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T31",
+      "split": "train",
+      "proposed_origin_cm": [
+        420,
+        30
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T32",
+      "split": "train",
+      "proposed_origin_cm": [
+        420,
+        150
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T33",
+      "split": "train",
+      "proposed_origin_cm": [
+        420,
+        270
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T34",
+      "split": "train",
+      "proposed_origin_cm": [
+        420,
+        390
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T35",
+      "split": "train",
+      "proposed_origin_cm": [
+        420,
+        510
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T41",
+      "split": "train",
+      "proposed_origin_cm": [
+        600,
+        30
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T42",
+      "split": "train",
+      "proposed_origin_cm": [
+        600,
+        150
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T43",
+      "split": "train",
+      "proposed_origin_cm": [
+        600,
+        270
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T44",
+      "split": "train",
+      "proposed_origin_cm": [
+        600,
+        390
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T45",
+      "split": "train",
+      "proposed_origin_cm": [
+        600,
+        510
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T51",
+      "split": "train",
+      "proposed_origin_cm": [
+        780,
+        30
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T52",
+      "split": "train",
+      "proposed_origin_cm": [
+        780,
+        150
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T53",
+      "split": "train",
+      "proposed_origin_cm": [
+        780,
+        270
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T54",
+      "split": "train",
+      "proposed_origin_cm": [
+        780,
+        390
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T55",
+      "split": "train",
+      "proposed_origin_cm": [
+        780,
+        510
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T61",
+      "split": "train",
+      "proposed_origin_cm": [
+        960,
+        30
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T62",
+      "split": "train",
+      "proposed_origin_cm": [
+        960,
+        150
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T63",
+      "split": "train",
+      "proposed_origin_cm": [
+        960,
+        270
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T64",
+      "split": "train",
+      "proposed_origin_cm": [
+        960,
+        390
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T65",
+      "split": "train",
+      "proposed_origin_cm": [
+        960,
+        510
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T71",
+      "split": "train",
+      "proposed_origin_cm": [
+        1140,
+        30
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T72",
+      "split": "train",
+      "proposed_origin_cm": [
+        1140,
+        150
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T73",
+      "split": "train",
+      "proposed_origin_cm": [
+        1140,
+        270
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T74",
+      "split": "train",
+      "proposed_origin_cm": [
+        1140,
+        390
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "T75",
+      "split": "train",
+      "proposed_origin_cm": [
+        1140,
+        510
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "V11",
+      "split": "validation",
+      "proposed_origin_cm": [
+        150,
+        90
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "E12",
+      "split": "test",
+      "proposed_origin_cm": [
+        150,
+        210
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "V13",
+      "split": "validation",
+      "proposed_origin_cm": [
+        150,
+        330
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "E14",
+      "split": "test",
+      "proposed_origin_cm": [
+        150,
+        450
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "E21",
+      "split": "test",
+      "proposed_origin_cm": [
+        330,
+        90
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "V22",
+      "split": "validation",
+      "proposed_origin_cm": [
+        330,
+        210
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "E23",
+      "split": "test",
+      "proposed_origin_cm": [
+        330,
+        330
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "V24",
+      "split": "validation",
+      "proposed_origin_cm": [
+        330,
+        450
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "V31",
+      "split": "validation",
+      "proposed_origin_cm": [
+        510,
+        90
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "E32",
+      "split": "test",
+      "proposed_origin_cm": [
+        510,
+        210
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "V33",
+      "split": "validation",
+      "proposed_origin_cm": [
+        510,
+        330
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "E34",
+      "split": "test",
+      "proposed_origin_cm": [
+        510,
+        450
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "E41",
+      "split": "test",
+      "proposed_origin_cm": [
+        690,
+        90
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "V42",
+      "split": "validation",
+      "proposed_origin_cm": [
+        690,
+        210
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "E43",
+      "split": "test",
+      "proposed_origin_cm": [
+        690,
+        330
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "V44",
+      "split": "validation",
+      "proposed_origin_cm": [
+        690,
+        450
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "V51",
+      "split": "validation",
+      "proposed_origin_cm": [
+        870,
+        90
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "E52",
+      "split": "test",
+      "proposed_origin_cm": [
+        870,
+        210
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "V53",
+      "split": "validation",
+      "proposed_origin_cm": [
+        870,
+        330
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "E54",
+      "split": "test",
+      "proposed_origin_cm": [
+        870,
+        450
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "E61",
+      "split": "test",
+      "proposed_origin_cm": [
+        1050,
+        90
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "V62",
+      "split": "validation",
+      "proposed_origin_cm": [
+        1050,
+        210
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "E63",
+      "split": "test",
+      "proposed_origin_cm": [
+        1050,
+        330
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    },
+    {
+      "position_id": "V64",
+      "split": "validation",
+      "proposed_origin_cm": [
+        1050,
+        450
+      ],
+      "measured_origin_cm": null,
+      "x_axis_reference_cm": null,
+      "plane_height_cm": null,
+      "plane_verified": false,
+      "measurement_uncertainty_cm": null,
+      "regions": {
+        "CH01": null,
+        "CH02": null
+      },
+      "zone": "core",
+      "depth": "unknown",
+      "capture_start": null,
+      "capture_end": null,
+      "notes": ""
+    }
+  ],
+  "note": "Proposed positions are NOT measured coordinates. Draw regions and seam exclusions on canonical reference images."
+}

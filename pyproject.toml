@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "field-camera-ground"
+version = "1.0.0"
+description = "Offline, independently validated ground mapping for stitched CH01/CH02 cameras"
+requires-python = ">=3.10"
+dependencies = ["numpy>=2.2,<3", "scipy>=1.15,<2", "opencv-contrib-python-headless>=4.10,<6", "shapely>=2.0,<3"]
+
+[project.scripts]
+camera-ground = "camera_ground.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["camera_ground"]
