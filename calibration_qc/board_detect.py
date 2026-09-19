@@ -59,6 +59,8 @@ def chessboard_detect(gray, markers=(), scales=(0.5, 1.0, 2.0), fast_check=True)
     found = None
     if max(H, W) > 3000:
         scales = (0.5,)                  # full 4K/8K frames: search at half size only (squares stay >= 10 px), refine at full size below
+    elif max(H, W) > 2000:
+        scales = (0.5, 1.0)              # nadir 2560x1920 frames: the board is >= 100 px/square, a 2x upscale only costs time
     for sc in scales:
         if sc != 1 and max(H, W) * sc > 6000:
             continue
