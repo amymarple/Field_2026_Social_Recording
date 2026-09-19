@@ -1,7 +1,17 @@
 # -*- coding: utf-8 -*-
-"""Frame-step timeline GUI over the annotated CH01/CH02 timelapses: scrub frame by frame, read the
+r"""Frame-step timeline GUI over the annotated CH01/CH02 timelapses: scrub frame by frame, read the
 exact PC clock of the current frame, mark start/end, type the station ID, export 'start-end station'.
-Writes E:\calibration\qc\timeline_gui.html (open it from that folder; the mp4s are referenced relatively)."""
+Writes E:\calibration\qc\timeline_gui.html (open it from that folder; the mp4s are referenced relatively).
+
+Frame bookkeeping: the current frame index is kept in a JS variable and the player is seeked to the
+frame's midpoint (f+0.5)/FPS; the index is only re-derived from currentTime (floor, not round) during
+playback. The first version derived it with Math.round(), which reads the midpoint back as f+1, so
+'<- frame' re-seeked the same frame and '->' skipped two (operator report 2026-09-19).
+CH02 is slaved to CH01 by PC clock (nearest keyframe), not by frame index - the two cameras' keyframe
+trains drift by a few frames over the 50 min.
+Clock readout truncates fractional seconds (floor), the same convention as the burnt-in 'CHxx PC HH:MM:SS'
+of annotate_video.py (strftime) and the corners/<HHMMSS>.npz names, so the yellow clock always equals the
+clock visible in the frame; rounding disagreed by 1 s on about half the frames."""
 import json, re, subprocess
 from pathlib import Path
 from datetime import datetime, timedelta
@@ -9,15 +19,17 @@ from datetime import datetime, timedelta
 QC = Path(r"E:\calibration\qc"); SESSION = Path(r"E:\calibration\session_2026-09-18_13-54-34")
 FFPROBE = r"E:\Reolink_record\bin\ffprobe.exe"
 VIDEOS = {"CH01": "annotated_CH01_150000-154936_timelapse.mp4", "CH02": "annotated_CH02_150000-154936_timelapse.mp4"}
-clocks = {}
+clocks = {}          # per camera: PC clock of every timelapse frame, seconds since midnight
 for cam in VIDEOS:
     seg = sorted(SESSION.glob(f"{cam}_*15-00-0*_to_*.mp4"))[0]
     a = datetime.strptime(seg.name.split("_")[1] + " " + seg.name.split("_")[2], "%Y-%m-%d %H-%M-%S")
     out = subprocess.check_output([FFPROBE, "-v", "error", "-select_streams", "v:0", "-skip_frame", "nokey",
                                    "-show_entries", "frame=pts_time", "-of", "csv=p=0", str(seg)]).decode()
     pts = [float(x) for x in out.split() if x]
-    clocks[cam] = [(a + timedelta(seconds=p)).strftime("%H:%M:%S") for p in pts]
-    print(cam, len(pts), "keyframes", clocks[cam][0], "->", clocks[cam][-1])
+    base = (a - a.replace(hour=0, minute=0, second=0, microsecond=0)).total_seconds()
+    clocks[cam] = [round(base + p, 2) for p in pts]
+    hms = lambda s: str(timedelta(seconds=int(s)))
+    print(cam, len(pts), "keyframes", hms(clocks[cam][0]), "->", hms(clocks[cam][-1]))
 TRAIN_X = [24, 96, 168, 240, 312, 384, 456]; TRAIN_Y = [12, 66, 120, 174, 228]
 VT_X = [60, 132, 204, 276, 348, 420]; VT_Y = [39, 93, 147, 201]
 names = [f"T{li}{si}" for li in range(1, 8) for si in range(1, 6)] + \
@@ -37,7 +49,7 @@ html = r"""<!doctype html><html><head><meta charset="utf-8"><title>Placement tim
  <button onclick="step(-10)">-10</button><button onclick="step(-1)">← frame</button><button onclick="toggle()">play/pause</button>
  <button onclick="step(1)">frame →</button><button onclick="step(10)">+10</button>
  <input id="slider" type="range" min="0" max="1500" value="0" style="width:420px" oninput="seekFrame(+this.value)">
- <span>frame <b id="fi">0</b></span> <span id="clock">15:00:01</span>
+ <span>frame <b id="fi">0</b></span> <span id="clock">15:00:01</span> <span id="c2" style="opacity:.75"></span>
  <span>| start <b id="st">--</b> end <b id="en">--</b></span>
  <button onclick="markStart()">[ mark start</button><button onclick="markEnd()">] mark end</button>
  <input id="sid" list="ids" placeholder="station" size="10"><datalist id="ids">__DATALIST__</datalist>
@@ -52,18 +64,25 @@ html = r"""<!doctype html><html><head><meta charset="utf-8"><title>Placement tim
 <div id="rows"><table id="tbl"><tr><th>#</th><th>start</th><th>end</th><th>station</th><th></th></tr></table>
 <p><textarea id="out"></textarea></p></div>
 <script>
-const C1=__CLOCKS1__, C2=__CLOCKS2__, FPS=10;
-const v1=document.getElementById('v1'), v2=document.getElementById('v2');
-let rows=[], start=null, end=null;
-function frame(){return Math.round(v1.currentTime*FPS);}
-function clockOf(f){return C1[Math.min(Math.max(f,0),C1.length-1)];}
-function show(){const f=frame();document.getElementById('fi').textContent=f;document.getElementById('clock').textContent=clockOf(f);document.getElementById('slider').value=f;}
-function seekFrame(f){f=Math.max(0,Math.min(f,C1.length-1));v1.pause();v2.pause();v1.currentTime=(f+0.5)/FPS;v2.currentTime=(f+0.5)/FPS;show();}
-function step(d){seekFrame(frame()+d);}
-function toggle(){if(v1.paused){v1.play();v2.currentTime=v1.currentTime;v2.play();}else{v1.pause();v2.pause();}}
-v1.addEventListener('timeupdate',show);
-function markStart(){start=clockOf(frame());document.getElementById('st').textContent=start;}
-function markEnd(){end=clockOf(frame());document.getElementById('en').textContent=end;document.getElementById('sid').focus();}
+const C1=__CLOCKS1__, C2=__CLOCKS2__, FPS=10, N1=C1.length, N2=C2.length;   // PC clock (s since midnight) per frame
+const $=id=>document.getElementById(id), v1=$('v1'), v2=$('v2');
+let rows=[], start=null, end=null, cur=0;                                   // cur = current CH01 frame index (source of truth)
+function hms(s){s=Math.floor(s);return [s/3600|0,(s%3600)/60|0,s%60].map(x=>String(x).padStart(2,'0')).join(':');}   // floor = burn-in convention
+function frameFromTime(){return Math.max(0,Math.min(N1-1,Math.floor(v1.currentTime*FPS+0.02)));}   // frame f spans [f/FPS,(f+1)/FPS)
+function f2of(f){const t=C1[f];let lo=0,hi=N2-1;while(lo<hi){const m=(lo+hi)>>1;if(C2[m]<t)lo=m+1;else hi=m;}
+  if(lo>0&&t-C2[lo-1]<=C2[lo]-t)lo--;return lo;}                            // CH02 frame whose clock is nearest CH01 frame f
+function clockOf(f){return hms(C1[Math.max(0,Math.min(f,N1-1))]);}
+function show(){$('fi').textContent=cur;$('clock').textContent=clockOf(cur);$('slider').value=cur;const g=f2of(cur);$('c2').textContent='(CH02 frame '+g+' @ '+hms(C2[g])+')';}
+function seekFrame(f){cur=Math.max(0,Math.min(Math.round(f),N1-1));v1.pause();v2.pause();
+  v1.currentTime=(cur+0.5)/FPS;v2.currentTime=(f2of(cur)+0.5)/FPS;show();}   // midpoint of the frame -> unambiguous decode
+function step(d){seekFrame(cur+d);}
+function toggle(){if(v1.paused){v2.currentTime=(f2of(cur)+0.5)/FPS;v1.play();v2.play();}else{v1.pause();v2.pause();seekFrame(frameFromTime());}}
+v1.addEventListener('timeupdate',()=>{if(v1.paused||v1.seeking)return;cur=frameFromTime();show();
+  const want=(f2of(cur)+0.5)/FPS;if(Math.abs(v2.currentTime-want)>0.35)v2.currentTime=want;});   // keep CH02 within ~3 frames while playing
+v1.addEventListener('ended',()=>{v2.pause();seekFrame(N1-1);});
+v1.addEventListener('error',()=>{$('clock').textContent='VIDEO NOT FOUND - open this HTML from E:\\calibration\\qc';});
+function markStart(){start=clockOf(cur);$('st').textContent=start;}
+function markEnd(){end=clockOf(cur);$('en').textContent=end;$('sid').focus();}
 function addRow(){const s=document.getElementById('sid').value.trim().toUpperCase();if(!start||!s){alert('mark start (and end) and type the station');return;}
   rows.push({start:start,end:end||start,station:s});start=end=null;document.getElementById('st').textContent='--';document.getElementById('en').textContent='--';document.getElementById('sid').value='';render();}
 function delRow(i){rows.splice(i,1);render();}
@@ -71,11 +90,15 @@ function render(){const t=document.getElementById('tbl');t.innerHTML='<tr><th>#<
   document.getElementById('out').value=rows.map(r=>`${r.start}-${r.end}  ${r.station}`).join('\n');
   try{localStorage.setItem('timeline_rows',JSON.stringify(rows));}catch(e){}}
 function exportTxt(){render();const a=document.createElement('a');a.href='data:text/plain;charset=utf-8,'+encodeURIComponent(document.getElementById('out').value+'\n');a.download='placement_timeline.txt';a.click();}
-document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'&&e.key!=='Enter'&&e.key!=='['&&e.key!==']')return;
+document.addEventListener('click',e=>{if(e.target.tagName==='BUTTON')e.target.blur();});   // so space/Enter never re-fire the last button
+document.addEventListener('keydown',e=>{const typing=e.target.id==='sid';if(typing&&!['Enter','[',']'].includes(e.key))return;
   if(e.key==='ArrowLeft'){step(e.shiftKey?-10:-1);e.preventDefault();}else if(e.key==='ArrowRight'){step(e.shiftKey?10:1);e.preventDefault();}
-  else if(e.key===' '){toggle();e.preventDefault();}else if(e.key==='['){markStart();}else if(e.key===']'){markEnd();}else if(e.key==='Enter'){addRow();}});
+  else if(e.key===' '){toggle();e.preventDefault();}else if(e.key==='['){markStart();e.preventDefault();}else if(e.key===']'){markEnd();e.preventDefault();}
+  else if(e.key==='Enter'){addRow();e.preventDefault();}});
 try{const saved=localStorage.getItem('timeline_rows');if(saved){rows=JSON.parse(saved);render();}}catch(e){}
-v1.addEventListener('loadedmetadata',()=>{document.getElementById('slider').max=C1.length-1;show();});
+$('slider').max=N1-1;
+v1.addEventListener('loadedmetadata',()=>{seekFrame(0);});
+show();
 </script></body></html>"""
 html = (html.replace("__V1__", VIDEOS["CH01"]).replace("__V2__", VIDEOS["CH02"])
         .replace("__CLOCKS1__", json.dumps(clocks["CH01"])).replace("__CLOCKS2__", json.dumps(clocks["CH02"]))
