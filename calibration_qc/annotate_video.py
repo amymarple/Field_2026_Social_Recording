@@ -133,9 +133,9 @@ for seg, a, b in segs:
                 cv2.polylines(fr, [ol.astype(np.int32).reshape(-1, 1, 2)], True, col, 3)
                 cv2.circle(fr, tuple(int(v) for v in ol[3]), 7, col, 3)                      # (0,540) corner = design origin
                 tx, ty = int(ol[:, 0].min()), int(ol[:, 1].min()) - 8
-                (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)
-                ty = max(th + 4, ty)
-                cv2.rectangle(fr, (tx - 2, ty - th - 4), (tx + tw + 4, ty + 4), (0, 0, 0), -1)
+                (tw, t_h), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)   # not 'th': that is the reader thread
+                ty = max(t_h + 4, ty)
+                cv2.rectangle(fr, (tx - 2, ty - t_h - 4), (tx + tw + 4, ty + 4), (0, 0, 0), -1)
                 cv2.putText(fr, label, (tx, ty), cv2.FONT_HERSHEY_SIMPLEX, 0.7, col, 2)
         cv2.rectangle(fr, (0, 0), (520, 34), (0, 0, 0), -1)
         cv2.putText(fr, f"{cam} {a.strftime('%Y-%m-%d')} PC {clock}", (8, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
