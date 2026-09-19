@@ -16,5 +16,5 @@
 12:41:05-12:42:24  T61
 # T62 already in place from 12:29:39 (CH01 origin corner on the T62 cone)
 12:29:39-12:29:45  T62
-# T65 stayed on the ground until 12:35:19 (CH04 59 frames, one pose; CH01 12:33:30 shows it on the T65 cone)
-12:31:07-12:35:19  T65
+# T65 stayed on the ground until 12:34:55 (CH04 one pose 12:32:39-12:34:53; picked up ~12:35:00 and carried across the field - CH01/CH02/CH03 12:35:03-12:35:19 are hand-held)
+12:31:07-12:34:55  T65

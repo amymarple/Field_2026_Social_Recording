@@ -14,11 +14,11 @@ Operator timeline: E:\calibration\qc\placement_timeline.txt  (68 rows -> 56 wind
   note: OVERLAP between different stations: 15:22:34-15:22:58 F41 and 15:22:36-15:22:56 T41
   stations with more than one window (re-placed): T41 x3
   stations NOT in the timeline: T61, T62, T63, T64, T65
-  timeline span 15:01:03-15:32:08; cached detections span CH01 15:09:25-15:45:34, CH02 15:07:00-15:45:33, CH03 15:01:02-15:41:23, CH04 15:27:45-15:45:23, CH05 15:07:10-15:16:26, CH06 15:22:32-15:28:24
+  timeline span 15:01:03-15:32:08; cached detections span CH01 15:09:25-15:45:34, CH02 15:05:39-15:45:33, CH03 15:01:02-15:41:23, CH04 15:27:45-15:45:23, CH05 15:07:10-15:16:26, CH06 15:22:32-15:28:24
 
 Cone cross-check (pano cameras): outline corner nearest the same-station cone, median px distance per corner, frames used
-  CH01: origin corner = outline (0,540) +short; median distance per corner [276, 491, 473, 52] px over 131 frames
-  CH02: origin corner = outline (0,540) +short; median distance per corner [320, 482, 423, 35] px over 151 frames
+  CH01: origin corner = outline (0,540) +short; median distance per corner [248, 457, 441, 41] px over 163 frames
+  CH02: origin corner = outline (0,540) +short; median distance per corner [290, 472, 422, 35] px over 166 frames
 
 Per window: station, PC-clock window, then per camera  frames/settled/maxcorners  (p2 = two distinct settled poses in the window)
   # station window                   CH01        CH02        CH03        CH04        CH05        CH06   cone check (pano)
@@ -28,29 +28,29 @@ Per window: station, PC-clock window, then per camera  frames/settled/maxcorners
   4 T14     15:02:48-15:03:17           -           -     13/6/46           -           -           -   
   5 T15     15:03:25-15:03:57           -           -    16/14/47           -           -           -   
   6 V11     15:04:07-15:04:31           -           -           -           -           -           -   
-  7 F12     15:04:38-15:05:17           -           -      2/0/24           -           -           -   
-  8 V13     15:05:23-15:05:58           -           -    15/14/31           -           -           -   
-  9 F14     15:06:08-15:06:34           -           -           -           -           -           -   
+  7 F12     15:04:38-15:05:17           -           -      3/0/24           -           -           -   
+  8 V13     15:05:23-15:05:58           -      1/0/88    15/14/31           -           -           -   CH02 cone@(0,540) 18px dir+140
+  9 F14     15:06:08-15:06:34           -           -     12/8/88           -           -           -   
  10 T21     15:06:42-15:07:08           -      3/0/13           -           -           -           -   CH02 cone@(0,540) 15px dir-177
  11 T22     15:07:14-15:08:53           -      5/3/35           -           -    50/48/70           -   CH02 cone@(0,540) 21px dir+174
  12 T23     15:09:05-15:09:17           -           -      8/8/38           -           -           -   
- 13 T24     15:09:25-15:09:47      2/0/17           -           -           -    12/11/81           -   CH01 cone@(0,540) 30px dir-14
+ 13 T24     15:09:25-15:09:47      6/3/88           -           -           -    12/11/81           -   CH01 cone@(0,540) 24px dir-12
  14 T25     15:09:57-15:10:33     15/7/45           -           -           -           -           -   CH01 cone@(0,0) 17px * dir-14
  15 F21     15:10:43-15:11:57           -           -           -           -     37/0/22           -   
  16 V22     15:12:01-15:12:37           -     12/6/33           -           -    19/18/82           -   CH02 cone@(0,0) 29px * dir+172
  17 F23     15:12:45-15:13:11    14/11/80    14/13/44           -           -    12/12/88           -   CH01 no F23 cone label; nearest T24 399px dir-7; CH02 cone@(0,540) 20px dir+148
- 18 V24     15:13:17-15:13:46      1/0/28           -           -           -           -           -   CH01 cone@(0,540) 26px dir-12
+ 18 V24     15:13:17-15:13:46    10/10/88           -           -           -           -           -   CH01 cone@(0,540) 23px dir-13
  19 T31     15:13:54-15:14:31           -    20/19/72           -           -           -           -   CH02 cone@(0,540) 9px dir-178
  20 T32     15:14:37-15:15:03           -    14/10/76           -           -    14/11/82           -   CH02 cone@(0,540) 35px dir+177
  21 T33     15:15:11-15:15:45  15/13/88p2  18/14/85p2           -           -  18/14/80p2           -   CH01 cone@(0,540) 48px dir+3; CH02 cone@(0,540) 43px dir+163
  22 T34     15:15:57-15:16:26    16/15/65           -           -           -    14/13/88           -   CH01 cone@(0,540) 40px dir-6
- 23 T35     15:16:32-15:17:01           -           -           -           -           -           -   
+ 23 T35     15:16:32-15:17:01      1/0/88           -           -           -           -           -   CH01 cone@(0,0) 14px * dir-7
  24 V31     15:17:13-15:17:35           -    12/11/68           -           -           -           -   CH02 cone@(0,540) 93px dir+178
- 25 F32     15:17:41-15:18:05      1/0/17     13/9/86           -           -           -           -   CH02 cone@(0,540) 37px dir+170
+ 25 F32     15:17:41-15:18:05      2/0/17     13/9/86           -           -           -           -   CH02 cone@(0,540) 37px dir+170
  26 V33     15:18:12-15:18:30    10/10/72           -           -           -           -           -   CH01 cone@(0,540) 41px dir-4
  27 F34     15:18:50-15:19:04      9/9/71           -           -           -           -           -   CH01 cone@(0,0) 32px * dir-5
- 28 T41     15:19:22-15:19:26           -      4/4/21           -           -           -           -   CH02 no T41 cone label; nearest V31 402px dir+173
- 29 T41     15:19:38-15:20:26           -           -           -           -           -           -   
+ 28 T41     15:19:22-15:19:26           -      6/6/24           -           -           -           -   CH02 no T41 cone label; nearest V31 402px dir+173
+ 29 T41     15:19:38-15:20:26           -      9/4/17           -           -           -           -   CH02 no T41 cone label; nearest F41 601px dir+175
  30 T42     15:20:32-15:20:48           -     10/5/53           -           -           -           -   CH02 no T42 cone label; nearest V31 690px dir+178
  31 T43     15:20:58-15:21:12      7/6/32      9/9/37           -           -           -           -   CH01 cone@(0,0) 40px * dir-6; CH02 cone@(0,0) 48px * dir-179
  32 T44     15:21:35-15:21:44      6/6/17           -           -           -           -           -   CH01 cone@(0,540) 37px dir-2
@@ -59,33 +59,34 @@ Per window: station, PC-clock window, then per camera  frames/settled/maxcorners
  35 T41     15:22:36-15:22:56           -           -           -           -           -           -   
  36 V42     15:23:08-15:23:16      5/5/65      5/5/77           -           -           -      6/6/64   CH01 no V42 cone label; nearest T53 710px dir-11; CH02 cone@(0,540) 17px dir-175
  37 F43     15:23:24-15:23:50    14/13/86           -           -           -           -    13/13/56   CH01 cone@(0,540) 6px dir-2
- 38 V44     15:24:01-15:24:19           -           -           -           -           -           -   
+ 38 V44     15:24:01-15:24:19    11/11/88           -           -           -           -           -   CH01 cone@(0,540) 9px dir+2
  39 T51     15:24:31-15:25:03           -     12/9/78           -           -           -           -   CH02 cone@(0,540) 26px dir+172
  40 T52     15:25:09-15:25:25           -     10/9/59           -           -           -      9/8/73   CH02 cone@(0,540) 26px dir-179
  41 T53     15:25:37-15:25:47      6/6/88      6/5/69           -           -           -      5/5/65   CH01 cone@(720,540) 19px * dir-9; CH02 cone@(720,540) 32px * dir-168
  42 T54     15:25:59-15:26:13      8/8/74           -           -           -           -      8/8/70   CH01 cone@(0,540) 22px dir+7
  43 T55     15:26:21-15:26:46      6/0/22           -           -           -           -           -   CH01 cone@(0,0) 25px * dir-0
- 44 V51     15:27:02-15:27:16           -      1/0/44           -           -           -      9/8/61   
- 45 F52     15:27:24-15:27:44     11/9/52      3/0/27           -           -           -     12/9/56   CH01 cone@(0,0) 18px * dir-29; CH02 cone@(0,0) 12px * dir-180
+ 44 V51     15:27:02-15:27:16           -      8/7/88           -           -           -      9/8/61   CH02 cone@(0,540) 17px dir+172
+ 45 F52     15:27:24-15:27:44     11/9/52      6/0/27           -           -           -     12/9/56   CH01 cone@(0,0) 18px * dir-29; CH02 cone@(0,0) 12px * dir+180
  46 V53     15:27:50-15:28:02      6/3/48           -           -           -           -      8/8/88   CH01 cone@(0,540) 33px dir-1
  47 F54     15:28:14-15:28:24      5/0/39           -           -           -           -      7/6/23   CH01 cone@(0,0) 3px * dir+8
  48 F61     15:28:34-15:28:50           -           -           -      9/8/88           -           -   
- 49 V62     15:28:56-15:29:16           -           -           -    11/11/86           -           -   
- 50 F63     15:29:22-15:29:30           -           -           -      5/5/85           -           -   
+ 49 V62     15:28:56-15:29:16      7/5/88           -           -    11/11/86           -           -   CH01 cone@(0,540) 24px dir-20
+ 50 F63     15:29:22-15:29:30           -      1/0/88           -      5/5/85           -           -   CH02 cone@(0,540) 20px dir-145
  51 V64     15:29:38-15:30:18           -           -           -    20/20/85           -           -   
  52 T71     15:30:34-15:30:42           -           -           -      5/5/87           -           -   
- 53 T72     15:30:52-15:31:00           -           -           -      5/5/88           -           -   
- 54 T73     15:31:12-15:31:26           -           -           -      8/8/88           -           -   
- 55 T74     15:31:32-15:31:46           -           -           -      8/8/88           -           -   
+ 53 T72     15:30:52-15:31:00      2/0/88           -           -      5/5/88           -           -   CH01 cone@(720,540) 6px * dir-34
+ 54 T73     15:31:12-15:31:26           -      3/3/88           -      8/8/88           -           -   CH02 cone@(720,540) 8px * dir-153
+ 55 T74     15:31:32-15:31:46      1/0/88           -           -      8/8/88           -           -   CH01 cone@(720,540) 29px * dir+1
  56 T75     15:31:52-15:32:08           -           -           -      9/9/88           -           -   
 
 Cone cross-check summary (pano cameras): 'cone@(x,y)' = the board outline corner (board mm) that sits on the operator's cone;
   the design convention is (0,540) on the cone with the long edge along +x ('dir' = long-edge direction in the upright image).
-  CH01: (0,0) x7, (720,0) x0, (720,540) x1, (0,540) x9 windows with a labelled same-station cone
-  CH02: (0,0) x3, (720,0) x0, (720,540) x1, (0,540) x12 windows with a labelled same-station cone
+  CH01: (0,0) x8, (720,0) x0, (720,540) x3, (0,540) x11 windows with a labelled same-station cone
+  CH02: (0,0) x3, (720,0) x0, (720,540) x2, (0,540) x15 windows with a labelled same-station cone
 Placements that deviate from the convention (verify in show_frame.py before fitting):
   window 14 15:09:57-15:10:33 T25: CH01 cone sits at outline corner (0,0) (17px), not (0,540) -> record the offset for the fit
   window 16 15:12:01-15:12:37 V22: CH02 cone sits at outline corner (0,0) (29px), not (0,540) -> record the offset for the fit
+  window 23 15:16:32-15:17:01 T35: CH01 cone sits at outline corner (0,0) (14px), not (0,540) -> record the offset for the fit
   window 27 15:18:50-15:19:04 F34: CH01 cone sits at outline corner (0,0) (32px), not (0,540) -> record the offset for the fit
   window 31 15:20:58-15:21:12 T43: CH01 cone sits at outline corner (0,0) (40px), not (0,540) -> record the offset for the fit
   window 31 15:20:58-15:21:12 T43: CH02 cone sits at outline corner (0,0) (48px), not (0,540) -> record the offset for the fit
@@ -96,6 +97,9 @@ Placements that deviate from the convention (verify in show_frame.py before fitt
   window 45 15:27:24-15:27:44 F52: CH01 cone sits at outline corner (0,0) (18px), not (0,540) -> record the offset for the fit
   window 45 15:27:24-15:27:44 F52: CH02 cone sits at outline corner (0,0) (12px), not (0,540) -> record the offset for the fit
   window 47 15:28:14-15:28:24 F54: CH01 cone sits at outline corner (0,0) (3px), not (0,540) -> record the offset for the fit
+  window 53 15:30:52-15:31:00 T72: CH01 cone sits at outline corner (720,540) (6px), not (0,540) -> record the offset for the fit
+  window 54 15:31:12-15:31:26 T73: CH02 cone sits at outline corner (720,540) (8px), not (0,540) -> record the offset for the fit
+  window 55 15:31:32-15:31:46 T74: CH01 cone sits at outline corner (720,540) (29px), not (0,540) -> record the offset for the fit
 
 Station x camera: S<n> = settled frames (usable), s<c> = seen only (max corners, no settled run), - = nothing cached
 station   CH01   CH02   CH03   CH04   CH05   CH06
@@ -107,14 +111,14 @@ T15          -      -    S14      -      -      -
 T21          -    s13      -      -      -      -
 T22          -     S3      -      -    S48      -
 T23          -      -     S8      -      -      -
-T24        s17      -      -      -    S11      -
+T24         S3      -      -      -    S11      -
 T25         S7      -      -      -      -      -
 T31          -    S19      -      -      -      -
 T32          -    S10      -      -    S11      -
 T33        S13    S14      -      -    S14      -
 T34        S15      -      -      -    S13      -
-T35          -      -      -      -      -      -
-T41          -     S4      -      -      -      -
+T35        s88      -      -      -      -      -
+T41          -     S6      -      -      -      -
 T42          -     S5      -      -      -      -
 T43         S6     S9      -      -      -      -
 T44         S6      -      -      -      -      -
@@ -130,18 +134,18 @@ T63          ?      ?      ?      ?      ?      ?   not in timeline
 T64          ?      ?      ?      ?      ?      ?   not in timeline
 T65          ?      ?      ?      ?      ?      ?   not in timeline
 T71          -      -      -     S5      -      -
-T72          -      -      -     S5      -      -
-T73          -      -      -     S8      -      -
-T74          -      -      -     S8      -      -
+T72        s88      -      -     S5      -      -
+T73          -     S3      -     S8      -      -
+T74        s88      -      -     S8      -      -
 T75          -      -      -     S9      -      -
 V11          -      -      -      -      -      -
 F12          -      -    s24      -      -      -
-V13          -      -    S14      -      -      -
-F14          -      -      -      -      -      -
+V13          -    s88    S14      -      -      -
+F14          -      -     S8      -      -      -
 F21          -      -      -      -      -      -
 V22          -     S6      -      -    S18      -
 F23        S11    S13      -      -    S12      -
-V24        s28      -      -      -      -      -
+V24        S10      -      -      -      -      -
 V31          -    S11      -      -      -      -
 F32        s17     S9      -      -      -      -
 V33        S10      -      -      -      -      -
@@ -149,29 +153,29 @@ F34         S9      -      -      -      -      -
 F41          -    S11      -      -      -    S11
 V42         S5     S5      -      -      -     S6
 F43        S13      -      -      -      -    S13
-V44          -      -      -      -      -      -
-V51          -    s44      -      -      -     S8
+V44        S11      -      -      -      -      -
+V51          -     S7      -      -      -     S8
 F52         S9    s27      -      -      -     S9
 V53         S3      -      -      -      -     S8
 F54        s39      -      -      -      -     S6
 F61          -      -      -     S8      -      -
-V62          -      -      -    S11      -      -
-F63          -      -      -     S5      -      -
+V62         S5      -      -    S11      -      -
+F63          -    s88      -     S5      -      -
 V64          -      -      -    S20      -      -
 
 Usable stations per camera (settled run) / seen-only, by set  (T = training 35, V = validation 12, F = final test 12)
-  CH01: T: 8 usable (+2 seen-only); V: 3 usable (+1 seen-only); F: 4 usable (+2 seen-only)
-      T usable: T25, T33, T34, T43, T44, T45, T53, T54   seen-only: T24, T55
-      V usable: V33, V42, V53   seen-only: V24
+  CH01: T: 9 usable (+4 seen-only); V: 6 usable (+0 seen-only); F: 4 usable (+2 seen-only)
+      T usable: T24, T25, T33, T34, T43, T44, T45, T53, T54   seen-only: T35, T55, T72, T74
+      V usable: V24, V33, V42, V44, V53, V62
       F usable: F23, F34, F43, F52   seen-only: F32, F54
-  CH02: T: 10 usable (+1 seen-only); V: 3 usable (+1 seen-only); F: 3 usable (+1 seen-only)
-      T usable: T22, T31, T32, T33, T41, T42, T43, T51, T52, T53   seen-only: T21
-      V usable: V22, V31, V42   seen-only: V51
-      F usable: F23, F32, F41   seen-only: F52
-  CH03: T: 5 usable (+1 seen-only); V: 1 usable (+0 seen-only); F: 0 usable (+1 seen-only)
+  CH02: T: 11 usable (+1 seen-only); V: 4 usable (+1 seen-only); F: 3 usable (+2 seen-only)
+      T usable: T22, T31, T32, T33, T41, T42, T43, T51, T52, T53, T73   seen-only: T21
+      V usable: V22, V31, V42, V51   seen-only: V13
+      F usable: F23, F32, F41   seen-only: F52, F63
+  CH03: T: 5 usable (+1 seen-only); V: 1 usable (+0 seen-only); F: 1 usable (+1 seen-only)
       T usable: T11, T13, T14, T15, T23   seen-only: T12
       V usable: V13
-      F usable: none   seen-only: F12
+      F usable: F14   seen-only: F12
   CH04: T: 5 usable (+0 seen-only); V: 2 usable (+0 seen-only); F: 2 usable (+0 seen-only)
       T usable: T71, T72, T73, T74, T75
       V usable: V62, V64
@@ -185,4 +189,4 @@ Usable stations per camera (settled run) / seen-only, by set  (T = training 35, 
       V usable: V42, V51, V53
       F usable: F41, F43, F52, F54
 
-Frames: 1520 cached, 791 inside a timeline window, 729 unlabelled -> unlabelled_clusters.txt (46 clusters)
+Frames: 1595 cached, 866 inside a timeline window, 729 unlabelled -> unlabelled_clusters.txt (46 clusters)

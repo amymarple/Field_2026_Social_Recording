@@ -60,15 +60,46 @@ Outputs live in `E:\calibration\qc\` on the field PC; the session summaries are 
   direction) and writes `session_2026-09-18_station_coverage.txt`, `..._unlabelled_clusters.txt`,
   `..._labelled_frames.csv`. `show_frame.py CHxx HH:MM:SS [--around STATION]` renders a frame
   with the cone labels and the cached board outline for eyeballing a placement.
+- **The marker decoder, not the footage, was the limit** (operator objection 2026-09-19, correct):
+  on the pano far rows the board is ~20 px/square across the short axis (2.5 px per marker bit)
+  and at the 4K cameras' edges the lens bends the marker quads, so 300-600 px boards gave 0-10
+  ChArUco corners although the 11x8 corner grid is obvious. `board_detect.py` adds a chessboard-
+  corner fallback (orientation from the square-colour parity of the 12x9 board, cross-checked
+  against any decoded marker; validated at 0.6-0.7 px vs ChArUco on 88-corner frames), and
+  `rescue_boards.py --keyframes` re-decodes every timeline window with < 3 cached frames.
+  Rescued on 09-18: CH01 V44/V24/V62/T24/T72/T35/T74, CH02 V51/T73/F63/V13 (+T41 partly behind
+  the pole); on 09-19: CH01 F14/T64, CH02 V11, CH03 T12 (324 frames)/V11/F14. CH04/CH06 gained
+  nothing (the untouched windows are outside their view). Still physically unreadable: T11-T15
+  in CH01 (blind strip), T61/T65 in CH02 (tens of px), 09-19 T63 in CH01 (pole cable across the
+  board), T35/V44 09-18 in CH02 (behind the pole).
 - Usable stations (settled run: >=3 cached frames over >=3 s, >=12 corners spanning 3x3, <=3 px
-  motion): CH01 15 (T8/V3/F4), CH02 16 (T10/V3/F3), CH03 5, CH04 9, CH05 7, CH06 10. V11, F14,
-  T35, V44 and the second T41 window have no detections in any camera (operator in the line of
-  sight / board unreadable).
-- The panos cannot read the FLAT board beyond x ~ 350 in or below x ~ 60 in (nothing at T1x,
-  T7x, F61-V64); their ground control there is the labelled cones (39 in CH01, 38 in CH02).
-- Board corner on the cone: (0,540) in 20 placements, (0,0) in 8, (720,540) in 1 (T53); long edge
-  along +x in every checked placement. The fit must take the per-placement corner from
-  `station_coverage.txt`, never assume the design convention.
+  motion), 2026-09-18 after the rescue: CH01 19 (T9/V6/F4), CH02 18 (T11/V4/F3), CH03 7, CH04 9,
+  CH05 7, CH06 10 (`session_2026-09-18_station_coverage.txt` has the station x camera matrix).
+- The panos still cannot read the board at the T1 cord (CH01) or beyond x ~ 420 in (CH02); their
+  ground control there is the labelled cones (39 in CH01, 38 in CH02).
+- Board corner on the cone (measured per placement in the panos): (0,540) in 26 placements,
+  (0,0) in 11 (the y=228 row T25/T35/T45/T55 and F34/F52/F54/V22/T43), (720,540) in 5 (the T7
+  cord T72/T73/T74, plus T53 by house 7); long edge along +x (or -x for the (720,540) cases)
+  in every checked placement. The fit must take the per-placement corner from
+  `station_coverage.txt`; for stations only seen by CH03/CH04 (T11-T15, T71/T75, T6x) the
+  operator's rule applies: wall side -> the corner that keeps the board inside the field.
+- `annotate_video.py --boards` burns the cached detections (outline, (0,540) corner, station,
+  corner count, method, settled/unsettled) into the timelapse; `timeline_gui.py --boards` scrubs
+  those renders (`timeline_gui_boards.html`). `--still HH:MM:SS` writes one frame.
 - Return-trip plan: `CALIB_SUPPLEMENT_SHEET_2026-09-19.html` (survey measurements, the 5 missed
   stations + T61-T65 with a station ID card and the operator clear of the sightlines, and a
   46-position mid-point cone set as independent test marks for every camera).
+
+## Session 2026-09-19 (`E:\calibration\session_2026-09-19_12-23-53`, 12:23:56-12:42:28, 12 streams)
+
+Supplement capture: the operator re-placed T11, T12, V11, F14, T23, T35, V44 and the missing
+T61-T65 (cords not re-measured, design inches stand; cones untouched, no mid-point set). QC lives
+in `E:\calibration\qc\2026-09-19\` (`--session 2026-09-19` on every script). Operator timeline
+`session_2026-09-19_placement_timeline_operator.txt` (12 rows) plus three frame-verified
+additions marked in the file: T61 settled from 12:29:25 and placed again 12:41:05-12:42:24, T62
+from 12:29:39, T65 until 12:34:55 (picked up at 12:35:00 and carried across the field - the
+12:35:03-12:35:19 detections in CH01/CH02/CH03 are hand-held and stay unlabelled).
+Usable stations: CH01 T23/T35/T62/T64 + V44 + F14; CH02 T63; CH03 T11/T12/T23 + V11 + F14;
+CH04 T61-T65; CH06 T61/T64; CH05 nothing. Merged with 09-18 the panos have CH01 T13/V6/F5 and
+CH02 T12/V4/F3 settled stations. T63 by house 7 was aligned on a different corner (operator);
+T75/T15 (field corners) corner still to be confirmed by the operator.

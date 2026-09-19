@@ -1,0 +1,126 @@
+Operator timeline: E:\calibration\qc\2026-09-19\placement_timeline.txt  (16 rows -> 13 windows, 12 distinct stations of 59)
+  note: same-station rows merged: 12:29:31-12:29:35 + 12:29:25-12:29:36 T61
+  note: same-station rows merged: 12:29:45-12:29:57 + 12:29:39-12:29:45 T62
+  note: same-station rows merged: 12:31:07-12:34:55 + 12:30:45-12:31:07 T65
+  stations with more than one window (re-placed): T61 x2
+  stations NOT in the timeline: T13, T14, T15, T21, T22, T24, T25, T31, T32, T33, T34, T41, T42, T43, T44, T45, T51, T52, T53, T54, T55, T71, T72, T73, T74, T75, F12, V13, F21, V22, F23, V24, V31, F32, V33, F34, F41, V42, F43, V51, F52, V53, F54, F61, V62, F63, V64
+  timeline span 12:26:06-12:42:24; cached detections span CH01 12:29:39-12:41:05, CH02 12:25:29-12:41:13, CH03 12:25:07-12:38:27, CH04 12:29:03-12:41:06, CH06 12:28:38-12:42:24
+
+Cone cross-check (pano cameras): outline corner nearest the same-station cone, median px distance per corner, frames used
+  CH01: origin corner = outline (0,540) +short; median distance per corner [208, 333, 219, 36] px over 79 frames
+  CH02: origin corner = outline (0,540) +short; median distance per corner [300, 321, 300, 88] px over 6 frames
+
+Per window: station, PC-clock window, then per camera  frames/settled/maxcorners  (p2 = two distinct settled poses in the window)
+  # station window                   CH01        CH02        CH03        CH04        CH05        CH06   cone check (pano)
+  1 T11     12:26:06-12:26:48           -           -    21/21/88           -           -           -   
+  2 T12     12:27:04-12:28:25           -           -  324/322/88           -           -           -   
+  3 T61     12:29:25-12:29:36           -           -           -      7/5/71           -           -   
+  4 T62     12:29:39-12:29:57     10/9/43           -           -     10/8/22           -           -   CH01 cone@(0,540) 2px dir-33
+  5 T63     12:30:05-12:30:17           -      7/5/36           -      7/7/32           -           -   CH02 no T63 cone label; nearest V62 391px dir-160
+  6 T64     12:30:27-12:30:39      4/4/88           -           -      8/8/35           -      7/7/20   CH01 cone@(0,540) 8px dir+8
+  7 T65     12:30:45-12:34:55           -           -           -    59/36/39           -           -   
+  8 V11     12:36:01-12:36:45           -      1/0/88    16/16/88           -           -           -   CH02 cone@(0,540) 15px dir-179
+  9 F14     12:36:55-12:37:45    14/12/88           -    26/23/57           -           -           -   CH01 cone@(0,540) 36px dir-17
+ 10 T23     12:37:55-12:38:25    15/15/42           -    17/17/53           -           -           -   CH01 cone@(720,540) 34px * dir+7
+ 11 T35     12:39:23-12:40:09  22/14/56p2           -           -           -           -           -   CH01 cone@(0,0) 15px * dir-9
+ 12 V44     12:40:21-12:40:59    21/21/63           -           -           -           -           -   CH01 cone@(0,540) 7px dir+6
+ 13 T61     12:41:05-12:42:24      1/0/41      5/0/55           -      2/0/36           -    33/33/65   CH01 no T61 cone label; nearest T74 208px dir-82!; CH02 cone@(0,540) 96px dir-140
+
+Cone cross-check summary (pano cameras): 'cone@(x,y)' = the board outline corner (board mm) that sits on the operator's cone;
+  the design convention is (0,540) on the cone with the long edge along +x ('dir' = long-edge direction in the upright image).
+  CH01: (0,0) x1, (720,0) x0, (720,540) x1, (0,540) x4 windows with a labelled same-station cone
+  CH02: (0,0) x0, (720,0) x0, (720,540) x0, (0,540) x2 windows with a labelled same-station cone
+Placements that deviate from the convention (verify in show_frame.py before fitting):
+  window 10 12:37:55-12:38:25 T23: CH01 cone sits at outline corner (720,540) (34px), not (0,540) -> record the offset for the fit
+  window 11 12:39:23-12:40:09 T35: CH01 cone sits at outline corner (0,0) (15px), not (0,540) -> record the offset for the fit
+  window 13 12:41:05-12:42:24 T61: CH01 long edge points -82 deg in the upright image (expected 0) -> board rotated?
+
+Station x camera: S<n> = settled frames (usable), s<c> = seen only (max corners, no settled run), - = nothing cached
+station   CH01   CH02   CH03   CH04   CH05   CH06
+T11          -      -    S21      -      -      -
+T12          -      -   S322      -      -      -
+T13          ?      ?      ?      ?      ?      ?   not in timeline
+T14          ?      ?      ?      ?      ?      ?   not in timeline
+T15          ?      ?      ?      ?      ?      ?   not in timeline
+T21          ?      ?      ?      ?      ?      ?   not in timeline
+T22          ?      ?      ?      ?      ?      ?   not in timeline
+T23        S15      -    S17      -      -      -
+T24          ?      ?      ?      ?      ?      ?   not in timeline
+T25          ?      ?      ?      ?      ?      ?   not in timeline
+T31          ?      ?      ?      ?      ?      ?   not in timeline
+T32          ?      ?      ?      ?      ?      ?   not in timeline
+T33          ?      ?      ?      ?      ?      ?   not in timeline
+T34          ?      ?      ?      ?      ?      ?   not in timeline
+T35        S14      -      -      -      -      -
+T41          ?      ?      ?      ?      ?      ?   not in timeline
+T42          ?      ?      ?      ?      ?      ?   not in timeline
+T43          ?      ?      ?      ?      ?      ?   not in timeline
+T44          ?      ?      ?      ?      ?      ?   not in timeline
+T45          ?      ?      ?      ?      ?      ?   not in timeline
+T51          ?      ?      ?      ?      ?      ?   not in timeline
+T52          ?      ?      ?      ?      ?      ?   not in timeline
+T53          ?      ?      ?      ?      ?      ?   not in timeline
+T54          ?      ?      ?      ?      ?      ?   not in timeline
+T55          ?      ?      ?      ?      ?      ?   not in timeline
+T61        s41    s55      -     S5      -    S33
+T62         S9      -      -     S8      -      -
+T63          -     S5      -     S7      -      -
+T64         S4      -      -     S8      -     S7
+T65          -      -      -    S36      -      -
+T71          ?      ?      ?      ?      ?      ?   not in timeline
+T72          ?      ?      ?      ?      ?      ?   not in timeline
+T73          ?      ?      ?      ?      ?      ?   not in timeline
+T74          ?      ?      ?      ?      ?      ?   not in timeline
+T75          ?      ?      ?      ?      ?      ?   not in timeline
+V11          -    s88    S16      -      -      -
+F12          ?      ?      ?      ?      ?      ?   not in timeline
+V13          ?      ?      ?      ?      ?      ?   not in timeline
+F14        S12      -    S23      -      -      -
+F21          ?      ?      ?      ?      ?      ?   not in timeline
+V22          ?      ?      ?      ?      ?      ?   not in timeline
+F23          ?      ?      ?      ?      ?      ?   not in timeline
+V24          ?      ?      ?      ?      ?      ?   not in timeline
+V31          ?      ?      ?      ?      ?      ?   not in timeline
+F32          ?      ?      ?      ?      ?      ?   not in timeline
+V33          ?      ?      ?      ?      ?      ?   not in timeline
+F34          ?      ?      ?      ?      ?      ?   not in timeline
+F41          ?      ?      ?      ?      ?      ?   not in timeline
+V42          ?      ?      ?      ?      ?      ?   not in timeline
+F43          ?      ?      ?      ?      ?      ?   not in timeline
+V44        S21      -      -      -      -      -
+V51          ?      ?      ?      ?      ?      ?   not in timeline
+F52          ?      ?      ?      ?      ?      ?   not in timeline
+V53          ?      ?      ?      ?      ?      ?   not in timeline
+F54          ?      ?      ?      ?      ?      ?   not in timeline
+F61          ?      ?      ?      ?      ?      ?   not in timeline
+V62          ?      ?      ?      ?      ?      ?   not in timeline
+F63          ?      ?      ?      ?      ?      ?   not in timeline
+V64          ?      ?      ?      ?      ?      ?   not in timeline
+
+Usable stations per camera (settled run) / seen-only, by set  (T = training 35, V = validation 12, F = final test 12)
+  CH01: T: 4 usable (+1 seen-only); V: 1 usable (+0 seen-only); F: 1 usable (+0 seen-only)
+      T usable: T23, T35, T62, T64   seen-only: T61
+      V usable: V44
+      F usable: F14
+  CH02: T: 1 usable (+1 seen-only); V: 0 usable (+1 seen-only); F: 0 usable (+0 seen-only)
+      T usable: T63   seen-only: T61
+      V usable: none   seen-only: V11
+      F usable: none
+  CH03: T: 3 usable (+0 seen-only); V: 1 usable (+0 seen-only); F: 1 usable (+0 seen-only)
+      T usable: T11, T12, T23
+      V usable: V11
+      F usable: F14
+  CH04: T: 5 usable (+1 seen-only); V: 0 usable (+0 seen-only); F: 0 usable (+0 seen-only)
+      T usable: T61, T62, T63, T64, T65   seen-only: T61
+      V usable: none
+      F usable: none
+  CH05: T: 0 usable (+0 seen-only); V: 0 usable (+0 seen-only); F: 0 usable (+0 seen-only)
+      T usable: none
+      V usable: none
+      F usable: none
+  CH06: T: 2 usable (+0 seen-only); V: 0 usable (+0 seen-only); F: 0 usable (+0 seen-only)
+      T usable: T61, T64
+      V usable: none
+      F usable: none
+
+Frames: 711 cached, 637 inside a timeline window, 74 unlabelled -> unlabelled_clusters.txt (13 clusters)
