@@ -5,7 +5,7 @@ For each closed segment: decode keyframes only (every 2nd -> ~4 s), detect the b
 (DICT_5X5_100, 12x9, 60/45 mm), flag IR/B&W frames (low chroma) and saturation inside
 the board bbox, cluster consecutive detections into placements, and map each placement
 through the OLD 20-pt poly (~50 cm) to the nearest designed station (T/V/F, inches).
-Usage: python qc_placements.py CH01 [segment substring filter] [--every N]
+Usage: python qc_placements.py CH01 [segment substring filter] [--every N] [--session <dir|YYYY-MM-DD>]
 """
 import sys, os, re, json, subprocess, threading, time, csv
 from pathlib import Path
@@ -14,18 +14,18 @@ import cv2
 
 sys.path.insert(0, r"C:\Users\Cornell\Documents\GitHub\Field_2026_Social\preprocessing\computer_vision")
 import field_coords as fc  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent)); import qc_paths  # noqa: E402
 
-SESSION = Path(r"E:\calibration\session_2026-09-18_13-54-34")
 FFMPEG = r"E:\Reolink_record\bin\ffmpeg.exe"
 FFPROBE = r"E:\Reolink_record\bin\ffprobe.exe"
 CONFIGS = Path(r"C:\Users\Cornell\Documents\GitHub\Field_2026_Social\preprocessing\computer_vision\configs")
-OUT = Path(r"E:\calibration\qc")
-OUT.mkdir(parents=True, exist_ok=True)
 
 cam = sys.argv[1]
 seg_filter = None
 every = 2
-args = sys.argv[2:]
+args, sess = qc_paths.pop_session(sys.argv[2:])
+SESSION, OUT = qc_paths.resolve(sess)
+OUT.mkdir(parents=True, exist_ok=True)
 if "--every" in args:
     i = args.index("--every"); every = int(args[i + 1]); del args[i:i + 2]
 if args:

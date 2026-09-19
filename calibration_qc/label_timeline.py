@@ -17,17 +17,19 @@ Settled = the audit's stationary-run criterion (audit_cached_corners.py): >=3 ca
 frame of the run. A station counts as USABLE for a camera when it has a settled run there; SEEN when
 only unsettled frames with >=12 corners exist.
 
-Usage: python label_timeline.py [E:\calibration\qc\placement_timeline.txt]
-Outputs in E:\calibration\qc: labelled_frames.csv, station_coverage.txt, unlabelled_clusters.txt
+Usage: python label_timeline.py [--session <dir|YYYY-MM-DD>] [<timeline.txt>]   (default: <qc>/placement_timeline.txt)
+Outputs in the session's QC folder: labelled_frames.csv, station_coverage.txt, unlabelled_clusters.txt
 """
 import sys, re, csv, json
 from pathlib import Path
 from datetime import datetime, timedelta
 import numpy as np, cv2
+sys.path.insert(0, str(Path(__file__).resolve().parent)); import qc_paths  # noqa: E402
 
-QC = Path(r"E:\calibration\qc")
-TL = Path(sys.argv[1]) if len(sys.argv) > 1 else QC / "placement_timeline.txt"
-DAY = "2026-09-18"
+args, sess = qc_paths.pop_session(sys.argv[1:])
+SESSION, QC = qc_paths.resolve(sess)
+TL = Path(args[0]) if args else QC / "placement_timeline.txt"
+DAY = qc_paths.session_date(SESSION)
 TOL = 1.5          # s: window-edge tolerance (each camera's clock = its own segment start + pts, ~1 s apart)
 GAP = 12           # s: splits unlabelled frames into clusters
 CAMS = sorted(p.name for p in (QC / "corners").iterdir() if p.is_dir())
@@ -155,8 +157,8 @@ for i, w in enumerate(wins):
 # ---------------- cone cross-check (pano cameras) ----------------
 cones = {}
 for cam in PANO:
-    p = QC / f"cone_labels_{cam}.json"
-    if not p.exists():
+    p = qc_paths.cone_labels(QC, cam)          # the session's own labels, else the 2026-09-18 ones
+    if p is None:
         continue
     lab = json.load(open(p, encoding="utf-8"))
     SW = lab.get("frame_size_upright", [7680, 2160])[1]          # stored (rotated) frame width = upright height
@@ -177,7 +179,7 @@ for cam in cones:
         for k in range(4):
             per_corner[k].append(np.linalg.norm(o[k] - c))
     med = [float(np.median(v)) if v else np.inf for v in per_corner]
-    k_best = int(np.argmin(med))
+    k_best = int(np.argmin(med)) if per_corner[0] else 3        # no labelled frames yet -> design convention (0,540)
     origin_corner[cam] = (k_best, med, len(per_corner[0]))
     # 2) per window: nearest cone to that corner (majority over the window's frames), plus WHICH outline corner
     #    actually sits on the operator's cone and the long-edge direction in the upright image
@@ -257,12 +259,13 @@ for n in notes:
 if multi:
     L.append("  stations with more than one window (re-placed): " + "; ".join(f"{s} x{len(v)}" for s, v in sorted(multi.items())))
 L.append("  stations NOT in the timeline: " + (", ".join(missing) if missing else "none"))
-L.append(f"  timeline span {hms(wins[0][0])}-{hms(wins[-1][1])}; cached detections span "
+L.append(("  timeline span " + (f"{hms(wins[0][0])}-{hms(wins[-1][1])}" if wins else "EMPTY (no windows yet)")) + "; cached detections span "
          + ", ".join(f"{cam} {hms(frames[cam][0]['t'])}-{hms(frames[cam][-1]['t'])}" for cam in CAMS if frames[cam]))
 L.append("")
 L.append("Cone cross-check (pano cameras): outline corner nearest the same-station cone, median px distance per corner, frames used")
 for cam, (k, med, nfr) in origin_corner.items():
-    L.append(f"  {cam}: origin corner = outline {CORNER_NAME[k]}; median distance per corner {[round(x) for x in med]} px over {nfr} frames")
+    L.append(f"  {cam}: origin corner = outline {CORNER_NAME[k]}; median distance per corner "
+             f"{[round(x) if np.isfinite(x) else None for x in med]} px over {nfr} frames" + ("" if nfr else " (none labelled yet -> design convention assumed)"))
 L.append("")
 L.append("Per window: station, PC-clock window, then per camera  frames/settled/maxcorners  (p2 = two distinct settled poses in the window)")
 hdr = f"{'#':>3} {'station':7s} {'window':17s} " + " ".join(f"{cam:>11s}" for cam in CAMS) + "   cone check (pano)"

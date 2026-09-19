@@ -2,17 +2,20 @@
 r"""Render one frame of a calibration-session camera at a PC clock, with the operator's cone labels and
 the cached board outline (corners/CHxx/<HHMMSS>.npz -> homography -> outline, origin corner marked)
 burnt in, so a placement can be eyeballed. Pano cameras are rendered upright.
-Usage: python show_frame.py CHxx HH:MM:SS [--around STATION[,STATION..]] [--crop x0,y0,x1,y1] [--scale 0.5]
+Usage: python show_frame.py CHxx HH:MM:SS [--session <dir|YYYY-MM-DD>] [--around STATION[,STATION..]]
+       [--crop x0,y0,x1,y1] [--scale 0.5]
   default crop = around the cached board outline if there is one, else the full frame at --scale.
-Output: E:\calibration\qc\frames\CHxx_HHMMSS[_tag].jpg  (reads closed source segments only)"""
+Output: <qc>\frames\CHxx_HHMMSS[_tag].jpg  (reads closed source segments only)"""
 import sys, re, json, subprocess
 from pathlib import Path
 from datetime import datetime, timedelta
 import numpy as np, cv2
+sys.path.insert(0, str(Path(__file__).resolve().parent)); import qc_paths  # noqa: E402
 
-QC = Path(r"E:\calibration\qc"); SESSION = Path(r"E:\calibration\session_2026-09-18_13-54-34")
 FFMPEG = r"E:\Reolink_record\bin\ffmpeg.exe"; FFPROBE = r"E:\Reolink_record\bin\ffprobe.exe"
-cam, clock = sys.argv[1], sys.argv[2]; args = sys.argv[3:]
+cam, clock = sys.argv[1], sys.argv[2]
+args, sess = qc_paths.pop_session(sys.argv[3:])
+SESSION, QC = qc_paths.resolve(sess); DATE = qc_paths.session_date(SESSION)
 def opt(name, default=None):
     return args[args.index(name) + 1] if name in args else default
 scale = float(opt("--scale", "0.5")); around = opt("--around"); crop = opt("--crop")
@@ -21,7 +24,7 @@ board = cv2.aruco.CharucoBoard((12, 9), 0.060, 0.045, cv2.aruco.getPredefinedDic
 OBJ = np.asarray(board.getChessboardCorners(), float).reshape(-1, 3)[:, :2] * 1000.0
 OUTLINE = np.array([[0, 0], [720, 0], [720, 540], [0, 540]], float); ORIGIN = 3   # (0,540) corner sits on the cone
 
-t = datetime.strptime("2026-09-18 " + clock, "%Y-%m-%d %H:%M:%S")
+t = datetime.strptime(f"{DATE} {clock}", "%Y-%m-%d %H:%M:%S")
 seg = None
 for p in sorted(SESSION.glob(f"{cam}_*_to_*.mp4")):
     a = datetime.strptime(p.name.split("_")[1] + " " + p.name.split("_")[2], "%Y-%m-%d %H-%M-%S")
@@ -43,8 +46,8 @@ def to_upright(px):                       # cached corners are in the stored (ro
 
 # cone labels (upright coords already)
 cones = {}
-lp = QC / f"cone_labels_{cam}.json"
-if lp.exists():
+lp = qc_paths.cone_labels(QC, cam)
+if lp is not None:
     for q in json.load(open(lp, encoding="utf-8"))["points"]:
         if q.get("station") and q["station"].upper() != "NONE":
             cones[q["station"].upper()] = np.array([q["x"], q["y"]], float)

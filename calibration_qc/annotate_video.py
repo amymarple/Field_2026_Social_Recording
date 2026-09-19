@@ -1,20 +1,28 @@
 # -*- coding: utf-8 -*-
 """Burn the operator's cone labels (station IDs) + PC-clock timestamp into a pano video.
 Default = keyframe timelapse (one frame per ~2 s, played at 10 fps = ~20x); --full = every frame.
-Usage: python annotate_video.py CH01 <cone_labels_CH01.json> [--start 15:00:00 --end 15:49:36] [--full]"""
+Usage: python annotate_video.py CH01 <cone_labels_CH01.json> [--session <dir|YYYY-MM-DD>]
+       [--start HH:MM:SS --end HH:MM:SS] [--full | --fps N]
+Default range = the camera's closed segments of the session (first start .. last end)."""
 import sys, json, re, subprocess, threading
 from pathlib import Path
 from datetime import datetime, timedelta
 import numpy as np, cv2
+sys.path.insert(0, str(Path(__file__).resolve().parent)); import qc_paths  # noqa: E402
 
-QC = Path(r"E:\calibration\qc"); SESSION = Path(r"E:\calibration\session_2026-09-18_13-54-34")
 FFMPEG = r"E:\Reolink_record\bin\ffmpeg.exe"
 cam, labels_path = sys.argv[1], sys.argv[2]
-args = sys.argv[3:]
+args, sess = qc_paths.pop_session(sys.argv[3:])
+SESSION, QC = qc_paths.resolve(sess)
 def opt(name, default):
     return args[args.index(name) + 1] if name in args else default
-start = datetime.strptime(opt("--start", "15:00:00"), "%H:%M:%S").time()
-end = datetime.strptime(opt("--end", "15:49:36"), "%H:%M:%S").time()
+all_segs = sorted(SESSION.glob(f"{cam}_*_to_*.mp4"))
+if not all_segs:
+    sys.exit(f"no closed {cam} segments in {SESSION}")
+seg_a = lambda s: datetime.strptime(s.name.split("_")[1] + " " + s.name.split("_")[2], "%Y-%m-%d %H-%M-%S")
+seg_b = lambda s: datetime.strptime(s.name.split("_")[1] + " " + s.name.split("_to_")[1][:8], "%Y-%m-%d %H-%M-%S")
+start = datetime.strptime(opt("--start", seg_a(all_segs[0]).strftime("%H:%M:%S")), "%H:%M:%S").time()
+end = datetime.strptime(opt("--end", seg_b(all_segs[-1]).strftime("%H:%M:%S")), "%H:%M:%S").time()
 full = "--full" in args
 fps_out = float(opt("--fps", "0"))        # --fps 1 = decode every frame, keep 1 per second (playback 10x)
 if fps_out: full = True
@@ -25,9 +33,8 @@ FW, FH = labels.get("frame_size_upright", [7680, 2160])
 sc = OUT_W / FW; OUT_H = int(round(FH * sc))
 
 segs = []
-for s in sorted(SESSION.glob(f"{cam}_*_to_*.mp4")):
-    a = datetime.strptime(s.name.split("_")[1] + " " + s.name.split("_")[2], "%Y-%m-%d %H-%M-%S")
-    b = datetime.strptime(s.name.split("_")[1] + " " + s.name.split("_to_")[1][:8], "%Y-%m-%d %H-%M-%S")
+for s in all_segs:
+    a, b = seg_a(s), seg_b(s)
     if b.time() > start and a.time() < end:
         segs.append((s, a, b))
 if not segs:
@@ -72,8 +79,8 @@ for seg, a, b in segs:
         clock = (a + timedelta(seconds=ss + t_rel)).strftime("%H:%M:%S")   # -ss resets pts to 0
         fr = np.frombuffer(buf, np.uint8).reshape(OUT_H, OUT_W, 3).copy()
         fr[m3.repeat(3, axis=2)] = overlay[m3.repeat(3, axis=2)]
-        cv2.rectangle(fr, (0, 0), (330, 34), (0, 0, 0), -1)
-        cv2.putText(fr, f"{cam} PC {clock}", (8, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+        cv2.rectangle(fr, (0, 0), (520, 34), (0, 0, 0), -1)
+        cv2.putText(fr, f"{cam} {a.strftime('%Y-%m-%d')} PC {clock}", (8, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
         enc.stdin.write(fr.tobytes()); i += 1; n_out += 1
         if n_out % 200 == 0: print(f"  {n_out} frames, at {clock}", flush=True)
     dec.wait(); th.join(timeout=2)
