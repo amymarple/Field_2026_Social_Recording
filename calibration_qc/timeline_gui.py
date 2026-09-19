@@ -21,12 +21,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent)); import qc_paths  # noq
 
 args, sess = qc_paths.pop_session(sys.argv[1:])
 SESSION, QC = qc_paths.resolve(sess); DATE = qc_paths.session_date(SESSION)
+BOARDS = "--boards" in args               # use the annotate_video.py --boards renders (board outlines + station labels) -> timeline_gui_boards.html
 FFPROBE = r"E:\Reolink_record\bin\ffprobe.exe"
 VIDEOS = {}
 for cam in ("CH01", "CH02"):
-    vids = sorted(QC.glob(f"annotated_{cam}_*_timelapse.mp4"), key=lambda p: p.stat().st_mtime)
+    vids = sorted(QC.glob(f"annotated_{cam}_*_timelapse{'_boards' if BOARDS else ''}.mp4"), key=lambda p: p.stat().st_mtime)
     if not vids:
-        sys.exit(f"no annotated {cam} timelapse in {QC} - run annotate_video.py first")
+        sys.exit(f"no annotated {cam} timelapse{' (boards)' if BOARDS else ''} in {QC} - run annotate_video.py first")
     VIDEOS[cam] = vids[-1].name
 hms = lambda s: str(timedelta(seconds=int(s)))
 clocks = {}          # per camera: PC clock of every timelapse frame, seconds since midnight
@@ -127,5 +128,6 @@ html = (html.replace("__V1__", VIDEOS["CH01"]).replace("__V2__", VIDEOS["CH02"])
         .replace("__DATALIST__", "".join(f'<option value="{n}">' for n in names))
         .replace("__DATE__", DATE).replace("__LSKEY__", lskey)
         .replace("open this HTML from E:\\\\calibration\\\\qc", "open this HTML from " + str(QC).replace("\\", "\\\\")))
-(QC / "timeline_gui.html").write_text(html, encoding="utf-8")
-print("->", QC / "timeline_gui.html")
+out = QC / ("timeline_gui_boards.html" if BOARDS else "timeline_gui.html")
+out.write_text(html, encoding="utf-8")
+print("->", out)

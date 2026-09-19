@@ -7,7 +7,7 @@ operator's cone label of that station, or the lattice prediction from the neighb
 cameras: full frame) and run through board_detect.detect(): ChArUco first, chessboard-corner fallback.
 Results are written next to the cached corners as corners/CHxx/<HHMMSS>_r<frame>.npz with a 'method'
 field, so label_timeline.py picks them up unchanged.
-Usage: python rescue_boards.py [--session <dir|date>] [--cams CH01,CH02,...] [--min-frames 3] [--step 5] [--stations T35,V44]
+Usage: python rescue_boards.py [--session <dir|date>] [--cams CH01,CH02,...] [--min-frames 3] [--step 5 | --keyframes] [--stations T35,V44]
 """
 import sys, re, json, subprocess, threading, time
 from pathlib import Path
@@ -22,6 +22,8 @@ def opt(name, default=None):
     return args[args.index(name) + 1] if name in args else default
 CAMS = opt("--cams", "CH01,CH02,CH03,CH04,CH05,CH06").split(",")
 MIN_FRAMES = int(opt("--min-frames", "3")); STEP = int(opt("--step", "5"))
+KEYFRAMES = "--keyframes" in args        # decode keyframes only (~2 s apart): 5-10x faster, enough for a settled board
+if KEYFRAMES and "--step" not in args: STEP = 1
 ONLY = set(s.upper() for s in opt("--stations", "").split(",") if s)
 TL = QC / "placement_timeline.txt"
 TRAIN_X = [24, 96, 168, 240, 312, 384, 456]; TRAIN_Y = [12, 66, 120, 174, 228]
@@ -93,7 +95,8 @@ for cam in CAMS:
         w, h = [int(v) for v in subprocess.check_output([FFPROBE, "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height",
                                                          "-of", "csv=p=0", str(seg)]).decode().strip().split(",")[:2]]
         ss = (a - seg_start).total_seconds(); dur = (b - a).total_seconds() + 0.5
-        cmd = [FFMPEG, "-v", "info", "-nostats", "-ss", f"{ss:.2f}", "-i", str(seg), "-t", f"{dur:.2f}",
+        cmd = [FFMPEG, "-v", "info", "-nostats"] + (["-skip_frame", "nokey"] if KEYFRAMES else []) + \
+              ["-ss", f"{ss:.2f}", "-i", str(seg), "-t", f"{dur:.2f}",
                "-vf", f"select=not(mod(n\\,{STEP})),showinfo", "-vsync", "0", "-f", "rawvideo", "-pix_fmt", "gray", "-"]
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=w * h * 4)
         pts_list = []

@@ -57,6 +57,8 @@ def chessboard_detect(gray, markers=(), scales=(0.5, 1.0, 2.0), fast_check=True)
     H, W = gray.shape
     flags = cv2.CALIB_CB_ADAPTIVE_THRESH | cv2.CALIB_CB_NORMALIZE_IMAGE | (cv2.CALIB_CB_FAST_CHECK if fast_check else 0)
     found = None
+    if max(H, W) > 3000:
+        scales = (0.5,)                  # full 4K/8K frames: search at half size only (squares stay >= 10 px), refine at full size below
     for sc in scales:
         if sc != 1 and max(H, W) * sc > 6000:
             continue

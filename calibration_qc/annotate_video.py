@@ -27,6 +27,11 @@ full = "--full" in args
 fps_out = float(opt("--fps", "0"))        # --fps 1 = decode every frame, keep 1 per second (playback 10x)
 if fps_out: full = True
 boards = "--boards" in args               # overlay the cached board detections (corners/CHxx/*.npz) with their station label
+still = opt("--still", None)              # --still HH:MM:SS: write one annotated frame as JPG (QC/frames) instead of a video
+if still:
+    start = datetime.strptime(still, "%H:%M:%S").time()
+    end = (datetime.combine(datetime(2000, 1, 1), start) + timedelta(seconds=1)).time()
+    full = True
 OUT_W = 1920
 labels = json.load(open(labels_path, encoding="utf-8"))
 pts = [p for p in labels["points"] if p.get("station") and p["station"] != "NONE"]
@@ -78,7 +83,7 @@ if boards:
         dets.append((t_abs, up * sc, label, col))
     dets.sort(key=lambda d: d[0]); det_t = np.array([d[0] for d in dets])
     print(f"{len(dets)} cached detections to overlay ({sum(1 for d in dets if d[2].startswith('?'))} unlabelled)")
-enc = subprocess.Popen([FFMPEG, "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "bgr24", "-s", f"{OUT_W}x{OUT_H}",
+enc = None if still else subprocess.Popen([FFMPEG, "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "bgr24", "-s", f"{OUT_W}x{OUT_H}",
                         "-r", "10" if fps_out else ("20" if full else "10"), "-i", "-", "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
                         "-pix_fmt", "yuv420p", str(out_path)], stdin=subprocess.PIPE)
 
@@ -125,12 +130,20 @@ for seg, a, b in segs:
                 if label in drawn:
                     continue
                 drawn.add(label)
-                cv2.polylines(fr, [ol.astype(np.int32).reshape(-1, 1, 2)], True, col, 2)
-                cv2.circle(fr, tuple(int(v) for v in ol[3]), 6, col, 2)                      # (0,540) corner = design origin
-                tx, ty = int(ol[:, 0].min()), int(ol[:, 1].min()) - 6
-                cv2.putText(fr, label, (tx, max(12, ty)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, col, 2)
+                cv2.polylines(fr, [ol.astype(np.int32).reshape(-1, 1, 2)], True, col, 3)
+                cv2.circle(fr, tuple(int(v) for v in ol[3]), 7, col, 3)                      # (0,540) corner = design origin
+                tx, ty = int(ol[:, 0].min()), int(ol[:, 1].min()) - 8
+                (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)
+                ty = max(th + 4, ty)
+                cv2.rectangle(fr, (tx - 2, ty - th - 4), (tx + tw + 4, ty + 4), (0, 0, 0), -1)
+                cv2.putText(fr, label, (tx, ty), cv2.FONT_HERSHEY_SIMPLEX, 0.7, col, 2)
         cv2.rectangle(fr, (0, 0), (520, 34), (0, 0, 0), -1)
         cv2.putText(fr, f"{cam} {a.strftime('%Y-%m-%d')} PC {clock}", (8, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+        if still:
+            (QC / "frames").mkdir(exist_ok=True)
+            dst = QC / "frames" / f"still_{cam}_{clock.replace(':', '')}{'_boards' if boards else ''}.jpg"
+            cv2.imwrite(str(dst), fr, [cv2.IMWRITE_JPEG_QUALITY, 92]); print("->", dst)
+            dec.kill(); sys.exit(0)
         enc.stdin.write(fr.tobytes()); i += 1; n_out += 1
         if n_out % 200 == 0: print(f"  {n_out} frames, at {clock}", flush=True)
     dec.wait(); th.join(timeout=2)
