@@ -26,6 +26,7 @@ end = datetime.strptime(opt("--end", seg_b(all_segs[-1]).strftime("%H:%M:%S")), 
 full = "--full" in args
 fps_out = float(opt("--fps", "0"))        # --fps 1 = decode every frame, keep 1 per second (playback 10x)
 if fps_out: full = True
+boards = "--boards" in args               # overlay the cached board detections (corners/CHxx/*.npz) with their station label
 OUT_W = 1920
 labels = json.load(open(labels_path, encoding="utf-8"))
 pts = [p for p in labels["points"] if p.get("station") and p["station"] != "NONE"]
@@ -39,8 +40,44 @@ for s in all_segs:
         segs.append((s, a, b))
 if not segs:
     sys.exit("no segments in range")
-tag = f"{start.strftime('%H%M%S')}-{end.strftime('%H%M%S')}" + (f"_{fps_out:g}fps" if fps_out else ("_full" if full else "_timelapse"))
+tag = f"{start.strftime('%H%M%S')}-{end.strftime('%H%M%S')}" + (f"_{fps_out:g}fps" if fps_out else ("_full" if full else "_timelapse")) + ("_boards" if boards else "")
 out_path = QC / f"annotated_{cam}_{tag}.mp4"
+
+# ---- cached board detections -> outline (upright, scaled) + station label per detection time ----
+dets = []                                  # (t_seconds_since_midnight, outline(4,2) scaled upright px, label, colour)
+if boards:
+    import csv
+    station_of = {}
+    lf = QC / "labelled_frames.csv"
+    if lf.exists():
+        with open(lf, encoding="utf-8") as fh:
+            for r in csv.DictReader(fh):
+                if r["cam"] == cam:
+                    station_of[r["file"]] = (r["station"], r.get("settled_run", ""))
+    board = cv2.aruco.CharucoBoard((12, 9), 0.060, 0.045, cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_5X5_100))
+    OBJ = np.asarray(board.getChessboardCorners(), float).reshape(-1, 3)[:, :2]
+    OUTLINE = np.array([[0, 0], [0.72, 0], [0.72, 0.54], [0, 0.54]], float)
+    for p in sorted((QC / "corners" / cam).glob("*.npz")):
+        with np.load(p, allow_pickle=False) as z:
+            ids = z["ids"].astype(int).reshape(-1); px = z["px"].astype(float).reshape(-1, 2); seg_name = str(z["seg"]); t_rel = float(z["t_rel"])
+            method = str(z["method"]) if "method" in z.files else "charuco"
+        if len(ids) < 8:
+            continue
+        a0 = datetime.strptime(seg_name.split("_")[1] + " " + seg_name.split("_")[2], "%Y-%m-%d %H-%M-%S")
+        t_abs = (a0 - a0.replace(hour=0, minute=0, second=0, microsecond=0)).total_seconds() + t_rel
+        Hm, _ = cv2.findHomography(OBJ[ids].reshape(-1, 1, 2), px.reshape(-1, 1, 2), 0)
+        if Hm is None:
+            continue
+        ol = cv2.perspectiveTransform(OUTLINE.reshape(-1, 1, 2), Hm).reshape(-1, 2)
+        up = np.stack([ol[:, 1], (FH - 1) - ol[:, 0]], 1) if cam in ("CH01", "CH02") else ol      # stored -> upright
+        st, run = station_of.get(p.name, ("?", ""))
+        label = f"{st} {len(ids)}c {method[:5]}" + ("" if run else " (unsettled)" if st != "?" else "")
+        col = (255, 0, 255) if method == "charuco" else (255, 255, 0)
+        if st == "?":
+            col = (0, 255, 255)
+        dets.append((t_abs, up * sc, label, col))
+    dets.sort(key=lambda d: d[0]); det_t = np.array([d[0] for d in dets])
+    print(f"{len(dets)} cached detections to overlay ({sum(1 for d in dets if d[2].startswith('?'))} unlabelled)")
 enc = subprocess.Popen([FFMPEG, "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "bgr24", "-s", f"{OUT_W}x{OUT_H}",
                         "-r", "10" if fps_out else ("20" if full else "10"), "-i", "-", "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
                         "-pix_fmt", "yuv420p", str(out_path)], stdin=subprocess.PIPE)
@@ -79,6 +116,19 @@ for seg, a, b in segs:
         clock = (a + timedelta(seconds=ss + t_rel)).strftime("%H:%M:%S")   # -ss resets pts to 0
         fr = np.frombuffer(buf, np.uint8).reshape(OUT_H, OUT_W, 3).copy()
         fr[m3.repeat(3, axis=2)] = overlay[m3.repeat(3, axis=2)]
+        if boards and len(dets):
+            t_abs = (a - a.replace(hour=0, minute=0, second=0, microsecond=0)).total_seconds() + ss + t_rel
+            lo = np.searchsorted(det_t, t_abs - 1.1); hi = np.searchsorted(det_t, t_abs + 1.1)
+            drawn = set()
+            for k in range(lo, hi):
+                _, ol, label, col = dets[k]
+                if label in drawn:
+                    continue
+                drawn.add(label)
+                cv2.polylines(fr, [ol.astype(np.int32).reshape(-1, 1, 2)], True, col, 2)
+                cv2.circle(fr, tuple(int(v) for v in ol[3]), 6, col, 2)                      # (0,540) corner = design origin
+                tx, ty = int(ol[:, 0].min()), int(ol[:, 1].min()) - 6
+                cv2.putText(fr, label, (tx, max(12, ty)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, col, 2)
         cv2.rectangle(fr, (0, 0), (520, 34), (0, 0, 0), -1)
         cv2.putText(fr, f"{cam} {a.strftime('%Y-%m-%d')} PC {clock}", (8, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
         enc.stdin.write(fr.tobytes()); i += 1; n_out += 1

@@ -1,0 +1,20 @@
+12:26:06-12:26:48  T11
+12:27:04-12:28:25  T12
+12:29:31-12:29:35  T61
+12:29:45-12:29:57  T62
+12:30:05-12:30:17  T63
+12:30:27-12:30:39  T64
+12:30:45-12:31:07  T65
+12:36:01-12:36:45  V11
+12:36:55-12:37:45  F14
+12:37:55-12:38:25  T23
+12:39:23-12:40:09  T35
+12:40:21-12:40:59  V44
+# --- rows added after the frame review of 2026-09-19 (Claude; operator may veto) ---
+# T61 was already settled from ~12:29:25 (CH04 pose within 1 px of the operator's window) and was placed a SECOND time at the end (CH02 12:41:30: board on the T61 cone)
+12:29:25-12:29:36  T61
+12:41:05-12:42:24  T61
+# T62 already in place from 12:29:39 (CH01 origin corner on the T62 cone)
+12:29:39-12:29:45  T62
+# T65 stayed on the ground until 12:35:19 (CH04 59 frames, one pose; CH01 12:33:30 shows it on the T65 cone)
+12:31:07-12:35:19  T65
