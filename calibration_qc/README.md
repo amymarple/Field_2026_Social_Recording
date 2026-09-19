@@ -47,10 +47,13 @@ Outputs live in `E:\calibration\qc\` on the field PC; the session summaries are 
 ### Operator timeline and per-camera coverage (2026-09-19)
 
 - Station identity now comes ONLY from the operator's timeline (`timeline_gui.py` export,
-  `session_2026-09-18_placement_timeline_operator.txt`: 59 rows -> 54 windows, 53 stations).
-  **T61-T65 were never placed** (operator, 09-19). T23 is probably the unlogged CH03-only board
-  at 15:08:58-15:09:22. The boards at 15:32:30-15:40:20 lie on the paved strip along the x=0
-  wall, not at a station; 15:38:58-15:41:30 is the CH03 hand-held sweep.
+  `session_2026-09-18_placement_timeline_operator.txt`: 68 rows after the operator's second pass
+  -> 56 windows, 54 stations; T23 confirmed at 15:09:05-15:09:17, CH03 only).
+  **T61-T65 were never placed** (operator, 09-19). The operator's added row "T41 15:22:36-15:22:56"
+  duplicates the F41 window: the CH02 frame shows the board's origin corner on the F41 cone
+  (`frames/CH02_152245.jpg`), so those frames stay F41 and T41 keeps only its 15:19:22-15:20:26
+  windows (no readable board in any camera there). The boards at 15:32:30-15:40:20 lie on the
+  paved strip along the x=0 wall, not at a station; 15:38:58-15:41:30 is the CH03 hand-held sweep.
 - `label_timeline.py` labels every cached corner file from the timeline (no guessing; frames
   outside every window are listed as clusters for the operator), checks each placement against
   the operator's cone labels in the panos (which board corner sits on the cone, long-edge
