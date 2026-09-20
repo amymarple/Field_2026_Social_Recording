@@ -338,6 +338,29 @@ for st in STATIONS:
             cells.append("-")
     L.append(f"{st:7s} " + " ".join(f"{c:>6s}" for c in cells))
 L.append("")
+# The operator's timeline already vouches that the board was ON THE GROUND at that station during the
+# window (gate A of /detect-then-decode), so a detection inside the window is a usable observation; the
+# settled run is a stricter, motion-based confirmation, not the admission criterion.
+have12 = {cam: {} for cam in CAMS}; have30 = {cam: {} for cam in CAMS}
+for (i, cam), s in win_cam.items():
+    st = wins[i][2]
+    if s["maxc"] >= 12:
+        have12[cam][st] = max(have12[cam].get(st, 0), s["maxc"])
+    if s["maxc"] >= 30:
+        have30[cam][st] = max(have30[cam].get(st, 0), s["maxc"])
+L.append("Stations per camera, three thresholds (a station counts once, whichever of its windows is best):")
+L.append(f"{'camera':7s} {'>=12 corners':>13s} {'>=30 corners':>13s} {'settled run':>12s}   (T / V / F of 35 / 12 / 12)")
+for cam in CAMS:
+    def by_set(d):
+        return "/".join(str(sum(1 for k in d if k[0] == s)) for s in "TVF")
+    L.append(f"{cam:7s} {len(have12[cam]):13d} {len(have30[cam]):13d} {len(usable[cam]):12d}   "
+             f"{by_set(have12[cam])}  |  {by_set(have30[cam])}  |  {by_set(usable[cam])}")
+L.append("")
+for cam in CAMS:
+    L.append(f"  {cam} stations with >=12 corners ({len(have12[cam])}): " + (", ".join(sorted(have12[cam])) or "none"))
+    miss = [st for st in listed if st not in have12[cam]]
+    L.append(f"      no detection at all in {cam} ({len(miss)}): " + (", ".join(sorted(miss)) or "none"))
+L.append("")
 L.append("Usable stations per camera (settled run) / seen-only, by set  (T = training 35, V = validation 12, F = final test 12)")
 for cam in CAMS:
     parts = []

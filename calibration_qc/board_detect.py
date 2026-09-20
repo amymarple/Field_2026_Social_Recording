@@ -182,15 +182,58 @@ def find_white_quads(gray, min_area=1500, max_area=None, max_candidates=6):
     quads.sort(key=lambda t: -t[0])
     return [q * small for _, q in quads[:max_candidates]]
 
-def homographies_from_quad(quad):
-    """Two board-mm -> px homographies for a paper quad: long image sides <-> 720 mm, both 180-degree options."""
+def find_grid_quads(gray, min_points=40, max_candidates=4):
+    """Locate the board by its CORNER DENSITY, not by its paper: the checkerboard is the only thing in
+    the scene with a dense cluster of X-junctions. Robust where the white margin is broken by shadow,
+    grass or an occluder, which is what defeats find_white_quads.
+    -> list of 4-point quads (image px), largest cluster first."""
+    H, W = gray.shape
+    small = 2 if max(H, W) > 1200 else 1
+    g = gray if small == 1 else cv2.resize(gray, None, fx=1 / small, fy=1 / small, interpolation=cv2.INTER_AREA)
+    g = cv2.GaussianBlur(g, (3, 3), 0)
+    resp = cv2.cornerMinEigenVal(np.float32(g) / 255.0, 5, 3)          # X-junctions score high
+    thr = max(float(np.percentile(resp, 99.5)), 1e-4)
+    pts = np.argwhere(resp >= thr)[:, ::-1].astype(np.float32)          # (x, y)
+    if len(pts) < min_points:
+        return []
+    mask = np.zeros(g.shape, np.uint8)
+    mask[pts[:, 1].astype(int), pts[:, 0].astype(int)] = 255
+    k = max(3, int(round(min(g.shape) / 60)) | 1)
+    dil = cv2.dilate(mask, np.ones((k, k), np.uint8))
+    n, lab, stats, _ = cv2.connectedComponentsWithStats(dil, 8)
+    out = []
+    for i in range(1, n):
+        sel = pts[lab[pts[:, 1].astype(int), pts[:, 0].astype(int)] == i]
+        if len(sel) < min_points:
+            continue
+        rect = cv2.minAreaRect(sel)
+        (w_, h_) = rect[1]
+        if min(w_, h_) < 12 or max(w_, h_) / max(1.0, min(w_, h_)) > 6:
+            continue
+        hull = cv2.convexHull(sel.reshape(-1, 1, 2).astype(np.float32))   # a perspective board is a trapezoid,
+        peri = cv2.arcLength(hull, True); quad = None                      # so minAreaRect distorts the mapping
+        for eps in (0.02, 0.04, 0.06, 0.09, 0.13):
+            ap = cv2.approxPolyDP(hull, eps * peri, True)
+            if len(ap) == 4:
+                quad = ap.reshape(4, 2); break
+        if quad is None:
+            quad = cv2.boxPoints(rect)
+        out.append((len(sel), order_quad(quad) * small))
+    out.sort(key=lambda t: -t[0])
+    return [q for _, q in out[:max_candidates]]
+
+def homographies_from_quad(quad, all_rotations=True):
+    """Board-mm -> px homographies for a quad. All four corner rotations are tried by default: under
+    strong foreshortening the board's 720 mm side can be the SHORTER one in the image, so picking the
+    long image side is not safe (it produced a 4:3-stretched rectification that decoded as nothing)."""
     q = order_quad(quad)
     s01 = np.linalg.norm(q[1] - q[0]) + np.linalg.norm(q[3] - q[2]); s12 = np.linalg.norm(q[2] - q[1]) + np.linalg.norm(q[0] - q[3])
-    if s01 < s12:                                          # make q[0]->q[1] the long side
+    if s01 < s12:                                          # long image side first - most likely, tried first
         q = np.roll(q, -1, axis=0)
+    rolls = (0, 2, 1, 3) if all_rotations else (0, 2)
     out = []
-    for flip in (False, True):
-        qq = np.roll(q, 2, axis=0) if flip else q
+    for r in rolls:
+        qq = np.roll(q, r, axis=0)
         H, _ = cv2.findHomography(OUTLINE_MM.reshape(-1, 1, 2).astype(np.float32), qq.reshape(-1, 1, 2).astype(np.float32), 0)
         if H is not None:
             out.append(H)
@@ -356,6 +399,14 @@ def detect(gray, markers_min=12, quad_hint=None, area_hint=None):
             r = decode_rectified(gray, H, "manual quad")
             if r: return r
         tried.append("manual quad")
+    gquads = find_grid_quads(gray, max_candidates=2)     # corner-density cluster: survives a broken white margin
+    for k, q in enumerate(gquads):
+        for pad in (1.09,):                              # the cluster spans the INNER grid; 660x480 mm -> outline 720x540
+            for H in homographies_from_quad(q * pad - (pad - 1) * q.mean(0)):
+                r = decode_rectified(gray, H, f"grid cluster #{k + 1} of {len(gquads)} pad {pad}")
+                if r: return r
+    if gquads:
+        tried.append(f"grid clusters({len(gquads)})")
     lo = (0.3 * area_hint) if area_hint else 1500
     hi = (4.0 * area_hint) if area_hint else None
     quads = find_white_quads(gray, min_area=lo, max_area=hi)
