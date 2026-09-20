@@ -1,0 +1,43 @@
+[
+  {
+    "file": "C:\\Users\\Cornell\\Documents\\GitHub\\Field_2026_Social_Recording\\calibration.png",
+    "source_sha256": "6dea443815f3bc9395c8ce94fec36062961cab0806d52a9aa679b6b4b82e214a",
+    "seconds": 0.006,
+    "corners": 88,
+    "note": "chessboard orient A (contrast A 117 B -117)",
+    "shared_charuco_ids": 88,
+    "shared_id_median_px": 0.0015111594693735242,
+    "shared_id_max_px": 0.0015537014696747065
+  },
+  {
+    "file": "E:\\calibration\\qc\\frames\\detect_test_CH01_150620_crop.jpg",
+    "source_sha256": "6dea443815f3bc9395c8ce94fec36062961cab0806d52a9aa679b6b4b82e214a",
+    "seconds": 4.253,
+    "corners": 0,
+    "note": null
+  },
+  {
+    "file": "E:\\calibration\\qc\\frames\\detect_test_CH01_151645_crop.jpg",
+    "source_sha256": "6dea443815f3bc9395c8ce94fec36062961cab0806d52a9aa679b6b4b82e214a",
+    "seconds": 4.114,
+    "corners": 0,
+    "note": null
+  },
+  {
+    "file": "E:\\calibration\\qc\\frames\\detect_test_CH01_152410_crop.jpg",
+    "source_sha256": "6dea443815f3bc9395c8ce94fec36062961cab0806d52a9aa679b6b4b82e214a",
+    "seconds": 0.126,
+    "corners": 88,
+    "note": "chessboard orient A (contrast A 68 B -68)",
+    "shared_charuco_ids": 1,
+    "shared_id_median_px": 0.017686299979686737,
+    "shared_id_max_px": 0.017686299979686737
+  },
+  {
+    "file": "E:\\calibration\\qc\\frames\\detect_test_CH02_150420_crop.jpg",
+    "source_sha256": "6dea443815f3bc9395c8ce94fec36062961cab0806d52a9aa679b6b4b82e214a",
+    "seconds": 3.676,
+    "corners": 0,
+    "note": null
+  }
+]
