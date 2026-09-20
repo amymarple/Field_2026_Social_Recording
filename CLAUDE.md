@@ -26,6 +26,17 @@ sync repo), battery facts into `BATTERY_LOG_cohort3.md`, animal behaviour into t
 archive first (`NOTION_OBSERVATION_LOG_ARCHIVE_cohort3.md`). (Operator rule, 2026-09-10.)
 
 
+## Detection / computer vision on the footage
+
+Follow the project skill `/detect-then-decode` (`.claude/skills/detect-then-decode/SKILL.md`) for any
+detection task (board, cone, marker, animal, LED). In short: a detector's silence is a statement about
+the detector, never about the field - render the frame and look before writing "not detected", measure
+instead of guessing a cause, locate the object before decoding its content, degrade to a weaker
+measurement rather than to "absent", and treat the operator as a required stage (identity comes only
+from the operator's timeline; "not present" is only ever the operator's statement). The account of the
+failure that produced this rule is `calibration_qc/DETECTION_POSTMORTEM_2026-09-19.md`.
+(Operator rule, 2026-09-19.)
+
 ## Live-system safety rules
 
 - **Network topology (verified 2026-08-19): this field PC reaches ONLY the analysis PC**

@@ -13,8 +13,27 @@ segments.
 | `ir_timeline.py` | One frame per 2 min per camera: colour vs IR (mean |U−128|,|V−128| < 2 ⇒ IR) and global saturation. |
 | `sweep_census.py CHxx t0 t1` | Full-rate (5 fps) census of a hand-held intrinsics sweep: distinct poses with ≥20 corners and a 4×3 frame-coverage grid. |
 
-Outputs live in `E:\calibration\qc\` on the field PC; the session summaries are copied here as
+Outputs live in `E:\calibration\qc\` on the field PC (a session other than 2026-09-18 gets its own
+subfolder, `--session <dir|YYYY-MM-DD>` on every script); the session summaries are copied here as
 `session_<date>_*.{txt,csv}`.
+
+## Workflow - the operator is a required stage, not a fallback
+
+Detection follows the project skill `/detect-then-decode`
+(`.claude/skills/detect-then-decode/SKILL.md`); the failure that produced it is
+`DETECTION_POSTMORTEM_2026-09-19.md`. Two gates block the pipeline:
+
+| Step | Script | Gate |
+|---|---|---|
+| 1. corners per camera | `qc_placements.py CHxx --every 1 --session ...` | - |
+| 2. re-decode thin windows (locate -> rectify -> decode) | `rescue_boards.py --keyframes` | - |
+| 3. station identity | `timeline_gui.py` -> operator's `placement_timeline.txt` | **A: identity comes only from the operator.** Never guess a station from geometry; frame-verified additions go in as comment-marked rows the operator can veto. |
+| 4. label + coverage | `label_timeline.py` | - |
+| 5. whatever is still missing | `manual_board_gui.py` -> operator clicks 4 outline corners (cone corner first) or Skip -> `manual_boards.py` | **B: "not present" is only the operator's statement.** A Skip makes it a fact; an empty detector result never does. |
+| 6. review what WAS found | `annotate_video.py --boards` + `timeline_gui.py --boards` | operator sees every detection (outline, origin corner, station, corners, method) before fitting |
+
+`show_frame.py CHxx HH:MM:SS [--around STATION]` renders any frame with the cone labels and the
+cached board outline - use it before writing the word "missing".
 
 ## Session 2026-09-18 (`E:\calibration\session_2026-09-18_13-54-34`, 13:54–15:49, 12 streams, 39.7 GB)
 
