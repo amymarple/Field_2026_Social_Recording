@@ -106,7 +106,11 @@ for cam in CAMS:
             if c is None:
                 continue
             R = 900
-            x0, y0 = int(max(0, c[0] - R)), int(max(0, c[1] - R)); x1, y1 = int(min(W, c[0] + R)), int(min(H, c[1] + R))
+            x0, y0 = int(max(0, min(W - 2 * R, c[0] - R))), int(max(0, min(H - 2 * R, c[1] - R)))
+            x1, y1 = int(min(W, x0 + 2 * R)), int(min(H, y0 + 2 * R))
+            if x1 - x0 < 50 or y1 - y0 < 50:          # predicted position outside this camera's frame
+                print(f"{cam} {st:6s} predicted outside the frame ({c.round().tolist()}), skipped", flush=True)
+                continue
             for name, p in cones.items():                                   # cone labels inside the crop
                 if x0 <= p[0] <= x1 and y0 <= p[1] <= y1:
                     cv2.circle(img, tuple(int(v) for v in p), 10, (0, 255, 255), 2)
