@@ -120,11 +120,12 @@ for cam in CAMS:
                 crop = gray[y0:y1, x0:x1]; off = np.array([x0, y0], float)
             else:
                 crop = gray; off = np.array([0.0, 0.0])
-            method, px, ids, note = bd.detect(crop)
-            if method:
+            method, px, ids, note, mk_ids, mk_px = bd.detect(crop)
+            if method and len(ids) >= 12:
                 clock_tag = (seg_start + timedelta(seconds=t_rel)).strftime("%H%M%S")
+                extra = {} if mk_ids is None else dict(mk_ids=np.asarray(mk_ids, np.int32), mk_px=np.asarray(mk_px, float) + off)
                 np.savez_compressed(QC / "corners" / cam / f"{clock_tag}_r{n:04d}.npz", ids=np.asarray(ids, np.int32), px=np.asarray(px, float) + off,
-                                    seg=seg.name, t_rel=float(t_rel), bw=False, method=method)
+                                    seg=seg.name, t_rel=float(t_rel), bw=False, method=method, **extra)
                 saved += 1; best = max(best, len(ids)); notes[method] = notes.get(method, 0) + 1
         proc.wait(); th.join(timeout=2)
         line = (cam, st, f"{a.strftime('%H:%M:%S')}-{b.strftime('%H:%M:%S')} had {n_have}, tried {n} frames, saved {saved} (best {best} corners) {notes} prior={how} {time.time()-t0:.0f}s")
