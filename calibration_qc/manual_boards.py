@@ -86,8 +86,8 @@ for j in jobs:
             time.sleep(0.005)
         t_rel = ss + (pts_list[n] if len(pts_list) > n else n * STEP / 15.0)
         gray = np.frombuffer(buf, np.uint8).reshape(h, w)[y0:y1, x0:x1]; n += 1
-        method, px, ids, note, mk_ids, mk_px = bd.detect(gray, quad_hint=hint, area_hint=area)
-        if method is None and n == 1:
+        method, px, ids, note, mk_ids, mk_px, quad = bd.detect(gray, quad_hint=hint, area_hint=area)
+        if method in (None, "located") and n == 1:
             # Nothing decodes even with the hint (blurred far-field board): the operator's four clicks
             # ARE the measurement. Corners are predicted from that outline homography and parity-checked;
             # accuracy is click accuracy (a few px), so the method tag keeps them separable in the fit.
@@ -100,7 +100,9 @@ for j in jobs:
                     note = f"operator outline only, {int(vis.sum())}/88 corners predicted from the clicked quad"
         if method and len(ids) >= 12:
             tag = (seg_start + timedelta(seconds=t_rel)).strftime("%H%M%S")
-            extra = {} if mk_ids is None else dict(mk_ids=np.asarray(mk_ids, np.int32), mk_px=np.asarray(mk_px, float) + off)
+            extra = dict(quad=np.asarray(hint, float) + off)
+            if mk_ids is not None:
+                extra.update(mk_ids=np.asarray(mk_ids, np.int32), mk_px=np.asarray(mk_px, float) + off)
             np.savez_compressed(QC / "corners" / cam / f"{tag}_m{n:04d}.npz", ids=np.asarray(ids, np.int32), px=np.asarray(px, float) + off,
                                 seg=seg.name, t_rel=float(t_rel), bw=False, method="manual-" + method, **extra)
             saved += 1; best = max(best, len(ids)); notes["manual-" + method] = notes.get("manual-" + method, 0) + 1

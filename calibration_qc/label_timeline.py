@@ -80,11 +80,12 @@ def load_cam(cam):
         with np.load(p, allow_pickle=False) as z:
             ids = z["ids"].astype(int).reshape(-1); px = z["px"].astype(float).reshape(-1, 2)
             seg = str(z["seg"]); t_rel = float(z["t_rel"]); bw = bool(z["bw"])
+            method = str(z["method"]) if "method" in z.files else "charuco"
         m = re.search(r"_(\d{4}-\d{2}-\d{2})_(\d\d)-(\d\d)-(\d\d)_to_", seg)
         t = datetime.strptime(f"{m.group(1)} {m.group(2)}:{m.group(3)}:{m.group(4)}", "%Y-%m-%d %H:%M:%S") + timedelta(seconds=t_rel)
         spread = len(ids) >= 12 and len(set(ids % 11)) >= 3 and len(set(ids // 11)) >= 3
         out.append(dict(cam=cam, t=t, ids=ids, px=px, bw=bw, spread=bool(spread), file=p.name, n=len(ids),
-                        station="", win=None, edge=False, run=""))
+                        method=method, station="", win=None, edge=False, run=""))
     return out
 frames = {cam: load_cam(cam) for cam in CAMS}
 
@@ -152,7 +153,7 @@ for i, w in enumerate(wins):
                 poses.append(r)
         win_cam[(i, cam)] = dict(n=len(fs), spread=sum(f["spread"] for f in fs), settled=sum(len(r) for r in runs),
                                  runs=len(runs), poses=len(poses), maxc=max((f["n"] for f in fs), default=0),
-                                 bw=sum(f["bw"] for f in fs))
+                                 bw=sum(f["bw"] for f in fs), located=sum(f["method"] == "located" for f in fs))
 
 # ---------------- cone cross-check (pano cameras) ----------------
 cones = {}
@@ -245,12 +246,12 @@ for c in clusters:
 # ---------------- outputs ----------------
 with open(QC / "labelled_frames.csv", "w", newline="", encoding="utf-8") as fh:
     wr = csv.writer(fh)
-    wr.writerow(["cam", "clock", "file", "station", "window_start", "window_end", "edge", "n_corners", "spread", "bw_IR", "settled_run"])
+    wr.writerow(["cam", "clock", "file", "station", "window_start", "window_end", "edge", "n_corners", "spread", "bw_IR", "settled_run", "method"])
     for cam in CAMS:
         for f in frames[cam]:
             w = wins[f["win"]] if f["win"] is not None else None
             wr.writerow([cam, f["t"].strftime("%H:%M:%S.%f")[:-5], f["file"], f["station"], hms(w[0]) if w else "", hms(w[1]) if w else "",
-                         int(f["edge"]), f["n"], int(f["spread"]), int(f["bw"]), f["run"]])
+                         int(f["edge"]), f["n"], int(f["spread"]), int(f["bw"]), f["run"], f["method"]])
 
 L = []
 L.append(f"Operator timeline: {TL}  ({len(rows)} rows -> {len(wins)} windows, {len(listed)} distinct stations of {len(STATIONS)})")
@@ -356,10 +357,15 @@ for cam in CAMS:
     L.append(f"{cam:7s} {len(have12[cam]):13d} {len(have30[cam]):13d} {len(usable[cam]):12d}   "
              f"{by_set(have12[cam])}  |  {by_set(have30[cam])}  |  {by_set(usable[cam])}")
 L.append("")
+loc = {cam: set() for cam in CAMS}
+for (i, cam), s in win_cam.items():
+    if s.get("located") and wins[i][2] not in have12[cam]:
+        loc[cam].add(wins[i][2])
 for cam in CAMS:
     L.append(f"  {cam} stations with >=12 corners ({len(have12[cam])}): " + (", ".join(sorted(have12[cam])) or "none"))
-    miss = [st for st in listed if st not in have12[cam]]
-    L.append(f"      no detection at all in {cam} ({len(miss)}): " + (", ".join(sorted(miss)) or "none"))
+    L.append(f"      board LOCATED but grid not decoded ({len(loc[cam])}): " + (", ".join(sorted(loc[cam])) or "none"))
+    miss = [st for st in listed if st not in have12[cam] and st not in loc[cam]]
+    L.append(f"      board not found at all in {cam} ({len(miss)}): " + (", ".join(sorted(miss)) or "none"))
 L.append("")
 L.append("Usable stations per camera (settled run) / seen-only, by set  (T = training 35, V = validation 12, F = final test 12)")
 for cam in CAMS:

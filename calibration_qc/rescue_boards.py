@@ -120,11 +120,13 @@ for cam in CAMS:
                 crop = gray[y0:y1, x0:x1]; off = np.array([x0, y0], float)
             else:
                 crop = gray; off = np.array([0.0, 0.0])
-            method, px, ids, note, mk_ids, mk_px = bd.detect(crop)
-            if method and len(ids) >= 12:
+            method, px, ids, note, mk_ids, mk_px, quad = bd.detect(crop)
+            if method and (len(ids) >= 12 or method == "located"):
                 clock_tag = (seg_start + timedelta(seconds=t_rel)).strftime("%H%M%S")
                 extra = {} if mk_ids is None else dict(mk_ids=np.asarray(mk_ids, np.int32), mk_px=np.asarray(mk_px, float) + off)
-                np.savez_compressed(QC / "corners" / cam / f"{clock_tag}_r{n:04d}.npz", ids=np.asarray(ids, np.int32), px=np.asarray(px, float) + off,
+                if quad is not None:
+                    extra["quad"] = np.asarray(quad, float) + off        # board outline, kept even when the grid did not decode
+                np.savez_compressed(QC / "corners" / cam / f"{clock_tag}_r{n:04d}.npz", ids=np.asarray(ids, np.int32), px=np.asarray(px, float).reshape(-1, 2) + off,
                                     seg=seg.name, t_rel=float(t_rel), bw=False, method=method, **extra)
                 saved += 1; best = max(best, len(ids)); notes[method] = notes.get(method, 0) + 1
         proc.wait(); th.join(timeout=2)

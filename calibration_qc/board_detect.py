@@ -379,32 +379,45 @@ def visible_corners(gray, H_mm2px, min_contrast=12.0):
 
 def detect(gray, markers_min=12, quad_hint=None, area_hint=None):
     """Full pipeline on one (cropped) grey image.
-    -> (method, px, ids, note, mk_ids, mk_px); method is None when nothing was found.
+    -> (method, px, ids, note, mk_ids, mk_px, quad)
+    method 'located' means the BOARD WAS FOUND BUT THE GRID DID NOT DECODE: px/ids are empty and `quad`
+    holds the four outline points. Localisation is kept even when decoding fails - a board that is
+    visibly there must never disappear from the output just because its code is unreadable (operator
+    rule 2026-09-21). method None means the board was not found at all.
     mk_ids/mk_px are the measured marker corners when the corners had to be predicted from them.
     quad_hint: 4 image points of the board outline (manual clicks); area_hint: expected board area in px^2."""
+    def outline_of(px_, ids_):
+        Hm, _ = cv2.findHomography(OBJ_MM[ids_].reshape(-1, 1, 2), np.asarray(px_, float).reshape(-1, 1, 2), 0)
+        return None if Hm is None else cv2.perspectiveTransform(OUTLINE_MM.reshape(-1, 1, 2), Hm).reshape(-1, 2)
+    def done(r):
+        return (*r, outline_of(r[1], r[2]))
     nc, px, ids, markers = charuco_detect(gray)
     if nc >= 60:
-        return "charuco", px, ids, f"{len(markers)} markers, {nc} corners", None, None
-    tried = []
+        return "charuco", px, ids, f"{len(markers)} markers, {nc} corners", None, None, outline_of(px, ids)
+    tried = []; located = None
     H, n_in = homography_from_markers(markers)
     if H is not None:
+        located = cv2.perspectiveTransform(OUTLINE_MM.reshape(-1, 1, 2), refine_homography(gray, H)).reshape(-1, 2)
         r = decode_rectified(gray, H, f"{len(markers)} markers ({n_in} inlier corners)")
         if r and len(r[2]) > max(nc, 11):
-            return r
+            return done(r)
         tried.append(f"markers({len(markers)})")
     if nc >= markers_min:
-        return "charuco", px, ids, f"{len(markers)} markers, {nc} corners (rectified path did not add corners)", None, None
+        return "charuco", px, ids, f"{len(markers)} markers, {nc} corners (rectified path did not add corners)", None, None, outline_of(px, ids)
     if quad_hint is not None:
+        located = np.asarray(quad_hint, float)
         for H in homographies_from_quad(quad_hint):
             r = decode_rectified(gray, H, "manual quad")
-            if r: return r
+            if r: return done(r)
         tried.append("manual quad")
     gquads = find_grid_quads(gray, max_candidates=2)     # corner-density cluster: survives a broken white margin
     for k, q in enumerate(gquads):
+        if located is None and k == 0:
+            located = np.asarray(q, float)
         for pad in (1.09,):                              # the cluster spans the INNER grid; 660x480 mm -> outline 720x540
             for H in homographies_from_quad(q * pad - (pad - 1) * q.mean(0)):
                 r = decode_rectified(gray, H, f"grid cluster #{k + 1} of {len(gquads)} pad {pad}")
-                if r: return r
+                if r: return done(r)
     if gquads:
         tried.append(f"grid clusters({len(gquads)})")
     lo = (0.3 * area_hint) if area_hint else 1500
@@ -413,11 +426,37 @@ def detect(gray, markers_min=12, quad_hint=None, area_hint=None):
     for k, q in enumerate(quads):
         for H in homographies_from_quad(q):
             r = decode_rectified(gray, H, f"white quad #{k + 1} of {len(quads)}")
-            if r: return r
+            if r: return done(r)
     if quads:
         tried.append(f"white quads({len(quads)})")
     res = chessboard_detect(gray, markers)
     if res is not None:
         px2, ids2, note = res
-        return "chessboard", px2, ids2, note + f" ({len(markers)} markers decoded)", None, None
-    return None, px, ids, f"only {nc} corners, {len(markers)} markers; tried " + (", ".join(tried) or "nothing else"), None, None
+        return "chessboard", px2, ids2, note + f" ({len(markers)} markers decoded)", None, None, outline_of(px2, ids2)
+    note = f"only {nc} corners, {len(markers)} markers; tried " + (", ".join(tried) or "nothing else")
+    if located is not None and plausible_board_quad(gray, located):
+        return "located", np.zeros((0, 2)), np.zeros(0, int), "BOARD LOCATED, GRID NOT DECODED - " + note, None, None, located
+    return None, px, ids, note, None, None, None
+
+def plausible_board_quad(gray, quad, min_side=20, aspect=(1.05, 5.0), min_bright=6.0):
+    """Cheap sanity check on a 'located but not decoded' quad: board-like shape, and brighter inside than
+    around it (the board is white paper). Keeps grass texture and dark clutter out; a white house corner
+    can still pass, which is why 'located' is review-only and never counts as a measurement."""
+    q = np.asarray(quad, float)
+    if q.shape != (4, 2) or not np.isfinite(q).all():
+        return False
+    sides = [float(np.linalg.norm(q[(i + 1) % 4] - q[i])) for i in range(4)]
+    if min(sides) < min_side:
+        return False
+    a, b = (sides[0] + sides[2]) / 2, (sides[1] + sides[3]) / 2
+    r = max(a, b) / max(1.0, min(a, b))
+    if not (aspect[0] <= r <= aspect[1]):
+        return False
+    H_, W_ = gray.shape
+    inner = np.zeros((H_, W_), np.uint8)
+    cv2.fillConvexPoly(inner, q.astype(np.int32), 255)
+    if inner.sum() < 255 * 200:
+        return False
+    k = max(5, int(0.25 * min(a, b)) | 1)
+    outer = cv2.dilate(inner, np.ones((k, k), np.uint8)) - inner
+    return float(gray[inner > 0].mean() - gray[outer > 0].mean()) >= min_bright

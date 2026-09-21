@@ -27,6 +27,8 @@ full = "--full" in args
 fps_out = float(opt("--fps", "0"))        # --fps 1 = decode every frame, keep 1 per second (playback 10x)
 if fps_out: full = True
 boards = "--boards" in args               # overlay the cached board detections (corners/CHxx/*.npz) with their station label
+only_boards = "--only-boards" in args     # ... and keep ONLY the frames that have one (a short review reel)
+if only_boards: boards = True
 still = opt("--still", None)              # --still HH:MM:SS: write one annotated frame as JPG (QC/frames) instead of a video
 if still:
     start = datetime.strptime(still, "%H:%M:%S").time()
@@ -45,7 +47,7 @@ for s in all_segs:
         segs.append((s, a, b))
 if not segs:
     sys.exit("no segments in range")
-tag = f"{start.strftime('%H%M%S')}-{end.strftime('%H%M%S')}" + (f"_{fps_out:g}fps" if fps_out else ("_full" if full else "_timelapse")) + ("_boards" if boards else "")
+tag = f"{start.strftime('%H%M%S')}-{end.strftime('%H%M%S')}" + (f"_{fps_out:g}fps" if fps_out else ("_full" if full else "_timelapse")) + ("_onlyboards" if only_boards else ("_boards" if boards else ""))
 out_path = QC / f"annotated_{cam}_{tag}.mp4"
 
 # ---- cached board detections -> outline (upright, scaled) + station label per detection time ----
@@ -66,20 +68,27 @@ if boards:
         with np.load(p, allow_pickle=False) as z:
             ids = z["ids"].astype(int).reshape(-1); px = z["px"].astype(float).reshape(-1, 2); seg_name = str(z["seg"]); t_rel = float(z["t_rel"])
             method = str(z["method"]) if "method" in z.files else "charuco"
-        if len(ids) < 8:
-            continue
+            quad = z["quad"].astype(float).reshape(-1, 2) if "quad" in z.files else None
         a0 = datetime.strptime(seg_name.split("_")[1] + " " + seg_name.split("_")[2], "%Y-%m-%d %H-%M-%S")
         t_abs = (a0 - a0.replace(hour=0, minute=0, second=0, microsecond=0)).total_seconds() + t_rel
-        Hm, _ = cv2.findHomography(OBJ[ids].reshape(-1, 1, 2), px.reshape(-1, 1, 2), 0)
-        if Hm is None:
+        if len(ids) >= 8:
+            Hm, _ = cv2.findHomography(OBJ[ids].reshape(-1, 1, 2), px.reshape(-1, 1, 2), 0)
+            if Hm is None:
+                continue
+            ol = cv2.perspectiveTransform(OUTLINE.reshape(-1, 1, 2), Hm).reshape(-1, 2)
+        elif quad is not None and len(quad) == 4:
+            ol = quad                                    # board located, grid not decoded
+        else:
             continue
-        ol = cv2.perspectiveTransform(OUTLINE.reshape(-1, 1, 2), Hm).reshape(-1, 2)
         up = np.stack([ol[:, 1], (FH - 1) - ol[:, 0]], 1) if cam in ("CH01", "CH02") else ol      # stored -> upright
         st, run = station_of.get(p.name, ("?", ""))
-        label = f"{st} {len(ids)}c {method[:5]}" + ("" if run else " (unsettled)" if st != "?" else "")
-        col = (255, 0, 255) if method == "charuco" else (255, 255, 0)
-        if st == "?":
-            col = (0, 255, 255)
+        if len(ids) < 8:
+            label = f"{st} LOCATED (grid not decoded)"; col = (0, 128, 255)                        # orange
+        else:
+            label = f"{st} {len(ids)}c {method[:5]}" + ("" if run else " (unsettled)" if st != "?" else "")
+            col = (255, 0, 255) if method == "charuco" else (255, 255, 0)
+            if st == "?":
+                col = (0, 255, 255)
         dets.append((t_abs, up * sc, label, col))
     dets.sort(key=lambda d: d[0]); det_t = np.array([d[0] for d in dets])
     print(f"{len(dets)} cached detections to overlay ({sum(1 for d in dets if d[2].startswith('?'))} unlabelled)")
@@ -124,6 +133,8 @@ for seg, a, b in segs:
         if boards and len(dets):
             t_abs = (a - a.replace(hour=0, minute=0, second=0, microsecond=0)).total_seconds() + ss + t_rel
             lo = np.searchsorted(det_t, t_abs - 1.1); hi = np.searchsorted(det_t, t_abs + 1.1)
+            if only_boards and hi <= lo:
+                i += 1; continue                                   # no detection at this frame - skip it
             drawn = set()
             for k in range(lo, hi):
                 _, ol, label, col = dets[k]
