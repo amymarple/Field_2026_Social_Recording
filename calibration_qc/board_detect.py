@@ -25,7 +25,14 @@ OBJ = np.asarray(BOARD.getChessboardCorners(), float).reshape(-1, 3)[:, :2]     
 OBJ_MM = OBJ * 1000.0
 MARKER_MM = {i: np.asarray(BOARD.getObjPoints()[i], float).reshape(-1, 3)[:, :2] * 1000.0 for i in range(len(BOARD.getIds()))}
 MARKER_CENTRES = {i: m.mean(0) / 1000.0 for i, m in MARKER_MM.items()}                 # metres (kept for older callers)
-OUTLINE_MM = np.array([[0, 0], [720, 0], [720, 540], [0, 540]], float)
+# Physical board (operator spec, 2026-09-21): aluminium composite plate 800 x 600 x 6 mm,
+# checker 60 mm, marker 45 mm, 9 rows x 12 columns -> pattern 720 x 540 mm centred on the plate,
+# so the margin is 40 mm along the long axis and 30 mm along the short one. The 6 mm thickness puts
+# the printed plane 6 mm above whatever the plate rests on - that offset belongs in plane_height.
+PLATE_MM = (800.0, 600.0, 6.0)
+OUTLINE_MM = np.array([[0, 0], [720, 0], [720, 540], [0, 540]], float)      # printed pattern, 12x9 squares of 60 mm
+PAPER_MM = np.array([[-40, -30], [760, -30], [760, 570], [-40, 570]], float)  # the plate edge, in pattern coordinates
+GRID_MM = np.array([[60, 60], [660, 60], [660, 480], [60, 480]], float)       # outer ring of the 88 chessboard corners
 RECT_SCALE = 2.0            # px per mm in the rectified view
 RECT_MARGIN = 40.0          # mm of surroundings kept around the outline
 
@@ -222,10 +229,14 @@ def find_grid_quads(gray, min_points=40, max_candidates=4):
     out.sort(key=lambda t: -t[0])
     return [q for _, q in out[:max_candidates]]
 
-def homographies_from_quad(quad, all_rotations=True):
-    """Board-mm -> px homographies for a quad. All four corner rotations are tried by default: under
-    strong foreshortening the board's 720 mm side can be the SHORTER one in the image, so picking the
-    long image side is not safe (it produced a 4:3-stretched rectification that decoded as nothing)."""
+def homographies_from_quad(quad, all_rotations=True, rect_mm=None):
+    """Board-mm -> px homographies for a quad. `rect_mm` says WHICH physical rectangle the quad is:
+    PAPER_MM for the white paper found by find_white_quads, GRID_MM for the corner-density cluster,
+    OUTLINE_MM (default) for the printed pattern. Using the wrong one scales the rectification by
+    11 % (paper) or 20 % (corner ring) and pushes the board off the rectified canvas.
+    All four corner rotations are tried by default: under strong foreshortening the board's 720 mm
+    side can be the SHORTER one in the image, so picking the long image side is not safe."""
+    rect_mm = OUTLINE_MM if rect_mm is None else rect_mm
     q = order_quad(quad)
     s01 = np.linalg.norm(q[1] - q[0]) + np.linalg.norm(q[3] - q[2]); s12 = np.linalg.norm(q[2] - q[1]) + np.linalg.norm(q[0] - q[3])
     if s01 < s12:                                          # long image side first - most likely, tried first
@@ -234,7 +245,7 @@ def homographies_from_quad(quad, all_rotations=True):
     out = []
     for r in rolls:
         qq = np.roll(q, r, axis=0)
-        H, _ = cv2.findHomography(OUTLINE_MM.reshape(-1, 1, 2).astype(np.float32), qq.reshape(-1, 1, 2).astype(np.float32), 0)
+        H, _ = cv2.findHomography(rect_mm.reshape(-1, 1, 2).astype(np.float32), qq.reshape(-1, 1, 2).astype(np.float32), 0)
         if H is not None:
             out.append(H)
     return out
@@ -404,27 +415,28 @@ def detect(gray, markers_min=12, quad_hint=None, area_hint=None):
         tried.append(f"markers({len(markers)})")
     if nc >= markers_min:
         return "charuco", px, ids, f"{len(markers)} markers, {nc} corners (rectified path did not add corners)", None, None, outline_of(px, ids)
-    if quad_hint is not None:
-        located = np.asarray(quad_hint, float)
-        for H in homographies_from_quad(quad_hint):
+    def outline_from(H):
+        return cv2.perspectiveTransform(OUTLINE_MM.reshape(-1, 1, 2), H).reshape(-1, 2)
+    if quad_hint is not None:                            # the operator clicks the PAPER edge
+        for j, H in enumerate(homographies_from_quad(quad_hint, rect_mm=PAPER_MM)):
+            if j == 0: located = outline_from(H)
             r = decode_rectified(gray, H, "manual quad")
             if r: return done(r)
         tried.append("manual quad")
-    gquads = find_grid_quads(gray, max_candidates=2)     # corner-density cluster: survives a broken white margin
+    gquads = find_grid_quads(gray, max_candidates=2)     # corner-density cluster ~ the outer ring of corners
     for k, q in enumerate(gquads):
-        if located is None and k == 0:
-            located = np.asarray(q, float)
-        for pad in (1.09,):                              # the cluster spans the INNER grid; 660x480 mm -> outline 720x540
-            for H in homographies_from_quad(q * pad - (pad - 1) * q.mean(0)):
-                r = decode_rectified(gray, H, f"grid cluster #{k + 1} of {len(gquads)} pad {pad}")
-                if r: return done(r)
+        for j, H in enumerate(homographies_from_quad(q, rect_mm=GRID_MM)):
+            if located is None and k == 0 and j == 0: located = outline_from(H)
+            r = decode_rectified(gray, H, f"grid cluster #{k + 1} of {len(gquads)}")
+            if r: return done(r)
     if gquads:
         tried.append(f"grid clusters({len(gquads)})")
     lo = (0.3 * area_hint) if area_hint else 1500
     hi = (4.0 * area_hint) if area_hint else None
-    quads = find_white_quads(gray, min_area=lo, max_area=hi)
+    quads = find_white_quads(gray, min_area=lo, max_area=hi)   # the white PAPER, 800x600 mm
     for k, q in enumerate(quads):
-        for H in homographies_from_quad(q):
+        for j, H in enumerate(homographies_from_quad(q, rect_mm=PAPER_MM)):
+            if located is None and k == 0 and j == 0: located = outline_from(H)
             r = decode_rectified(gray, H, f"white quad #{k + 1} of {len(quads)}")
             if r: return done(r)
     if quads:

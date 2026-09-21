@@ -17,6 +17,21 @@ Outputs live in `E:\calibration\qc\` on the field PC (a session other than 2026-
 subfolder, `--session <dir|YYYY-MM-DD>` on every script); the session summaries are copied here as
 `session_<date>_*.{txt,csv}`.
 
+## The physical board (operator spec, 2026-09-21)
+
+Aluminium composite plate **800 x 600 x 6 mm**, checker 60 mm, marker 45 mm, 9 rows x 12 columns,
+DICT_5X5_100. So the printed pattern is 720 x 540 mm centred on the plate: margin 40 mm along the
+long axis, 30 mm along the short one, and the 88 inner corners span 60..660 x 60..480 mm. The three
+rectangles are `OUTLINE_MM` / `PAPER_MM` / `GRID_MM` in `board_detect.py`; a localiser must be told
+which one its quad is, or the rectification is off by 11 % (plate taken for pattern) or 20 %
+(corner ring taken for pattern). **The 6 mm thickness puts the printed plane 6 mm above whatever the
+plate rests on** - that offset, plus the grass under it, is what `plane_height` has to carry.
+
+A board that is located but not decoded still calibrates: the station grid plus the operator's
+timeline already fix where the plate is on the ground, so its four outline corners are four
+correspondences with known field coordinates. They are support points, not test points - corner
+accuracy is a few px at the far field, and their field coordinates assume the placement was exact.
+
 ## Workflow - the operator is a required stage, not a fallback
 
 Detection follows the project skill `/detect-then-decode`
