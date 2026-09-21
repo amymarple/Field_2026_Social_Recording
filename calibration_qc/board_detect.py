@@ -450,12 +450,15 @@ def detect(gray, markers_min=12, quad_hint=None, area_hint=None):
         return "located", np.zeros((0, 2)), np.zeros(0, int), "BOARD LOCATED, GRID NOT DECODED - " + note, None, None, located
     return None, px, ids, note, None, None, None
 
-def plausible_board_quad(gray, quad, min_side=20, aspect=(1.05, 5.0), min_bright=6.0):
+def plausible_board_quad(gray, quad, min_side=20, aspect=(1.05, 5.0), min_bright=6.0, border=4):
     """Cheap sanity check on a 'located but not decoded' quad: board-like shape, and brighter inside than
     around it (the board is white paper). Keeps grass texture and dark clutter out; a white house corner
     can still pass, which is why 'located' is review-only and never counts as a measurement."""
     q = np.asarray(quad, float)
     if q.shape != (4, 2) or not np.isfinite(q).all():
+        return False
+    H0, W0 = gray.shape                       # a plate clipped by the frame edge is not an 800x600 rectangle
+    if q[:, 0].min() < border or q[:, 1].min() < border or q[:, 0].max() > W0 - 1 - border or q[:, 1].max() > H0 - 1 - border:
         return False
     sides = [float(np.linalg.norm(q[(i + 1) % 4] - q[i])) for i in range(4)]
     if min(sides) < min_side:
