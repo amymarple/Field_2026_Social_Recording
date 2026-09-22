@@ -68,6 +68,20 @@ for j in jobs:
         summary.append((j["cam"], j["station"], f"operator REJECTED the machine box - {n_del} cached frames removed")); continue
     if j.get("skip") or not j.get("quad"):
         summary.append((j["cam"], j["station"], "operator: board not visible")); continue
+    # operator re-clicked this window: its 'located' frames were the machine's own outline and are now
+    # superseded, so drop them before re-decoding. Decoded frames (real corner measurements) are kept -
+    # use 'r' in the GUI to remove those too.
+    wa, wb = [datetime.strptime(f"{DATE} {x}", "%Y-%m-%d %H:%M:%S") for x in j["win"]]
+    n_sup = 0
+    for p in sorted((QC / "corners" / j["cam"]).glob("*.npz")):
+        with np.load(p, allow_pickle=False) as z:
+            if "method" not in z.files or str(z["method"]) != "located":
+                continue
+            seg0 = str(z["seg"]); tr = float(z["t_rel"])
+        m0 = re.search(r"_(\d{4}-\d{2}-\d{2})_(\d\d)-(\d\d)-(\d\d)_to_", seg0)
+        t0 = datetime.strptime(f"{m0.group(1)} {m0.group(2)}:{m0.group(3)}:{m0.group(4)}", "%Y-%m-%d %H:%M:%S") + timedelta(seconds=tr)
+        if wa <= t0 <= wb:
+            p.unlink(); n_sup += 1
     cam, st, pano = j["cam"], j["station"], j.get("pano", j["cam"] in ("CH01", "CH02"))
     a, b = [datetime.strptime(f"{DATE} {x}", "%Y-%m-%d %H:%M:%S") for x in j["win"]]
     quad = to_stored(cam, j["quad"], j["off"], j.get("scale", 1.0), pano)
@@ -129,7 +143,8 @@ for j in jobs:
                     cone_corner.setdefault(cam, {})[f"{st}@{j['win'][0]}"] = {"corner_mm": bd.OUTLINE_MM[k].tolist(),
                                                                              "dist_px": float(np.linalg.norm(ol[k] - hint[0]))}
     proc.wait(); th.join(timeout=2)
-    line = (cam, st, f"{j['win'][0]}-{j['win'][1]}: tried {n} frames, saved {saved} (best {best} corners) {notes} {time.time()-t0:.0f}s")
+    line = (cam, st, f"{j['win'][0]}-{j['win'][1]}: tried {n} frames, saved {saved} (best {best} corners) {notes}"
+                     + (f", superseded {n_sup} machine outlines" if n_sup else "") + f" {time.time()-t0:.0f}s")
     summary.append(line); print(*line, flush=True)
 cc_path.write_text(json.dumps(cone_corner, indent=1), encoding="utf-8")
 print("\n=== manual summary ===")
