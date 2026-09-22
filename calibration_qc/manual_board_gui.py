@@ -35,6 +35,7 @@ def opt(name, default=None):
 CAMS = opt("--cams", "CH01,CH02,CH03,CH04,CH05,CH06").split(",")
 MODE = opt("--mode", "missing")
 MIN_FRAMES = int(opt("--min-frames", "1"))
+REUSE = "--reuse-frames" in args          # rebuild the page from the frames already on disk (seconds, not minutes)
 OUT = QC / "manual"; OUT.mkdir(parents=True, exist_ok=True)
 TRAIN_X = [24, 96, 168, 240, 312, 384, 456]; TRAIN_Y = [12, 66, 120, 174, 228]
 VT_X = [60, 132, 204, 276, 348, 420]; VT_Y = [39, 93, 147, 201]
@@ -102,6 +103,12 @@ def seg_for(cam, t):
     return None, None
 
 jobs = []
+old_jobs = {}
+if (OUT / "jobs.json").exists():
+    try:
+        old_jobs = {j["file"]: j for j in json.loads((OUT / "jobs.json").read_text(encoding="utf-8"))}
+    except Exception:
+        old_jobs = {}
 for cam in CAMS:
     pano = cam in ("CH01", "CH02")
     cones = cone_map(cam) if pano else {}
@@ -118,6 +125,20 @@ for cam in CAMS:
         seg, seg_start = seg_for(cam, mid)
         if seg is None:
             continue
+        name = f"{cam}_{st}_{mid.strftime('%H%M%S')}.jpg"
+        machine = None
+        if best is not None and best[3] is not None:                       # machine outline, stored -> upright
+            q = best[3]
+            machine = np.stack([q[:, 1], (SW - 1) - q[:, 0]], 1) if pano else q
+        prev = old_jobs.get(name)
+        if REUSE and prev is not None and (OUT / name).exists():           # rebuild the page, no re-decoding
+            j2 = dict(prev)
+            disp = None if machine is None else ((machine - np.array(prev["off"], float)) * prev["scale"])
+            j2.update(machine=None if disp is None else np.round(disp, 1).tolist(),
+                      machine_method=None if best is None else best[2],
+                      machine_corners=None if best is None else int(best[1]))
+            jobs.append(j2); print(f"{cam} {st:6s} reuse {name}" + (f"  [machine {best[2]} {best[1]}c]" if machine is not None else ""), flush=True)
+            continue
         w, h = [int(v) for v in subprocess.check_output([FFPROBE, "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height",
                                                          "-of", "csv=p=0", str(seg)]).decode().strip().split(",")[:2]]
         raw = subprocess.run([FFMPEG, "-v", "error", "-ss", f"{(mid - seg_start).total_seconds():.2f}", "-i", str(seg), "-frames:v", "1",
@@ -127,10 +148,6 @@ for cam in CAMS:
             continue
         img = np.frombuffer(raw, np.uint8).reshape(H, W, 3).copy()
         x0 = y0 = 0
-        machine = None
-        if best is not None and best[3] is not None:                       # machine outline, stored -> upright
-            q = best[3]
-            machine = np.stack([q[:, 1], (SW - 1) - q[:, 0]], 1) if pano else q
         if pano:
             c, how = expected_upright(cones, st)
             if machine is not None:
@@ -143,15 +160,14 @@ for cam in CAMS:
             if x1 - x0 < 50 or y1 - y0 < 50:          # predicted position outside this camera's frame
                 print(f"{cam} {st:6s} predicted outside the frame ({c.round().tolist()}), skipped", flush=True)
                 continue
-            for name, p in cones.items():                                   # cone labels inside the crop
+            for cname, p in cones.items():                                  # cone labels inside the crop
                 if x0 <= p[0] <= x1 and y0 <= p[1] <= y1:
                     cv2.circle(img, tuple(int(v) for v in p), 10, (0, 255, 255), 2)
-                    cv2.putText(img, name, (int(p[0]) + 12, int(p[1]) - 8), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
+                    cv2.putText(img, cname, (int(p[0]) + 12, int(p[1]) - 8), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
             img = img[y0:y1, x0:x1]
         scale = 1.0
         if max(img.shape[:2]) > 1400:
             scale = 1400 / max(img.shape[:2]); img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
-        name = f"{cam}_{st}_{mid.strftime('%H%M%S')}.jpg"
         cv2.imwrite(str(OUT / name), img, [cv2.IMWRITE_JPEG_QUALITY, 90])
         disp = None if machine is None else ((machine - [x0, y0]) * scale)
         jobs.append(dict(file=name, cam=cam, station=st, clock=mid.strftime("%H:%M:%S"),
@@ -176,7 +192,8 @@ html = r"""<!doctype html><html><head><meta charset="utf-8"><title>Manual board 
  <span>clicks: <b id="nclick">0</b>/4</span>
  <button onclick="accept()" style="background:#286">accept machine box (a)</button>
  <button onclick="reject()" style="background:#833">machine box is WRONG (r)</button>
- <button onclick="undo()">undo click (u)</button><button onclick="clearPts()">clear (c)</button>
+ <button onclick="undo()">undo (u)</button><button onclick="clearPts()">clear (c)</button>
+ <span style="opacity:.75">drag a point to adjust | 1-4 selects | shift+arrows nudge 1 px</span>
  <button onclick="prev()">&lt; prev</button><button onclick="next()">next &gt;</button>
  <button onclick="skipIt()" style="background:#833">board not visible (s)</button>
  <button onclick="exportJson()" style="background:#3c3;font-weight:bold">Export manual_quads.json</button>
@@ -200,19 +217,41 @@ function draw(){ctx.drawImage(img,0,0);const j=JOBS[i];
     ctx.closePath();ctx.stroke();ctx.fillStyle='#ff8000';ctx.font='bold 15px sans-serif';
     ctx.fillText('machine',j.machine[0][0]+8,j.machine[0][1]-8);}
   ctx.lineWidth=2;
-  pts.forEach((p,k)=>{ctx.strokeStyle=k===0?'#f0f':'#0f0';ctx.beginPath();ctx.arc(p[0],p[1],7,0,7);ctx.stroke();
-    ctx.fillStyle=k===0?'#f0f':'#0f0';ctx.font='bold 16px sans-serif';ctx.fillText(k===0?'cone':(k+1),p[0]+9,p[1]-6);});
+  pts.forEach((p,k)=>{const sel=(k===last);ctx.strokeStyle=k===0?'#f0f':'#0f0';ctx.lineWidth=sel?3:2;
+    ctx.beginPath();ctx.arc(p[0],p[1],sel?9:7,0,7);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(p[0]-12,p[1]);ctx.lineTo(p[0]+12,p[1]);ctx.moveTo(p[0],p[1]-12);ctx.lineTo(p[0],p[1]+12);ctx.stroke();
+    ctx.fillStyle=k===0?'#f0f':'#0f0';ctx.font='bold 16px sans-serif';ctx.fillText(k===0?'cone':(k+1),p[0]+11,p[1]-8);});
+  ctx.lineWidth=2;
   if(pts.length>1){ctx.strokeStyle='#f0f';ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);
     for(let k=1;k<pts.length;k++)ctx.lineTo(pts[k][0],pts[k][1]);if(pts.length===4)ctx.closePath();ctx.stroke();}
+  if(hover){                                                      // magnifier: 4x view of a 50 px box
+    const Z=4,S=50,D=S*Z,mx=(hover[0]<cv.width/2)?cv.width-D-10:10,my=10;
+    ctx.save();ctx.beginPath();ctx.rect(mx,my,D,D);ctx.clip();
+    ctx.imageSmoothingEnabled=false;
+    ctx.drawImage(img,hover[0]-S/2,hover[1]-S/2,S,S,mx,my,D,D);
+    ctx.strokeStyle='#0f0';ctx.lineWidth=1;
+    pts.forEach((p,k)=>{const zx=mx+(p[0]-hover[0]+S/2)*Z,zy=my+(p[1]-hover[1]+S/2)*Z;
+      ctx.strokeStyle=k===0?'#f0f':'#0f0';ctx.beginPath();ctx.arc(zx,zy,6,0,7);ctx.stroke();});
+    ctx.strokeStyle='#ff0';ctx.beginPath();ctx.moveTo(mx+D/2-14,my+D/2);ctx.lineTo(mx+D/2+14,my+D/2);
+    ctx.moveTo(mx+D/2,my+D/2-14);ctx.lineTo(mx+D/2,my+D/2+14);ctx.stroke();
+    ctx.restore();ctx.strokeStyle='#888';ctx.lineWidth=2;ctx.strokeRect(mx,my,D,D);}
   $('nclick').textContent=pts.length;}
 function accept(){const j=JOBS[i];if(!j.machine){alert('no machine box on this frame - click the four corners');return;}
   quads[j.file]={pts:[],skip:false,verdict:'accept'};render();next();}
 function reject(){quads[JOBS[i].file]={pts:[],skip:false,verdict:'reject'};render();next();}
-cv.addEventListener('click',e=>{const r=cv.getBoundingClientRect();const sx=cv.width/r.width;
-  if(pts.length>=4)return;pts.push([(e.clientX-r.left)*sx,(e.clientY-r.top)*sx]);
-  if(pts.length===4){quads[JOBS[i].file]={pts:pts.slice(),skip:false,verdict:'operator'};render();}
-  draw();});
-function undo(){pts.pop();delete quads[JOBS[i].file];draw();render();}
+let drag=-1, last=-1, hover=null;
+function toCv(e){const r=cv.getBoundingClientRect();
+  return [(e.clientX-r.left)*cv.width/r.width,(e.clientY-r.top)*cv.height/r.height];}
+function nearestPt(p){let bi=-1,bd=1e9;pts.forEach((q,k)=>{const d=Math.hypot(q[0]-p[0],q[1]-p[1]);if(d<bd){bd=d;bi=k;}});return [bi,bd];}
+function commit(){if(pts.length===4)quads[JOBS[i].file]={pts:pts.slice(),skip:false,verdict:'operator'};}
+cv.addEventListener('mousedown',e=>{const p=toCv(e);const [k,d]=nearestPt(p);
+  if(pts.length&&d<=14){drag=k;last=k;draw();return;}                       // grab an existing point
+  if(pts.length<4){pts.push(p);last=pts.length-1;commit();render();draw();}});
+cv.addEventListener('mousemove',e=>{hover=toCv(e);if(drag>=0){pts[drag]=hover;commit();}draw();});
+cv.addEventListener('mouseleave',()=>{hover=null;draw();});
+window.addEventListener('mouseup',()=>{if(drag>=0){drag=-1;render();}});
+function nudge(dx,dy){if(last<0||!pts[last])return;pts[last][0]+=dx;pts[last][1]+=dy;commit();draw();render();}
+function undo(){pts.pop();last=pts.length-1;delete quads[JOBS[i].file];draw();render();}
 function clearPts(){pts=[];delete quads[JOBS[i].file];draw();render();}
 function skipIt(){quads[JOBS[i].file]={pts:[],skip:true,verdict:'not visible'};render();next();}
 function next(){if(i<JOBS.length-1){i++;load();}}
@@ -226,11 +265,18 @@ function exportJson(){const out=JOBS.filter(j=>quads[j.file]).map(j=>Object.assi
   {quad:quads[j.file].pts,skip:quads[j.file].skip,verdict:quads[j.file].verdict||'operator'}));
   const a=document.createElement('a');a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(out,null,1));
   a.download='manual_quads.json';a.click();}
-document.addEventListener('keydown',e=>{if(e.key==='u')undo();else if(e.key==='c')clearPts();else if(e.key==='s')skipIt();
+document.addEventListener('keydown',e=>{
+  const step=e.shiftKey?1:0;
+  if(step&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){          // shift+arrows nudge 1 px
+    nudge(e.key==='ArrowLeft'?-1:e.key==='ArrowRight'?1:0, e.key==='ArrowUp'?-1:e.key==='ArrowDown'?1:0);
+    e.preventDefault();return;}
+  if(e.key==='u')undo();else if(e.key==='c')clearPts();else if(e.key==='s')skipIt();
   else if(e.key==='a')accept();else if(e.key==='r')reject();
+  else if(e.key>='1'&&e.key<='4'){last=+e.key-1;draw();}
   else if(e.key==='ArrowRight')next();else if(e.key==='ArrowLeft')prev();});
 try{const s=localStorage.getItem('manual_quads___DATE__');if(s)Object.assign(quads,JSON.parse(s));}catch(e){}
 load();
 </script></body></html>"""
+(OUT / "jobs.json").write_text(json.dumps(jobs, indent=1), encoding="utf-8")
 (OUT / "manual_board_gui.html").write_text(html.replace("__JOBS__", json.dumps(jobs)).replace("__DATE__", DATE), encoding="utf-8")
 print(f"\n{len(jobs)} frames to click -> {OUT / 'manual_board_gui.html'}")
