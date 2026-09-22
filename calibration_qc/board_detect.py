@@ -423,6 +423,16 @@ def detect(gray, markers_min=12, quad_hint=None, area_hint=None):
             r = decode_rectified(gray, H, "manual quad")
             if r: return done(r)
         tried.append("manual quad")
+        # The operator has already said where the plate is; the blind searches below would only look
+        # for it somewhere else, at 10-30 s per frame. Fall straight through to the last two options.
+        res = chessboard_detect(gray, markers)
+        if res is not None:
+            px2, ids2, note2 = res
+            return "chessboard", px2, ids2, note2 + f" ({len(markers)} markers decoded)", None, None, outline_of(px2, ids2)
+        note = f"only {nc} corners, {len(markers)} markers; tried " + ", ".join(tried)
+        if located is not None and plausible_board_quad(gray, located):
+            return "located", np.zeros((0, 2)), np.zeros(0, int), "BOARD LOCATED, GRID NOT DECODED - " + note, None, None, located
+        return None, px, ids, note, None, None, None
     gquads = find_grid_quads(gray, max_candidates=2)     # corner-density cluster ~ the outer ring of corners
     for k, q in enumerate(gquads):
         for j, H in enumerate(homographies_from_quad(q, rect_mm=GRID_MM)):
