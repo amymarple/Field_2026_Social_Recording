@@ -178,7 +178,7 @@ html = r"""<!doctype html><html><head><meta charset="utf-8"><title>Manual board 
  <button onclick="prev()">&lt; prev</button><button onclick="next()">next &gt;</button>
  <button onclick="skipIt()" style="background:#833">board not visible (s)</button>
  <button onclick="exportJson()" style="background:#3c3;font-weight:bold">Export manual_quads.json</button>
- <span style="opacity:.75">click order: the corner ON THE PLATE that sits on the cone first, then along the LONG edge, then the diagonal, then back. Orange = what the machine found.</span>
+ <span style="opacity:.75">click the PLATE EDGE (the whole 800x600 aluminium plate, white border included, TOP surface - not the printed pattern: two of its four corners are white-on-white and invisible). Order: the plate corner next to the cone first, then along the LONG edge, then the diagonal, then back. Orange = what the machine found.</span>
 </div>
 <div id="wrap"><canvas id="cv"></canvas></div>
 <div id="list"></div>
