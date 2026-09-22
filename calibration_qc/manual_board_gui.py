@@ -36,6 +36,11 @@ CAMS = opt("--cams", "CH01,CH02,CH03,CH04,CH05,CH06").split(",")
 MODE = opt("--mode", "missing")
 MIN_FRAMES = int(opt("--min-frames", "1"))
 REUSE = "--reuse-frames" in args          # rebuild the page from the frames already on disk (seconds, not minutes)
+CROP = "--crop" in args                   # old behaviour: cut a window around where the board is expected.
+                                          # Default is the WHOLE frame: a crop centred on a false positive hides
+                                          # the real board and invites the operator to confirm the wrong object
+                                          # (operator, 2026-09-22). The page zooms and pans instead.
+MAXW = int(opt("--max-width", "3840"))
 OUT = QC / "manual"; OUT.mkdir(parents=True, exist_ok=True)
 TRAIN_X = [24, 96, 168, 240, 312, 384, 456]; TRAIN_Y = [12, 66, 120, 174, 228]
 VT_X = [60, 132, 204, 276, 348, 420]; VT_Y = [39, 93, 147, 201]
@@ -120,8 +125,11 @@ for cam in CAMS:
             continue
         if MODE == "located" and decoded:
             continue
-        best = max(inwin, key=lambda r: (r[1], r[3] is not None)) if inwin else None
-        mid = best[0] if (best and best[3] is not None) else a + (b - a) / 2
+        # Take a frame from the LATE part of the window: the operator may still be walking in front of
+        # the plate at the start, and the plate does not move within a window (operator, 2026-09-22).
+        withq = [r for r in inwin if r[3] is not None]
+        best = withq[-1] if withq else (max(inwin, key=lambda r: r[1]) if inwin else None)
+        mid = best[0] if (best and best[3] is not None) else a + 0.8 * (b - a)
         seg, seg_start = seg_for(cam, mid)
         if seg is None:
             continue
@@ -149,6 +157,13 @@ for cam in CAMS:
         img = np.frombuffer(raw, np.uint8).reshape(H, W, 3).copy()
         x0 = y0 = 0
         if pano:
+            for cname, p in cones.items():                                  # every labelled cone, for orientation
+                cv2.circle(img, tuple(int(v) for v in p), 10, (0, 255, 255), 2)
+                cv2.putText(img, cname, (int(p[0]) + 12, int(p[1]) - 8), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
+            if st in cones:                                                 # this window's own cone, emphasised
+                p = cones[st]
+                cv2.circle(img, tuple(int(v) for v in p), 26, (0, 200, 255), 4)
+        if CROP and pano:
             c, how = expected_upright(cones, st)
             if machine is not None:
                 c, how = machine.mean(0), "machine outline"
@@ -160,14 +175,10 @@ for cam in CAMS:
             if x1 - x0 < 50 or y1 - y0 < 50:          # predicted position outside this camera's frame
                 print(f"{cam} {st:6s} predicted outside the frame ({c.round().tolist()}), skipped", flush=True)
                 continue
-            for cname, p in cones.items():                                  # cone labels inside the crop
-                if x0 <= p[0] <= x1 and y0 <= p[1] <= y1:
-                    cv2.circle(img, tuple(int(v) for v in p), 10, (0, 255, 255), 2)
-                    cv2.putText(img, cname, (int(p[0]) + 12, int(p[1]) - 8), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
             img = img[y0:y1, x0:x1]
         scale = 1.0
-        if max(img.shape[:2]) > 1400:
-            scale = 1400 / max(img.shape[:2]); img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+        if img.shape[1] > MAXW:
+            scale = MAXW / img.shape[1]; img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
         cv2.imwrite(str(OUT / name), img, [cv2.IMWRITE_JPEG_QUALITY, 90])
         disp = None if machine is None else ((machine - [x0, y0]) * scale)
         jobs.append(dict(file=name, cam=cam, station=st, clock=mid.strftime("%H:%M:%S"),
@@ -184,7 +195,7 @@ html = r"""<!doctype html><html><head><meta charset="utf-8"><title>Manual board 
  body{margin:0;background:#1b1b1b;color:#eee;font-family:Arial,sans-serif;font-size:14px}
  #bar{position:sticky;top:0;background:#2a2a2a;padding:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;z-index:5}
  button{font-size:14px;padding:4px 10px} #wrap{position:relative;display:inline-block;margin:8px}
- canvas{cursor:crosshair;max-width:100%} #list{padding:8px;font:12px monospace} b{color:#ff0}
+ canvas{cursor:crosshair;max-width:100%;background:#000} #list{padding:8px;font:12px monospace} b{color:#ff0}
  .done{color:#3c3} .skip{color:#f66}
 </style></head><body>
 <div id="bar">
@@ -193,49 +204,68 @@ html = r"""<!doctype html><html><head><meta charset="utf-8"><title>Manual board 
  <button onclick="accept()" style="background:#286">accept machine box (a)</button>
  <button onclick="reject()" style="background:#833">machine box is WRONG (r)</button>
  <button onclick="undo()">undo (u)</button><button onclick="clearPts()">clear (c)</button>
- <span style="opacity:.75">drag a point to adjust | 1-4 selects | shift+arrows nudge 1 px</span>
+ <button onclick="fitView();draw()">fit (f)</button><button onclick="zoomTo(JOBS[i].machine||pts,3)">zoom to box (z)</button>
+ <span>zoom <b id="zoom">1.00x</b></span>
+ <span style="opacity:.75">wheel = zoom, right-drag = pan | drag a point to adjust | 1-4 selects | shift+arrows nudge 1 px</span>
  <button onclick="prev()">&lt; prev</button><button onclick="next()">next &gt;</button>
  <button onclick="skipIt()" style="background:#833">board not visible (s)</button>
  <button onclick="exportJson()" style="background:#3c3;font-weight:bold">Export manual_quads.json</button>
  <span style="opacity:.75">click the PLATE EDGE (the whole 800x600 aluminium plate, white border included, TOP surface - not the printed pattern: two of its four corners are white-on-white and invisible). Order: the plate corner next to the cone first, then along the LONG edge, then the diagonal, then back. Orange = what the machine found.</span>
 </div>
-<div id="wrap"><canvas id="cv"></canvas></div>
+<div id="wrap"><canvas id="cv" width="1850" height="820"></canvas></div>
 <div id="list"></div>
 <script>
 const JOBS=__JOBS__; const quads={}; let i=0, pts=[];
 const $=id=>document.getElementById(id), cv=$('cv'), ctx=cv.getContext('2d');
 let img=new Image();
-function load(){const j=JOBS[i];img=new Image();img.onload=()=>{cv.width=img.width;cv.height=img.height;draw();};img.src=j.file;
+// The canvas is a VIEWPORT onto the full frame: view.z scales, view.ox/oy translate. Points are stored
+// in image pixels, so zooming and panning never change what gets exported.
+let view={z:1,ox:0,oy:0};
+function fitView(){if(!img.width)return;view.z=Math.min(cv.width/img.width,cv.height/img.height);
+  view.ox=(cv.width-img.width*view.z)/2;view.oy=(cv.height-img.height*view.z)/2;}
+function zoomTo(box,pad){if(!box)return;const xs=box.map(p=>p[0]),ys=box.map(p=>p[1]);
+  const w=Math.max(20,Math.max(...xs)-Math.min(...xs))*pad,h=Math.max(20,Math.max(...ys)-Math.min(...ys))*pad;
+  view.z=Math.min(cv.width/w,cv.height/h,12);
+  view.ox=cv.width/2-(Math.min(...xs)+Math.max(...xs))/2*view.z;
+  view.oy=cv.height/2-(Math.min(...ys)+Math.max(...ys))/2*view.z;draw();}
+function toImg(e){const r=cv.getBoundingClientRect();
+  const cx=(e.clientX-r.left)*cv.width/r.width, cy=(e.clientY-r.top)*cv.height/r.height;
+  return [(cx-view.ox)/view.z,(cy-view.oy)/view.z];}
+function load(){const j=JOBS[i];img=new Image();img.onload=()=>{fitView();draw();};img.src=j.file;
   pts=(quads[j.file]&&quads[j.file].pts)?quads[j.file].pts.slice():[];
   $('idx').textContent=i+1;$('tot').textContent=JOBS.length;
   $('what').textContent=`${j.cam} ${j.station}  window ${j.win[0]}-${j.win[1]}  frame ${j.clock}`
     + (j.machine?`  |  machine: ${j.machine_method} ${j.machine_corners}c`:'  |  machine: nothing');
   render();}
-function draw(){ctx.drawImage(img,0,0);const j=JOBS[i];
-  if(j.machine){ctx.lineWidth=3;ctx.strokeStyle='#ff8000';ctx.beginPath();
-    ctx.moveTo(j.machine[0][0],j.machine[0][1]);for(let k=1;k<4;k++)ctx.lineTo(j.machine[k][0],j.machine[k][1]);
+function draw(){const j=JOBS[i],S2I=(p)=>[p[0]*view.z+view.ox,p[1]*view.z+view.oy];
+  ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#000';ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.imageSmoothingEnabled=view.z<1;
+  ctx.drawImage(img,view.ox,view.oy,img.width*view.z,img.height*view.z);
+  if(j.machine){const m=j.machine.map(S2I);ctx.lineWidth=3;ctx.strokeStyle='#ff8000';ctx.beginPath();
+    ctx.moveTo(m[0][0],m[0][1]);for(let k=1;k<4;k++)ctx.lineTo(m[k][0],m[k][1]);
     ctx.closePath();ctx.stroke();ctx.fillStyle='#ff8000';ctx.font='bold 15px sans-serif';
-    ctx.fillText('machine',j.machine[0][0]+8,j.machine[0][1]-8);}
-  ctx.lineWidth=2;
-  pts.forEach((p,k)=>{const sel=(k===last);ctx.strokeStyle=k===0?'#f0f':'#0f0';ctx.lineWidth=sel?3:2;
+    ctx.fillText('machine',m[0][0]+8,m[0][1]-8);}
+  pts.forEach((p0,k)=>{const p=S2I(p0),sel=(k===last);ctx.strokeStyle=k===0?'#f0f':'#0f0';ctx.lineWidth=sel?3:2;
     ctx.beginPath();ctx.arc(p[0],p[1],sel?9:7,0,7);ctx.stroke();
     ctx.beginPath();ctx.moveTo(p[0]-12,p[1]);ctx.lineTo(p[0]+12,p[1]);ctx.moveTo(p[0],p[1]-12);ctx.lineTo(p[0],p[1]+12);ctx.stroke();
     ctx.fillStyle=k===0?'#f0f':'#0f0';ctx.font='bold 16px sans-serif';ctx.fillText(k===0?'cone':(k+1),p[0]+11,p[1]-8);});
   ctx.lineWidth=2;
-  if(pts.length>1){ctx.strokeStyle='#f0f';ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);
-    for(let k=1;k<pts.length;k++)ctx.lineTo(pts[k][0],pts[k][1]);if(pts.length===4)ctx.closePath();ctx.stroke();}
-  if(hover){                                                      // magnifier: 4x view of a 50 px box
-    const Z=4,S=50,D=S*Z,mx=(hover[0]<cv.width/2)?cv.width-D-10:10,my=10;
+  if(pts.length>1){const q=pts.map(S2I);ctx.strokeStyle='#f0f';ctx.beginPath();ctx.moveTo(q[0][0],q[0][1]);
+    for(let k=1;k<q.length;k++)ctx.lineTo(q[k][0],q[k][1]);if(q.length===4)ctx.closePath();ctx.stroke();}
+  if(hover){                                                      // magnifier: 6x image pixels around the cursor
+    const Z=6,S=46,D=S*Z,hs=S2I(hover),mx=(hs[0]<cv.width/2)?cv.width-D-10:10,my=10;
     ctx.save();ctx.beginPath();ctx.rect(mx,my,D,D);ctx.clip();
     ctx.imageSmoothingEnabled=false;
     ctx.drawImage(img,hover[0]-S/2,hover[1]-S/2,S,S,mx,my,D,D);
-    ctx.strokeStyle='#0f0';ctx.lineWidth=1;
     pts.forEach((p,k)=>{const zx=mx+(p[0]-hover[0]+S/2)*Z,zy=my+(p[1]-hover[1]+S/2)*Z;
-      ctx.strokeStyle=k===0?'#f0f':'#0f0';ctx.beginPath();ctx.arc(zx,zy,6,0,7);ctx.stroke();});
-    ctx.strokeStyle='#ff0';ctx.beginPath();ctx.moveTo(mx+D/2-14,my+D/2);ctx.lineTo(mx+D/2+14,my+D/2);
-    ctx.moveTo(mx+D/2,my+D/2-14);ctx.lineTo(mx+D/2,my+D/2+14);ctx.stroke();
+      ctx.strokeStyle=k===0?'#f0f':'#0f0';ctx.lineWidth=2;ctx.beginPath();ctx.arc(zx,zy,7,0,7);ctx.stroke();});
+    if(j.machine){const m=j.machine.map(p=>[mx+(p[0]-hover[0]+S/2)*Z,my+(p[1]-hover[1]+S/2)*Z]);
+      ctx.strokeStyle='#ff8000';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(m[0][0],m[0][1]);
+      for(let k=1;k<4;k++)ctx.lineTo(m[k][0],m[k][1]);ctx.closePath();ctx.stroke();}
+    ctx.strokeStyle='#ff0';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(mx+D/2-16,my+D/2);ctx.lineTo(mx+D/2+16,my+D/2);
+    ctx.moveTo(mx+D/2,my+D/2-16);ctx.lineTo(mx+D/2,my+D/2+16);ctx.stroke();
     ctx.restore();ctx.strokeStyle='#888';ctx.lineWidth=2;ctx.strokeRect(mx,my,D,D);}
-  $('nclick').textContent=pts.length;}
+  $('nclick').textContent=pts.length;$('zoom').textContent=view.z.toFixed(2)+'x';}
 function accept(){const j=JOBS[i];if(!j.machine){alert('no machine box on this frame - click the four corners');return;}
   quads[j.file]={pts:[],skip:false,verdict:'accept'};render();next();}
 function reject(){quads[JOBS[i].file]={pts:[],skip:false,verdict:'reject'};render();next();}
@@ -244,12 +274,24 @@ function toCv(e){const r=cv.getBoundingClientRect();
   return [(e.clientX-r.left)*cv.width/r.width,(e.clientY-r.top)*cv.height/r.height];}
 function nearestPt(p){let bi=-1,bd=1e9;pts.forEach((q,k)=>{const d=Math.hypot(q[0]-p[0],q[1]-p[1]);if(d<bd){bd=d;bi=k;}});return [bi,bd];}
 function commit(){if(pts.length===4)quads[JOBS[i].file]={pts:pts.slice(),skip:false,verdict:'operator'};}
-cv.addEventListener('mousedown',e=>{const p=toCv(e);const [k,d]=nearestPt(p);
-  if(pts.length&&d<=14){drag=k;last=k;draw();return;}                       // grab an existing point
+let pan=null;
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+cv.addEventListener('mousedown',e=>{
+  if(e.button===2||e.button===1){const r=cv.getBoundingClientRect();
+    pan={x:(e.clientX-r.left)*cv.width/r.width-view.ox,y:(e.clientY-r.top)*cv.height/r.height-view.oy};e.preventDefault();return;}
+  const p=toImg(e);const [k,d]=nearestPt(p);
+  if(pts.length&&d*view.z<=14){drag=k;last=k;draw();return;}                 // grab an existing point
   if(pts.length<4){pts.push(p);last=pts.length-1;commit();render();draw();}});
-cv.addEventListener('mousemove',e=>{hover=toCv(e);if(drag>=0){pts[drag]=hover;commit();}draw();});
-cv.addEventListener('mouseleave',()=>{hover=null;draw();});
-window.addEventListener('mouseup',()=>{if(drag>=0){drag=-1;render();}});
+cv.addEventListener('mousemove',e=>{
+  if(pan){const r=cv.getBoundingClientRect();
+    view.ox=(e.clientX-r.left)*cv.width/r.width-pan.x;view.oy=(e.clientY-r.top)*cv.height/r.height-pan.y;draw();return;}
+  hover=toImg(e);if(drag>=0){pts[drag]=hover;commit();}draw();});
+cv.addEventListener('mouseleave',()=>{hover=null;pan=null;draw();});
+cv.addEventListener('wheel',e=>{e.preventDefault();const r=cv.getBoundingClientRect();
+  const cx=(e.clientX-r.left)*cv.width/r.width, cy=(e.clientY-r.top)*cv.height/r.height;
+  const k=e.deltaY<0?1.25:0.8, nz=Math.max(0.05,Math.min(20,view.z*k));
+  view.ox=cx-(cx-view.ox)*nz/view.z;view.oy=cy-(cy-view.oy)*nz/view.z;view.z=nz;draw();},{passive:false});
+window.addEventListener('mouseup',()=>{pan=null;if(drag>=0){drag=-1;render();}});
 function nudge(dx,dy){if(last<0||!pts[last])return;pts[last][0]+=dx;pts[last][1]+=dy;commit();draw();render();}
 function undo(){pts.pop();last=pts.length-1;delete quads[JOBS[i].file];draw();render();}
 function clearPts(){pts=[];delete quads[JOBS[i].file];draw();render();}
@@ -273,6 +315,8 @@ document.addEventListener('keydown',e=>{
   if(e.key==='u')undo();else if(e.key==='c')clearPts();else if(e.key==='s')skipIt();
   else if(e.key==='a')accept();else if(e.key==='r')reject();
   else if(e.key>='1'&&e.key<='4'){last=+e.key-1;draw();}
+  else if(e.key==='f'){fitView();draw();}
+  else if(e.key==='z'){zoomTo(JOBS[i].machine||(pts.length?pts:null),3);}
   else if(e.key==='ArrowRight')next();else if(e.key==='ArrowLeft')prev();});
 try{const s=localStorage.getItem('manual_quads___DATE__');if(s)Object.assign(quads,JSON.parse(s));}catch(e){}
 load();
