@@ -4,9 +4,11 @@ outline corners on one frame, the detector then decodes the whole window from th
 
 For every (timeline window x camera) with fewer than --min-frames cached detections, one frame from
 the middle of the window is rendered (pano cameras upright, cropped around the expected board
-position). The page shows them one by one; click the four OUTLINE corners of the white board in
-order, starting at the corner that sits ON THE CONE and going around the long edge first
-(cone corner -> along the long edge -> diagonal -> back). "Skip" marks a frame as 'board not
+position). The page shows them one by one; click the four corners of the PLATE EDGE - the whole
+800 x 600 mm aluminium plate, white border included, TOP surface (it is 6 mm thick, so the side face
+shows at oblique angles). NOT the printed pattern: a pattern corner is only visible where its outer
+square is black, and two of the four are white-on-white. Order: the plate corner next to the cone
+first, then along the long edge, then the diagonal, then back. "Skip" marks a frame as 'board not
 visible'. Export writes manual_quads.json next to the frames; feed it to
   python manual_boards.py [--session ...]
 which re-runs the detector with each quad as the board hint and caches the corners like the
