@@ -46,7 +46,6 @@ TRAIN_X = [24, 96, 168, 240, 312, 384, 456]; TRAIN_Y = [12, 66, 120, 174, 228]
 VT_X = [60, 132, 204, 276, 348, 420]; VT_Y = [39, 93, 147, 201]
 LATTICE = {f"T{li}{si}": (x, y) for li, x in enumerate(TRAIN_X, 1) for si, y in enumerate(TRAIN_Y, 1)}
 LATTICE.update({f"{'V' if (i + j) % 2 == 0 else 'F'}{i}{j}": (x, y) for i, x in enumerate(VT_X, 1) for j, y in enumerate(VT_Y, 1)})
-SW = 2160
 
 def clk(s): return datetime.strptime(f"{DATE} {s}", "%Y-%m-%d %H:%M:%S")
 wins = []
@@ -84,11 +83,8 @@ def cached(cam):
     return sorted(out, key=lambda r: r[0])
 
 def cone_map(cam):
-    lp = qc_paths.cone_labels(QC, cam)
-    if lp is None: return {}
-    lab = json.load(open(lp, encoding="utf-8"))
-    return {q["station"].upper(): np.array([q["x"], q["y"]], float)            # UPRIGHT coords
-            for q in lab["points"] if q.get("station") and q["station"].upper() in LATTICE}
+    """station -> UPRIGHT pixel, rescaled from whatever pixel space the label file declares."""
+    return {k: v for k, v in qc_paths.load_cones(QC, cam, SESSION, space="upright").items() if k in LATTICE}
 
 def expected_upright(cones, station, K=8):
     if station in cones: return cones[station], "cone"
@@ -136,8 +132,7 @@ for cam in CAMS:
         name = f"{cam}_{st}_{mid.strftime('%H%M%S')}.jpg"
         machine = None
         if best is not None and best[3] is not None:                       # machine outline, stored -> upright
-            q = best[3]
-            machine = np.stack([q[:, 1], (SW - 1) - q[:, 0]], 1) if pano else q
+            machine = qc_paths.stored_to_upright(best[3], SESSION, cam)
         prev = old_jobs.get(name)
         if REUSE and prev is not None and (OUT / name).exists():           # rebuild the page, no re-decoding
             j2 = dict(prev)
@@ -199,8 +194,9 @@ html = r"""<!doctype html><html><head><meta charset="utf-8"><title>Manual board 
  .done{color:#3c3} .skip{color:#f66}
 </style></head><body>
 <div id="bar">
- <span>#<b id="idx">1</b>/<b id="tot">0</b></span> <span id="what"></span>
- <span>clicks: <b id="nclick">0</b>/4</span>
+ <span>#<b id="idx">1</b>/<b id="tot">0</b></span> <span id="status" style="padding:2px 10px;border-radius:4px;font-weight:bold">not reviewed</span>
+ <span id="what"></span> <span>clicks: <b id="nclick">0</b>/4</span>
+ <span>done <b id="ndone">0</b>/<b id="tot2">0</b></span>
  <button onclick="accept()" style="background:#286">accept machine box (a)</button>
  <button onclick="reject()" style="background:#833">machine box is WRONG (r)</button>
  <button onclick="undo()">undo (u)</button><button onclick="clearPts()">clear (c)</button>
@@ -236,7 +232,7 @@ function load(){const j=JOBS[i];img=new Image();img.onload=()=>{fitView();draw()
   $('idx').textContent=i+1;$('tot').textContent=JOBS.length;
   $('what').textContent=`${j.cam} ${j.station}  window ${j.win[0]}-${j.win[1]}  frame ${j.clock}`
     + (j.machine?`  |  machine: ${j.machine_method} ${j.machine_corners}c`:'  |  machine: nothing');
-  render();}
+  render();showStatus();}
 function draw(){const j=JOBS[i],S2I=(p)=>[p[0]*view.z+view.ox,p[1]*view.z+view.oy];
   ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#000';ctx.fillRect(0,0,cv.width,cv.height);
   ctx.imageSmoothingEnabled=view.z<1;
@@ -298,8 +294,18 @@ function clearPts(){pts=[];delete quads[JOBS[i].file];draw();render();}
 function skipIt(){quads[JOBS[i].file]={pts:[],skip:true,verdict:'not visible'};render();next();}
 function next(){if(i<JOBS.length-1){i++;load();}}
 function prev(){if(i>0){i--;load();}}
-function render(){$('list').innerHTML=JOBS.map((j,k)=>{const q=quads[j.file];
-  const cls=q?(q.skip||q.verdict==='reject'?'skip':'done'):'';const mark=q?(q.verdict||'4 corners'):'-';
+const STAT={accept:['machine box ACCEPTED','#286'],reject:['machine box REJECTED','#a33'],
+            operator:['LABELLED BY OPERATOR (4 corners)','#2a6cc0'],'not visible':['BOARD NOT VISIBLE','#a33']};
+function statusOf(file){const q=quads[file];
+  if(!q)return ['not reviewed','#555'];
+  if(q.skip)return STAT['not visible'];
+  if(q.verdict&&STAT[q.verdict])return STAT[q.verdict];
+  return q.pts&&q.pts.length===4?STAT.operator:['not reviewed','#555'];}
+function showStatus(){const [txt,col]=statusOf(JOBS[i].file);const e=$('status');
+  e.textContent=txt;e.style.background=col;
+  $('ndone').textContent=JOBS.filter(j=>quads[j.file]).length;$('tot2').textContent=JOBS.length;}
+function render(){showStatus();$('list').innerHTML=JOBS.map((j,k)=>{const q=quads[j.file];
+  const cls=q?(q.skip||q.verdict==='reject'?'skip':'done'):'';const mark=statusOf(j.file)[0];
   return `<div class="${cls}" style="${k===i?'background:#333':''}"><a href="#" onclick="i=${k};load();return false" style="color:inherit">${j.cam} ${j.station} ${j.win[0]}-${j.win[1]}</a> ${mark}${j.machine?' [m]':''}</div>`;}).join('');
   const d=Object.values(quads).length;$('tot').textContent=JOBS.length;
   try{localStorage.setItem('manual_quads___DATE__',JSON.stringify(quads));}catch(e){}}

@@ -158,13 +158,9 @@ for i, w in enumerate(wins):
 # ---------------- cone cross-check (pano cameras) ----------------
 cones = {}
 for cam in PANO:
-    p = qc_paths.cone_labels(QC, cam)          # the session's own labels, else the 2026-09-18 ones
-    if p is None:
+    if qc_paths.cone_labels(QC, cam) is None:  # the session's own labels, else the 2026-09-18 ones
         continue
-    lab = json.load(open(p, encoding="utf-8"))
-    SW = lab.get("frame_size_upright", [7680, 2160])[1]          # stored (rotated) frame width = upright height
-    cones[cam] = [(q["station"].upper(), np.array([SW - 1 - q["y"], q["x"]], float))
-                  for q in lab["points"] if q.get("station") and q["station"].upper() != "NONE"]
+    cones[cam] = list(qc_paths.load_cones(QC, cam, SESSION, space="stored").items())
 origin_corner, cone_report, suggestions = {}, {}, {}
 for cam in cones:
     names = [c[0] for c in cones[cam]]; cxy = np.array([c[1] for c in cones[cam]])
@@ -185,8 +181,7 @@ for cam in cones:
     # 2) per window: nearest cone to that corner (majority over the window's frames), plus WHICH outline corner
     #    actually sits on the operator's cone and the long-edge direction in the upright image
     #    (CH01: field +x = image right = 0 deg; CH02: field +x = image left = 180 deg)
-    SH = 2160                                   # stored frame height (= upright width)... stored (sx,sy) -> upright (sy, SH-1-sx)
-    def upright(p): return np.stack([p[:, 1], (SH - 1) - p[:, 0]], 1)
+    def upright(p): return qc_paths.stored_to_upright(p, SESSION, cam)
     for i, w in enumerate(wins):
         votes, dist_op, dist_near = {}, [], []
         dists = [[] for _ in range(4)]; angs = []

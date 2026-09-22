@@ -42,15 +42,9 @@ W, H = (h, w) if PANO else (w, h)
 img = np.frombuffer(raw, np.uint8).reshape(H, W, 3).copy()
 
 def to_upright(px):                       # cached corners are in the stored (rotated) frame for the panos
-    return np.stack([px[:, 1], (H - 1) - px[:, 0]], 1) if PANO else px
+    return qc_paths.stored_to_upright(px, SESSION, cam)
 
-# cone labels (upright coords already)
-cones = {}
-lp = qc_paths.cone_labels(QC, cam)
-if lp is not None:
-    for q in json.load(open(lp, encoding="utf-8"))["points"]:
-        if q.get("station") and q["station"].upper() != "NONE":
-            cones[q["station"].upper()] = np.array([q["x"], q["y"]], float)
+cones = qc_paths.load_cones(QC, cam, SESSION, space="upright")   # rescaled to this camera's real frame
 for name, c in cones.items():
     cv2.circle(img, tuple(int(v) for v in c), 12, (0, 255, 255), 3)
     cv2.putText(img, name, (int(c[0]) + 14, int(c[1]) - 8), cv2.FONT_HERSHEY_SIMPLEX, 1.1, (0, 255, 255), 3)

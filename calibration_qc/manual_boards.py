@@ -29,14 +29,10 @@ if not src.exists():
     else: sys.exit(f"no manual_quads.json (looked in {QC / 'manual'} and Downloads)")
 jobs = json.loads(src.read_text(encoding="utf-8"))
 print(f"{src}: {len(jobs)} entries ({sum(1 for j in jobs if j.get('skip'))} skipped by the operator)")
-SW = 2160
-
 def to_stored(cam, pts_disp, off, scale, pano):
-    """GUI canvas px -> full-frame STORED px (the panos are displayed upright)."""
+    """GUI image px -> full-frame STORED px (the panos are displayed upright)."""
     p = np.asarray(pts_disp, float) / scale + np.asarray(off, float)
-    if pano:
-        return np.stack([(SW - 1) - p[:, 1], p[:, 0]], 1)                  # upright (x,y) -> stored
-    return p
+    return qc_paths.upright_to_stored(p, SESSION, cam)
 
 def seg_for(cam, t):
     for p in sorted(SESSION.glob(f"{cam}_*_to_*.mp4")):

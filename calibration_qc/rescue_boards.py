@@ -30,7 +30,6 @@ TRAIN_X = [24, 96, 168, 240, 312, 384, 456]; TRAIN_Y = [12, 66, 120, 174, 228]
 VT_X = [60, 132, 204, 276, 348, 420]; VT_Y = [39, 93, 147, 201]
 LATTICE = {f"T{li}{si}": (x, y) for li, x in enumerate(TRAIN_X, 1) for si, y in enumerate(TRAIN_Y, 1)}
 LATTICE.update({f"{'V' if (i + j) % 2 == 0 else 'F'}{i}{j}": (x, y) for i, x in enumerate(VT_X, 1) for j, y in enumerate(VT_Y, 1)})
-SW = 2160                    # pano stored width (= upright height)
 
 # ---------------- timeline ----------------
 def clk(s): return datetime.strptime(f"{DATE} {s}", "%Y-%m-%d %H:%M:%S")
@@ -56,11 +55,8 @@ def cached_times(cam):
     return sorted(out)
 
 def cone_map(cam):
-    lp = qc_paths.cone_labels(QC, cam)
-    if lp is None: return {}
-    lab = json.load(open(lp, encoding="utf-8"))
-    return {q["station"].upper(): np.array([SW - 1 - q["y"], q["x"]], float)      # upright -> stored
-            for q in lab["points"] if q.get("station") and q["station"].upper() != "NONE" and q["station"].upper() in LATTICE}
+    """station -> STORED pixel, rescaled from whatever pixel space the label file declares."""
+    return {k: v for k, v in qc_paths.load_cones(QC, cam, SESSION, space="stored").items() if k in LATTICE}
 def expected_px(cones, station, K=8):
     if station in cones: return cones[station], "cone"
     names = list(cones); F = np.array([LATTICE[s] for s in names], float); P = np.array([cones[s] for s in names])

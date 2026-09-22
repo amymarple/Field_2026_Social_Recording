@@ -32,8 +32,7 @@ lattice.update({f"{'V' if (i + j) % 2 == 0 else 'F'}{i}{j}": (x, y) for i, x in 
 lp = qc_paths.cone_labels(QC, cam)
 if lp is None:
     sys.exit(f"no cone labels for {cam}")
-lab = json.load(open(lp, encoding="utf-8"))
-cones = {q["station"].upper(): np.array([q["x"], q["y"]], float) for q in lab["points"] if q.get("station") and q["station"].upper() != "NONE"}
+cones = qc_paths.load_cones(QC, cam, SESSION, space="upright")   # rescaled to this camera's real frame
 bad = [s for s in cones if s not in lattice]
 if bad:
     print("labels not in the lattice (ignored):", bad)

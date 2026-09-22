@@ -35,9 +35,9 @@ if still:
     end = (datetime.combine(datetime(2000, 1, 1), start) + timedelta(seconds=1)).time()
     full = True
 OUT_W = 1920
-labels = json.load(open(labels_path, encoding="utf-8"))
-pts = [p for p in labels["points"] if p.get("station") and p["station"] != "NONE"]
-FW, FH = labels.get("frame_size_upright", [7680, 2160])
+cone_xy = qc_paths.load_cones(QC, cam, SESSION, space="upright")   # rescaled to this camera's real frame
+pts = [dict(station=k, x=float(v[0]), y=float(v[1])) for k, v in cone_xy.items()]
+FW, FH = qc_paths.upright_size(SESSION, cam)
 sc = OUT_W / FW; OUT_H = int(round(FH * sc))
 
 segs = []
@@ -80,7 +80,7 @@ if boards:
             ol = quad                                    # board located, grid not decoded
         else:
             continue
-        up = np.stack([ol[:, 1], (FH - 1) - ol[:, 0]], 1) if cam in ("CH01", "CH02") else ol      # stored -> upright
+        up = qc_paths.stored_to_upright(ol, SESSION, cam)                                        # stored -> upright
         st, run = station_of.get(p.name, ("?", ""))
         if len(ids) < 8:
             label = f"{st} LOCATED (grid not decoded)"; col = (0, 128, 255)                        # orange

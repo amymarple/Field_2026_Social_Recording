@@ -16,13 +16,11 @@ args, sess = qc_paths.pop_session(sys.argv[1:])
 SESSION, QC = qc_paths.resolve(sess)
 border = float(args[args.index("--border") + 1]) if "--border" in args else 6.0
 dry = "--dry-run" in args
-SIZES = {"CH01": (2160, 7680), "CH02": (2160, 7680), "CH03": (4512, 2512), "CH04": (4512, 2512),
-         "CH05": (2560, 1920), "CH06": (2560, 1920)}                      # stored (w, h) per camera
 kept = dropped = 0
 for cam_dir in sorted((QC / "corners").iterdir()):
     if not cam_dir.is_dir():
         continue
-    w, h = SIZES.get(cam_dir.name, (2160, 7680))
+    w, h = qc_paths.frame_size(SESSION, cam_dir.name)              # from the video, never hardcoded
     for p in sorted(cam_dir.glob("*.npz")):
         with np.load(p, allow_pickle=False) as z:
             if "method" not in z.files or str(z["method"]) != "located" or "quad" not in z.files:
