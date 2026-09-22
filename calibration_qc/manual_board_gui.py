@@ -11,7 +11,12 @@ visible'. Export writes manual_quads.json next to the frames; feed it to
   python manual_boards.py [--session ...]
 which re-runs the detector with each quad as the board hint and caches the corners like the
 automatic path.
-Usage: python manual_board_gui.py [--session <dir|date>] [--min-frames 3] [--cams CH01,CH02]
+--mode picks which windows to show:
+  missing  (default) only windows with no cached detection at all;
+  located  those plus the windows where the board was only LOCATED, not decoded - the machine's
+           outline is drawn on the frame so the operator can accept it (key a) or re-click it;
+  all      every window, including the decoded ones, for a full audit.
+Usage: python manual_board_gui.py [--session <dir|date>] [--mode missing|located|all] [--cams CH01,CH02]
 Output: <qc>\manual\  (frames + manual_board_gui.html)
 """
 import sys, re, json, subprocess
@@ -26,7 +31,8 @@ SESSION, QC = qc_paths.resolve(sess); DATE = qc_paths.session_date(SESSION)
 def opt(name, default=None):
     return args[args.index(name) + 1] if name in args else default
 CAMS = opt("--cams", "CH01,CH02,CH03,CH04,CH05,CH06").split(",")
-MIN_FRAMES = int(opt("--min-frames", "3"))
+MODE = opt("--mode", "missing")
+MIN_FRAMES = int(opt("--min-frames", "1"))
 OUT = QC / "manual"; OUT.mkdir(parents=True, exist_ok=True)
 TRAIN_X = [24, 96, 168, 240, 312, 384, 456]; TRAIN_Y = [12, 66, 120, 174, 228]
 VT_X = [60, 132, 204, 276, 348, 420]; VT_Y = [39, 93, 147, 201]
@@ -47,14 +53,27 @@ for w in sorted(wins, key=lambda w: w[0]):
     else: merged.append(list(w))
 wins = merged
 
-def cached_times(cam):
+BOARD = cv2.aruco.CharucoBoard((12, 9), 0.060, 0.045, cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_5X5_100))
+OBJ_MM = np.asarray(BOARD.getChessboardCorners(), float).reshape(-1, 3)[:, :2] * 1000.0
+OUTLINE_MM = np.array([[0, 0], [720, 0], [720, 540], [0, 540]], float)
+
+def cached(cam):
+    """-> list of (time, n_corners, method, outline in STORED px or None)."""
     out = []
     for p in (QC / "corners" / cam).glob("*.npz"):
         with np.load(p, allow_pickle=False) as z:
             seg = str(z["seg"]); t_rel = float(z["t_rel"])
+            ids = z["ids"].astype(int).reshape(-1); px = z["px"].astype(float).reshape(-1, 2)
+            method = str(z["method"]) if "method" in z.files else "charuco"
+            quad = z["quad"].astype(float).reshape(-1, 2) if "quad" in z.files else None
         m = re.search(r"_(\d{4}-\d{2}-\d{2})_(\d\d)-(\d\d)-(\d\d)_to_", seg)
-        out.append(datetime.strptime(f"{m.group(1)} {m.group(2)}:{m.group(3)}:{m.group(4)}", "%Y-%m-%d %H:%M:%S") + timedelta(seconds=t_rel))
-    return sorted(out)
+        t = datetime.strptime(f"{m.group(1)} {m.group(2)}:{m.group(3)}:{m.group(4)}", "%Y-%m-%d %H:%M:%S") + timedelta(seconds=t_rel)
+        ol = quad
+        if ol is None and len(ids) >= 8:
+            H, _ = cv2.findHomography(OBJ_MM[ids].reshape(-1, 1, 2), px.reshape(-1, 1, 2), 0)
+            ol = None if H is None else cv2.perspectiveTransform(OUTLINE_MM.reshape(-1, 1, 2), H).reshape(-1, 2)
+        out.append((t, len(ids), method, ol))
+    return sorted(out, key=lambda r: r[0])
 
 def cone_map(cam):
     lp = qc_paths.cone_labels(QC, cam)
@@ -84,11 +103,16 @@ jobs = []
 for cam in CAMS:
     pano = cam in ("CH01", "CH02")
     cones = cone_map(cam) if pano else {}
-    have = cached_times(cam)
+    have = cached(cam)
     for a, b, st in wins:
-        if sum(a <= t <= b for t in have) >= MIN_FRAMES:
+        inwin = [r for r in have if a <= r[0] <= b]
+        decoded = [r for r in inwin if r[1] >= 12]
+        if MODE == "missing" and len(inwin) >= MIN_FRAMES:
             continue
-        mid = a + (b - a) / 2
+        if MODE == "located" and decoded:
+            continue
+        best = max(inwin, key=lambda r: (r[1], r[3] is not None)) if inwin else None
+        mid = best[0] if (best and best[3] is not None) else a + (b - a) / 2
         seg, seg_start = seg_for(cam, mid)
         if seg is None:
             continue
@@ -101,8 +125,14 @@ for cam in CAMS:
             continue
         img = np.frombuffer(raw, np.uint8).reshape(H, W, 3).copy()
         x0 = y0 = 0
+        machine = None
+        if best is not None and best[3] is not None:                       # machine outline, stored -> upright
+            q = best[3]
+            machine = np.stack([q[:, 1], (SW - 1) - q[:, 0]], 1) if pano else q
         if pano:
             c, how = expected_upright(cones, st)
+            if machine is not None:
+                c, how = machine.mean(0), "machine outline"
             if c is None:
                 continue
             R = 900
@@ -121,10 +151,15 @@ for cam in CAMS:
             scale = 1400 / max(img.shape[:2]); img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
         name = f"{cam}_{st}_{mid.strftime('%H%M%S')}.jpg"
         cv2.imwrite(str(OUT / name), img, [cv2.IMWRITE_JPEG_QUALITY, 90])
+        disp = None if machine is None else ((machine - [x0, y0]) * scale)
         jobs.append(dict(file=name, cam=cam, station=st, clock=mid.strftime("%H:%M:%S"),
                          win=[a.strftime("%H:%M:%S"), b.strftime("%H:%M:%S")], off=[x0, y0], scale=scale,
-                         w=int(img.shape[1]), h=int(img.shape[0]), pano=pano))
-        print(f"{cam} {st:6s} {a.strftime('%H:%M:%S')}-{b.strftime('%H:%M:%S')} -> {name}", flush=True)
+                         w=int(img.shape[1]), h=int(img.shape[0]), pano=pano,
+                         machine=None if disp is None else np.round(disp, 1).tolist(),
+                         machine_method=None if best is None else best[2],
+                         machine_corners=None if best is None else int(best[1])))
+        print(f"{cam} {st:6s} {a.strftime('%H:%M:%S')}-{b.strftime('%H:%M:%S')} -> {name}"
+              + (f"  [machine {best[2]} {best[1]}c]" if machine is not None else ""), flush=True)
 
 html = r"""<!doctype html><html><head><meta charset="utf-8"><title>Manual board corners __DATE__</title>
 <style>
@@ -137,11 +172,13 @@ html = r"""<!doctype html><html><head><meta charset="utf-8"><title>Manual board 
 <div id="bar">
  <span>#<b id="idx">1</b>/<b id="tot">0</b></span> <span id="what"></span>
  <span>clicks: <b id="nclick">0</b>/4</span>
+ <button onclick="accept()" style="background:#286">accept machine box (a)</button>
+ <button onclick="reject()" style="background:#833">machine box is WRONG (r)</button>
  <button onclick="undo()">undo click (u)</button><button onclick="clearPts()">clear (c)</button>
  <button onclick="prev()">&lt; prev</button><button onclick="next()">next &gt;</button>
- <button onclick="skipIt()" style="background:#833">skip: board not visible (s)</button>
+ <button onclick="skipIt()" style="background:#833">board not visible (s)</button>
  <button onclick="exportJson()" style="background:#3c3;font-weight:bold">Export manual_quads.json</button>
- <span style="opacity:.75">click order: the corner ON THE CONE first, then along the LONG edge, then the diagonal, then back</span>
+ <span style="opacity:.75">click order: the corner ON THE PLATE that sits on the cone first, then along the LONG edge, then the diagonal, then back. Orange = what the machine found.</span>
 </div>
 <div id="wrap"><canvas id="cv"></canvas></div>
 <div id="list"></div>
@@ -152,30 +189,43 @@ let img=new Image();
 function load(){const j=JOBS[i];img=new Image();img.onload=()=>{cv.width=img.width;cv.height=img.height;draw();};img.src=j.file;
   pts=(quads[j.file]&&quads[j.file].pts)?quads[j.file].pts.slice():[];
   $('idx').textContent=i+1;$('tot').textContent=JOBS.length;
-  $('what').textContent=`${j.cam} ${j.station}  window ${j.win[0]}-${j.win[1]}  frame ${j.clock}`;render();}
-function draw(){ctx.drawImage(img,0,0);ctx.lineWidth=2;
+  $('what').textContent=`${j.cam} ${j.station}  window ${j.win[0]}-${j.win[1]}  frame ${j.clock}`
+    + (j.machine?`  |  machine: ${j.machine_method} ${j.machine_corners}c`:'  |  machine: nothing');
+  render();}
+function draw(){ctx.drawImage(img,0,0);const j=JOBS[i];
+  if(j.machine){ctx.lineWidth=3;ctx.strokeStyle='#ff8000';ctx.beginPath();
+    ctx.moveTo(j.machine[0][0],j.machine[0][1]);for(let k=1;k<4;k++)ctx.lineTo(j.machine[k][0],j.machine[k][1]);
+    ctx.closePath();ctx.stroke();ctx.fillStyle='#ff8000';ctx.font='bold 15px sans-serif';
+    ctx.fillText('machine',j.machine[0][0]+8,j.machine[0][1]-8);}
+  ctx.lineWidth=2;
   pts.forEach((p,k)=>{ctx.strokeStyle=k===0?'#f0f':'#0f0';ctx.beginPath();ctx.arc(p[0],p[1],7,0,7);ctx.stroke();
     ctx.fillStyle=k===0?'#f0f':'#0f0';ctx.font='bold 16px sans-serif';ctx.fillText(k===0?'cone':(k+1),p[0]+9,p[1]-6);});
   if(pts.length>1){ctx.strokeStyle='#f0f';ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);
     for(let k=1;k<pts.length;k++)ctx.lineTo(pts[k][0],pts[k][1]);if(pts.length===4)ctx.closePath();ctx.stroke();}
   $('nclick').textContent=pts.length;}
+function accept(){const j=JOBS[i];if(!j.machine){alert('no machine box on this frame - click the four corners');return;}
+  quads[j.file]={pts:[],skip:false,verdict:'accept'};render();next();}
+function reject(){quads[JOBS[i].file]={pts:[],skip:false,verdict:'reject'};render();next();}
 cv.addEventListener('click',e=>{const r=cv.getBoundingClientRect();const sx=cv.width/r.width;
   if(pts.length>=4)return;pts.push([(e.clientX-r.left)*sx,(e.clientY-r.top)*sx]);
-  if(pts.length===4){quads[JOBS[i].file]={pts:pts.slice(),skip:false};render();}
+  if(pts.length===4){quads[JOBS[i].file]={pts:pts.slice(),skip:false,verdict:'operator'};render();}
   draw();});
 function undo(){pts.pop();delete quads[JOBS[i].file];draw();render();}
 function clearPts(){pts=[];delete quads[JOBS[i].file];draw();render();}
-function skipIt(){quads[JOBS[i].file]={pts:[],skip:true};render();next();}
+function skipIt(){quads[JOBS[i].file]={pts:[],skip:true,verdict:'not visible'};render();next();}
 function next(){if(i<JOBS.length-1){i++;load();}}
 function prev(){if(i>0){i--;load();}}
 function render(){$('list').innerHTML=JOBS.map((j,k)=>{const q=quads[j.file];
-  const cls=q?(q.skip?'skip':'done'):'';const mark=q?(q.skip?'skipped':'4 corners'):'-';
-  return `<div class="${cls}" style="${k===i?'background:#333':''}"><a href="#" onclick="i=${k};load();return false" style="color:inherit">${j.cam} ${j.station} ${j.win[0]}-${j.win[1]}</a> ${mark}</div>`;}).join('');
+  const cls=q?(q.skip||q.verdict==='reject'?'skip':'done'):'';const mark=q?(q.verdict||'4 corners'):'-';
+  return `<div class="${cls}" style="${k===i?'background:#333':''}"><a href="#" onclick="i=${k};load();return false" style="color:inherit">${j.cam} ${j.station} ${j.win[0]}-${j.win[1]}</a> ${mark}${j.machine?' [m]':''}</div>`;}).join('');
+  const d=Object.values(quads).length;$('tot').textContent=JOBS.length;
   try{localStorage.setItem('manual_quads___DATE__',JSON.stringify(quads));}catch(e){}}
-function exportJson(){const out=JOBS.filter(j=>quads[j.file]).map(j=>Object.assign({},j,{quad:quads[j.file].pts,skip:quads[j.file].skip}));
+function exportJson(){const out=JOBS.filter(j=>quads[j.file]).map(j=>Object.assign({},j,
+  {quad:quads[j.file].pts,skip:quads[j.file].skip,verdict:quads[j.file].verdict||'operator'}));
   const a=document.createElement('a');a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(out,null,1));
   a.download='manual_quads.json';a.click();}
 document.addEventListener('keydown',e=>{if(e.key==='u')undo();else if(e.key==='c')clearPts();else if(e.key==='s')skipIt();
+  else if(e.key==='a')accept();else if(e.key==='r')reject();
   else if(e.key==='ArrowRight')next();else if(e.key==='ArrowLeft')prev();});
 try{const s=localStorage.getItem('manual_quads___DATE__');if(s)Object.assign(quads,JSON.parse(s));}catch(e){}
 load();

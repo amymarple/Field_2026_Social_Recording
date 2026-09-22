@@ -51,6 +51,21 @@ if cc_path.exists():
     cone_corner = json.loads(cc_path.read_text(encoding="utf-8"))
 summary = []
 for j in jobs:
+    v = j.get("verdict", "operator")
+    if v == "accept":
+        summary.append((j["cam"], j["station"], "operator ACCEPTED the machine box - cache unchanged")); continue
+    if v == "reject":
+        # the machine box is wrong: drop that window's cached detections so nothing false reaches the fit
+        a, b = [datetime.strptime(f"{DATE} {x}", "%Y-%m-%d %H:%M:%S") for x in j["win"]]
+        n_del = 0
+        for p in sorted((QC / "corners" / j["cam"]).glob("*.npz")):
+            with np.load(p, allow_pickle=False) as z:
+                seg0 = str(z["seg"]); tr = float(z["t_rel"])
+            m0 = re.search(r"_(\d{4}-\d{2}-\d{2})_(\d\d)-(\d\d)-(\d\d)_to_", seg0)
+            t0 = datetime.strptime(f"{m0.group(1)} {m0.group(2)}:{m0.group(3)}:{m0.group(4)}", "%Y-%m-%d %H:%M:%S") + timedelta(seconds=tr)
+            if a <= t0 <= b:
+                p.unlink(); n_del += 1
+        summary.append((j["cam"], j["station"], f"operator REJECTED the machine box - {n_del} cached frames removed")); continue
     if j.get("skip") or not j.get("quad"):
         summary.append((j["cam"], j["station"], "operator: board not visible")); continue
     cam, st, pano = j["cam"], j["station"], j.get("pano", j["cam"] in ("CH01", "CH02"))
