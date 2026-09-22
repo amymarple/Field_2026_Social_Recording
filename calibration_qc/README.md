@@ -137,3 +137,53 @@ Usable stations: CH01 T23/T35/T62/T64 + V44 + F14; CH02 T63; CH03 T11/T12/T23 + 
 CH04 T61-T65; CH06 T61/T64; CH05 nothing. Merged with 09-18 the panos have CH01 T13/V6/F5 and
 CH02 T12/V4/F3 settled stations. T63 by house 7 was aligned on a different corner (operator);
 T75/T15 (field corners) corner still to be confirmed by the operator.
+
+## The fit (`fit_cameras.py`, 2026-09-22)
+
+`python fit_cameras.py [--split] [--out <dir>]` -> `CALIBRATION_FIT.txt` + `camera_fit.npz`
+(`X_cam = Rodrigues(cam_rvec) @ X_field + cam_tvec`, field mm, origin pole A0, z up).
+
+**Nothing about the field is an input.** The board is the metric object (60 mm squares on a
+720 x 540 mm pattern on an 800 x 600 x 6 mm plate), so focal length, distortion, the distance and
+attitude of every placement, and every camera's position INCLUDING its height are solved for.
+Camera height appears at stage 3, before a field frame exists at all: the placements a camera sees
+lie on one plane, and the distance from the projection centre to that plane is the height.
+
+Supporting modules: `fit_data.py` (cached corners -> one observation per placement),
+`fit_intrinsics.py` (free-pose views -> lens), `fit_models.py` (projection models, pose fitting).
+
+Five things this had to get right, each of which silently ruins the fit:
+
+1. **Intrinsics need non-coplanar views.** Every placement lies on the ground, so all of them
+   together carry one plane's homography - which cannot separate focal length from tilt. The
+   material that can is already cached: the detections belonging to NO station (the operator
+   carrying the board, plus the deliberate sweeps in front of CH03/CH04, 13-242 views per camera).
+   Reprojection 0.5-1.4 px, and CH05/CH06 return the same focal length from any starting guess.
+2. **The Duo3 pano has no focal length to calibrate.** Solving fu, cu, fv, cv freely on its
+   7680 x 2160 upright canvas returns W/pi, (W-1)/2, W/pi, (H-1)/2 to within 0.03 %, from either
+   half and either session: the canvas is an exact 180 deg equirectangular image. Splitting it into
+   two lens halves with their own poses does not lower the residual, so it is one projection centre.
+3. **A homography gate, before anything else.** A flat board must fit a plane-to-plane homography
+   to within the lens distortion across it. Seven placements could not, at 4.7-10.2 px - those do
+   not have noisy corners, they have wrong ones (orientation resolved a square off). `fit_data`
+   rejects them and down-weights the rest by the planarity they actually achieve.
+4. **Operator clicks are a rectangle, not a labelling.** The four clicks on the plate edge fix
+   where the plate is, but an 800 x 600 rectangle maps onto itself under a 180 deg turn, so which
+   corner is which has a twin no single view can tell apart. Measured against the cameras that DO
+   decode those boards, the twin was being picked often enough to drag whole cameras metres out of
+   place. They are held out of the geometry (4 points each of 7000+) and still count as coverage.
+5. **The lens must not be refitted on the placements.** With every board coplanar, a free f/c/k has
+   nothing to constrain it and simply absorbs pose error - it moved CH05's principal point 250 px
+   and doubled the residual. Stage 1 measures the lens; the bundle leaves it alone.
+
+Result: heights 2.32-2.69 m, a layout that nothing in the fit was told to produce (the two panos
+back to back mid-paddock, CH03/CH04 at the ends facing each other along +x/-x, CH05/CH06 near
+nadir). Median corner reprojection 2.3 px (CH01) to 8.0 px (CH04); at those working distances
+2-8 px is roughly 1-2 cm on the ground.
+
+Open: the paddock frame is only as good as what ties it to the cord grid. The operator's cone
+labels sit ~110 mm from the grid the placements imply, which matches his own note that they need
+re-labelling; the frame is therefore anchored on the placements (each plate corner to its cone,
+median 195 mm) with the cone labels down-weighted to picking the branch. Re-run after the cones are
+re-labelled. CH04 is the weakest camera (16 px rms, one 605 px view dropped) - worth a look at its
+sweep before trusting it.
