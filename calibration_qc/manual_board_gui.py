@@ -205,6 +205,7 @@ html = r"""<!doctype html><html><head><meta charset="utf-8"><title>Manual board 
  <span style="opacity:.75">wheel = zoom, right-drag = pan | drag a point to adjust | 1-4 selects | shift+arrows nudge 1 px</span>
  <button onclick="prev()">&lt; prev</button><button onclick="next()">next &gt;</button>
  <button onclick="skipIt()" style="background:#833">board not visible (s)</button>
+ <button onclick="partial()" style="background:#a60">partly visible, cannot outline (p)</button>
  <button onclick="exportJson()" style="background:#3c3;font-weight:bold">Export manual_quads.json</button>
  <span style="opacity:.75">click the PLATE EDGE (the whole 800x600 aluminium plate, white border included, TOP surface - not the printed pattern: two of its four corners are white-on-white and invisible). Order: the plate corner next to the cone first, then along the LONG edge, then the diagonal, then back. Orange = what the machine found.</span>
 </div>
@@ -292,12 +293,17 @@ function nudge(dx,dy){if(last<0||!pts[last])return;pts[last][0]+=dx;pts[last][1]
 function undo(){pts.pop();last=pts.length-1;delete quads[JOBS[i].file];draw();render();}
 function clearPts(){pts=[];delete quads[JOBS[i].file];draw();render();}
 function skipIt(){quads[JOBS[i].file]={pts:[],skip:true,verdict:'not visible'};render();next();}
+// the plate IS there but its outline cannot be reconstructed (one corner showing, edges not traceable).
+// Recorded separately from 'not visible' so absence is never claimed for a board that is present.
+function partial(){quads[JOBS[i].file]={pts:[],skip:true,verdict:'partial'};render();next();}
 function next(){if(i<JOBS.length-1){i++;load();}}
 function prev(){if(i>0){i--;load();}}
 const STAT={accept:['machine box ACCEPTED','#286'],reject:['machine box REJECTED','#a33'],
-            operator:['LABELLED BY OPERATOR (4 corners)','#2a6cc0'],'not visible':['BOARD NOT VISIBLE','#a33']};
+            operator:['LABELLED BY OPERATOR (4 corners)','#2a6cc0'],'not visible':['BOARD NOT VISIBLE','#a33'],
+            partial:['BOARD PARTLY VISIBLE - cannot outline','#a60']};
 function statusOf(file){const q=quads[file];
   if(!q)return ['not reviewed','#555'];
+  if(q.verdict&&STAT[q.verdict])return STAT[q.verdict];
   if(q.skip)return STAT['not visible'];
   if(q.verdict&&STAT[q.verdict])return STAT[q.verdict];
   return q.pts&&q.pts.length===4?STAT.operator:['not reviewed','#555'];}
@@ -319,6 +325,7 @@ document.addEventListener('keydown',e=>{
     nudge(e.key==='ArrowLeft'?-1:e.key==='ArrowRight'?1:0, e.key==='ArrowUp'?-1:e.key==='ArrowDown'?1:0);
     e.preventDefault();return;}
   if(e.key==='u')undo();else if(e.key==='c')clearPts();else if(e.key==='s')skipIt();
+  else if(e.key==='p')partial();
   else if(e.key==='a')accept();else if(e.key==='r')reject();
   else if(e.key>='1'&&e.key<='4'){last=+e.key-1;draw();}
   else if(e.key==='f'){fitView();draw();}

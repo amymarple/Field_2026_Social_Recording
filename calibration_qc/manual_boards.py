@@ -62,6 +62,9 @@ for j in jobs:
             if a <= t0 <= b:
                 p.unlink(); n_del += 1
         summary.append((j["cam"], j["station"], f"operator REJECTED the machine box - {n_del} cached frames removed")); continue
+    if v == "partial":
+        summary.append((j["cam"], j["station"], "operator: plate present but the outline cannot be reconstructed "
+                                                "- no measurement, and NOT a claim of absence")); continue
     if j.get("skip") or not j.get("quad"):
         summary.append((j["cam"], j["station"], "operator: board not visible")); continue
     # operator re-clicked this window: its 'located' frames were the machine's own outline and are now
