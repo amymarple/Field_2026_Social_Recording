@@ -54,6 +54,7 @@ SPLIT = "--split" in args        # one pose per pano by default: splitting the c
 OUT = Path(args[args.index("--out") + 1]) if "--out" in args else REPO
 SESSIONS = ("2026-09-18", "2026-09-19")
 L = []
+DROPPED = []      # (unit, session, station, window, why) - views this fit refused to use
 
 
 def say(s=""):
@@ -225,6 +226,7 @@ for u in sorted(UNITS):
     cut = max(8.0, 4.0 * np.median(rms))
     drop = [(p, e) for p, e in zip(U["plc"], rms) if e > cut]
     for p, e in drop:
+        DROPPED.append((u, p["session"], p["station"], p["win"], f"not flat ({e:.0f} px)"))
         say(f"         dropped {p['station']} {p['session']} {p['win']}: {e:.1f} px once the plate is"
             f" held flat - that measurement is not a flat board where the others are")
     if drop:
@@ -552,6 +554,8 @@ if bad_obs:
     for j in bad_obs:
         ui, bi, pp = OBS[j]
         g = (c_ui == ui) & (c_bi == bi)
+        DROPPED.append((unit_list[ui], pp["session"], pp["station"], pp["win"],
+                        f"bundle {np.median(pix0[g]):.0f} px"))
         say(f"     {unit_list[ui]:7s} {pp['station']:4s} {pp['session']} {pp['win']}  "
             f"{int(g.sum()):3d} corners at {np.median(pix0[g]):7.1f} px")
     keep_obs = [j for j in range(len(OBS)) if j not in set(bad_obs)]
@@ -663,12 +667,16 @@ say(f"  {len(offsets)} placements: offset from the designed station median {np.m
     f"p90 {np.percentile(offsets,90):.0f} mm, max {offsets.max():.0f} mm")
 
 np.savez(OUT / "camera_fit.npz",
-         units=np.array(unit_list), cam_rvec=cp[:, :3], cam_tvec=cp[:, 3:],
+         units=np.array(unit_list), cam_rvec=cp[:, :3], cam_tvec=cp[:, 3:] * 1000.0,
          cam_centre_mm=np.array([CAMPOS[u][0] for u in unit_list]),
          models=np.array([UNITS[u]["model"] for u in unit_list]),
          intr=np.array([ip[UNITS[u]["cam"]] for u in unit_list]),
-         board_keys=np.array(["|".join(k) for k in board_list]), board_pose=bp,
-         note="X_cam = Rodrigues(cam_rvec) @ X_field + cam_tvec; field mm, origin pole A0, z up")
+         board_keys=np.array(["|".join(k) for k in board_list]),
+         board_pose=np.concatenate([bp[:, :3], bp[:, 3:] * 1000.0], 1),
+         board_station_mm=b_station * 1000.0, board_cone_corner=b_corner,
+         dropped_views=np.array(["|".join(d) for d in DROPPED]),
+         note="X_cam = Rodrigues(cam_rvec) @ X_field + cam_tvec; ALL lengths mm, "
+              "field origin pole A0, x along the long cord, y across, z up")
 say("")
 say(f"  -> {OUT / 'camera_fit.npz'}")
 (OUT / "CALIBRATION_FIT.txt").write_text("\n".join(L) + "\n", encoding="utf-8")

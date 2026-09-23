@@ -43,9 +43,23 @@ def bearings(model, ip, uv):
     uv = np.asarray(uv, float).reshape(-1, 2)
     if model == "pinhole":
         f, cx, cy, k1, k2 = ip
-        K = np.array([[f, 0, cx], [0, f, cy], [0, 0, 1.0]])
-        n = cv2.undistortPoints(uv.reshape(-1, 1, 2), K, np.array([k1, k2, 0.0, 0.0])).reshape(-1, 2)
-        b = np.concatenate([n, np.ones((len(n), 1))], 1)
+        # Exact inverse of THIS module's forward model, by Newton on the radius. cv2's
+        # undistortPoints does 5 fixed-point steps against its own (5-coefficient) model, which at
+        # k1 ~ -0.35 leaves a frame-edge point a pixel out - centimetres on the ground.
+        xd = (uv[:, 0] - cx) / f
+        yd = (uv[:, 1] - cy) / f
+        rd = np.hypot(xd, yd)
+        r = rd.copy()
+        for _ in range(50):
+            r2 = r * r
+            g = r * (1.0 + k1 * r2 + k2 * r2 * r2) - rd
+            dg = 1.0 + 3.0 * k1 * r2 + 5.0 * k2 * r2 * r2
+            step = g / np.where(np.abs(dg) < 1e-12, 1e-12, dg)
+            r = r - step
+            if np.nanmax(np.abs(step)) < 1e-14:
+                break
+        scale = np.where(rd < 1e-12, 1.0, r / np.where(rd < 1e-12, 1.0, rd))
+        b = np.stack([xd * scale, yd * scale, np.ones(len(uv))], 1)
     else:
         fu, cu, fv, cv0, k1 = ip
         az = (uv[:, 0] - cu) / fu

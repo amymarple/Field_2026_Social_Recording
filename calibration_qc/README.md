@@ -187,3 +187,39 @@ re-labelling; the frame is therefore anchored on the placements (each plate corn
 median 195 mm) with the cone labels down-weighted to picking the branch. Re-run after the cones are
 re-labelled. CH04 is the weakest camera (16 px rms, one 605 px view dropped) - worth a look at its
 sweep before trusting it.
+
+## Pixel <-> paddock (`paddock_map.py`, `paddock_agreement.py`)
+
+```python
+from paddock_map import load
+cams = load()                                       # E:\calibration\qc\camera_fit.npz
+x, y  = cams["CH01"].to_paddock((3000, 1500), z_mm=0, units="in")    # pixel -> paddock
+u, v  = cams["CH01"].to_paddock_inv((240, 120), z_mm=0, units="in")  # paddock -> pixel
+H     = cams["CH03"].homography(z_mm=0)             # 3x3, UNDISTORTED px <- paddock mm
+cams["CH03"].sees((240, 120), units="in")           # is that point in frame at all?
+```
+
+Pixels are UPRIGHT by default (CH01/CH02: the 7680 x 2160 frame after rotating the stored video
+90 deg CCW, which is the space every other tool here uses); pass `space="stored"` for raw video
+pixels. Round trip paddock -> pixel -> paddock is exact to 1e-11 mm on all six cameras.
+
+**A pixel is a ray, not a point**, so every conversion has to be told a height. `z_mm=0` is the
+ground, 6 the top of the calibration plate, ~60 a rat's back. Get it wrong by dz and the answer
+slides by dz / tan(depression): 0.7-0.85 mm per mm on CH01-CH04, so reading a 60 mm-high animal as
+if it were on the ground puts it 40-50 mm too far from the camera. CH05/CH06 look almost straight
+down and barely care (0.07 mm per mm). For the four ordinary lenses `homography()` is exact but
+only after `undistort()` - k1 ~ -0.35 moves a frame-corner pixel by over 100 px. The two panoramas
+have no 3x3 at all: an equirectangular canvas is not a projective image, so a plane in it is not a
+homography.
+
+`paddock_agreement.py [--z 6] [--plot]` answers "if two cameras see the same spot, how far apart do
+they put it?" - measured, not modelled: every ChArUco corner id is one physical point on the ground,
+so each camera that decoded it has its own independent paddock position for it. Over 1861 such
+points (views the fit itself rejected excluded): **median 116 mm, p90 352 mm**. The two panoramas
+agree to 35 mm with no systematic offset; the disagreement is concentrated at the two ends of the
+paddock (x < 90 in and x > 390 in), where the only close cameras are CH03/CH04 and the panos are
+looking 6-8 m away. CH01-CH04 carries a real -244 mm bias in x. -> `PADDOCK_AGREEMENT.txt`,
+`paddock_agreement.png`.
+
+Two errors this number does NOT contain: the height assumption above, and the paddock frame itself
+(a common error moves all the cameras together and cancels in a camera-to-camera comparison).
