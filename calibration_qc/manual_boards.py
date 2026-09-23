@@ -119,7 +119,9 @@ for j in jobs:
             # Nothing decodes even with the hint (blurred far-field board): the operator's four clicks
             # ARE the measurement. Corners are predicted from that outline homography and parity-checked;
             # accuracy is click accuracy (a few px), so the method tag keeps them separable in the fit.
-            Hq = cv2.findHomography(bd.OUTLINE_MM.reshape(-1, 1, 2).astype(np.float32), hint.reshape(-1, 1, 2).astype(np.float32), 0)[0]
+            # the operator clicked the PLATE edge (800 x 600), so the pattern maps onto it through PAPER_MM,
+            # not OUTLINE_MM (720 x 540) - the latter put every predicted corner 11 % off
+            Hq = cv2.findHomography(bd.PAPER_MM.reshape(-1, 1, 2).astype(np.float32), hint.reshape(-1, 1, 2).astype(np.float32), 0)[0]
             if Hq is not None:
                 vis = bd.visible_corners(gray, Hq, min_contrast=8.0)
                 if vis.sum() >= 12:

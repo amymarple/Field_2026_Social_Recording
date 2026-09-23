@@ -268,3 +268,20 @@ corner may be clicked first. Built into `E:\calibration\qc\manual_ch0304\manual_
 426 frames (CH03 12 placement windows + 284 sweep frames, CH04 9 + 119). The exported
 `manual_quads.json` goes through `manual_boards.py` as before; sweep frames land in the labelled
 frames with no station and feed `fit_intrinsics.free_views`.
+
+### Outcome of the CH03/CH04 review (2026-09-23, `manual_quads (2).json` -> `session_2026-09-18_manual_quads.json`)
+
+400 of 426 frames reviewed (26 sweep frames left unreviewed stay out). Placements: CH03 8 machine
+boxes accepted, V11 and F14 re-clicked and now decoded (rect-chess, 88 corners), T21/T22 not
+visible, T24/T25 partly visible; CH04 all 9 accepted. Sweeps: 250 accepted, 74 re-clicked (138
+decoded, 2 windows still nothing), 36 not visible, 16 partial, 1 rejected. `manual_boards.py` then
+mapped the plate through `PAPER_MM` for the outline fallback (was `OUTLINE_MM`: every predicted
+corner 11 % off), and `fit_intrinsics.free_views` now takes, for a camera whose sweep was
+reviewed, only frames inside windows the operator accepted or re-clicked, never outline-predicted
+corners.
+
+Lens models from the reviewed sweeps: CH03 f 2990 -> 2949 px, principal point moved 87 px, k1
+-0.374 -> -0.393; CH04 f 3101 -> 3130 px, k1 -0.367 -> -0.373. Refit: CH01-CH03 agreement
+168 -> 52 mm (CH03 shares two more boards with CH01 now), overall median 122 -> 108 mm;
+CH01-CH04 (286 mm, dx -252) and CH02-CH03 (384 mm) unchanged - the boards at the ends are what
+the operator confirmed, so the remaining disagreement is on the pano side, as in the section above.

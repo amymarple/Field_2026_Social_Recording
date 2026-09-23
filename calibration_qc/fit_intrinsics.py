@@ -9,7 +9,7 @@ carries only its own homography, which cannot separate focal length from tilt.
 
 Nothing here uses a measured camera height, camera position or field dimension.
 """
-import csv
+import csv, json
 from pathlib import Path
 import numpy as np, cv2
 import qc_paths, board_detect as bd
@@ -17,6 +17,11 @@ import qc_paths, board_detect as bd
 REPO = Path(__file__).resolve().parent
 PANO = ("CH01", "CH02")
 SESSIONS = ("2026-09-18", "2026-09-19")
+
+
+def _sec(hms):
+    h, m, sec = hms.split(":")
+    return int(h) * 3600 + int(m) * 60 + float(sec)
 
 
 def free_views(cam, min_c=20, sessions=SESSIONS):
@@ -27,9 +32,26 @@ def free_views(cam, min_c=20, sessions=SESSIONS):
         f = REPO / f"session_{date}_labelled_frames.csv"
         if not f.exists():
             continue
+        # The operator's review of the hand-held sweeps (manual_board_gui --sweep): once a camera's
+        # sweep has been reviewed, only frames inside windows he accepted or re-clicked are used; a
+        # frame he marked not visible / partial / rejected is out even if the machine decoded it.
+        # Corners PREDICTED from an outline (method *outline*) are never measurements and never
+        # enter a lens fit: they are exactly homography-consistent and would pull the distortion to 0.
+        review = {}
+        mq = REPO / f"session_{date}_manual_quads.json"
+        if mq.exists():
+            for j in json.loads(mq.read_text(encoding="utf-8")):
+                if j.get("station", "").startswith("SW"):
+                    review.setdefault(j["cam"], []).append((_sec(j["win"][0]), _sec(j["win"][1]), j.get("verdict", "operator")))
         for r in csv.DictReader(open(f, newline="", encoding="utf-8")):
             if r["cam"] != cam or r["station"] or int(r["n_corners"]) < min_c:
                 continue
+            if "outline" in r.get("method", ""):
+                continue
+            if cam in review:
+                t = _sec(r["clock"])
+                if not any(a <= t <= b + 0.5 and v in ("accept", "operator") for a, b, v in review[cam]):
+                    continue
             p = qc / "corners" / cam / r["file"]
             if not p.exists():
                 continue
