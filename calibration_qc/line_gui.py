@@ -93,9 +93,10 @@ html = r"""<!doctype html><html><head><meta charset="utf-8"><title>Line labellin
  <div id="imgwrap"><div id="stage"><img id="img" src="data:image/jpeg;base64,__B64__"><svg id="ov"></svg></div></div>
  <div id="side">
   <b>1. pick a line &nbsp; 2. click along it in the image</b><br>
-  <small>Click ON the cord (the thin line on the grass), every 0.5-1 m, wall to wall, as far as you can see it. The dashed guide only tells you which cord is which - if the real cord is beside the guide, click the real cord. WALL = where the wall meets the ground, all along. Clicking an existing point removes it.</small>
+  <small>Click ON the cord (the thin line on the grass), every 0.5-1 m, wall to wall, as far as you can see it. The dashed guide only tells you which cord is which - if the real cord is beside the guide, click the real cord. WALL = the FOOT of the wall, where the sheet meets the ground. <b>Drag</b> a point to adjust it; <b>right-click</b> a point to delete it. The magnifier shows 4x around the cursor. Points are kept in this browser between visits.</small>
+  <canvas id="mag" width="240" height="240" style="display:block;margin:6px 0;border:1px solid #888"></canvas>
   <div id="list"></div>
-  <b>Export</b> (also copied here):<br><textarea id="out"></textarea>
+  <b>Export</b> (also copied here) / paste an earlier export here and <button onclick="loadJSON()">Load</button>:<br><textarea id="out"></textarea>
  </div></div>
 <script>
 const CAM="__CAM__", S=__SCALE__, IMGW=__IMGW__, IMGH=__IMGH__, LINES=__LINES__, GUIDES=__GUIDES__;
@@ -118,17 +119,42 @@ function list(){const L=document.getElementById('list');L.innerHTML=LINES.map(l=
   document.getElementById('curinfo').textContent=cur||'none';
   document.getElementById('stat').textContent=Object.values(lines).reduce((a,b)=>a+b.length,0)+' points on '+Object.values(lines).filter(v=>v.length).length+' lines';}
 function pick(l){cur=l;draw();}
-ov.onclick=e=>{const r=ov.getBoundingClientRect();const x=(e.clientX-r.left)/z/S,y=(e.clientY-r.top)/z/S;
-  for(const [id,pts] of Object.entries(lines)){for(let i=0;i<pts.length;i++){if(Math.hypot(pts[i][0]-x,pts[i][1]-y)*S*z<12){pts.splice(i,1);draw();return;}}}
+// left-drag moves a point, left-click on grass adds one to the current line, right-click on a point deletes it
+function toImg(e){const r=ov.getBoundingClientRect();return [(e.clientX-r.left)/z/S,(e.clientY-r.top)/z/S];}
+function hit(x,y){for(const [id,pts] of Object.entries(lines)){for(let i=0;i<pts.length;i++){if(Math.hypot(pts[i][0]-x,pts[i][1]-y)*S*z<12)return [id,i];}}return null;}
+let drag=null, hover=null;
+ov.addEventListener('contextmenu',e=>{e.preventDefault();const [x,y]=toImg(e);const h=hit(x,y);if(h){lines[h[0]].splice(h[1],1);draw();}});
+ov.addEventListener('mousedown',e=>{if(e.button!==0)return;const [x,y]=toImg(e);const h=hit(x,y);
+  if(h){drag={id:h[0],i:h[1],moved:false};cur=h[0];draw();return;}
   if(!cur){alert('pick a line first (right panel)');return;}
-  lines[cur].push([Math.round(x*10)/10,Math.round(y*10)/10]);draw();};
+  lines[cur].push([Math.round(x*10)/10,Math.round(y*10)/10]);drag={id:cur,i:lines[cur].length-1,moved:false};draw();});
+ov.addEventListener('mousemove',e=>{const [x,y]=toImg(e);hover=[x,y];
+  if(drag){lines[drag.id][drag.i]=[Math.round(x*10)/10,Math.round(y*10)/10];drag.moved=true;draw();}else mag();});
+window.addEventListener('mouseup',()=>{if(drag){drag=null;draw();}});
+ov.addEventListener('mouseleave',()=>{hover=null;mag();});
 function undo(){if(cur&&lines[cur].length){lines[cur].pop();draw();}}
-function clearLine(){if(cur){lines[cur]=[];draw();}}
+function clearLine(){if(cur&&confirm('clear all points of '+cur+'?')){lines[cur]=[];draw();}}
 document.addEventListener('keydown',e=>{if(e.key==='u')undo();});
+// magnifier: 4x around the cursor, with the points, so a click can be put on the cord itself
+const mg=document.getElementById('mag'), mctx=mg.getContext('2d'), im=document.getElementById('img');
+function mag(){if(!hover||!im.complete){mctx.fillStyle='#000';mctx.fillRect(0,0,mg.width,mg.height);return;}
+  const Z=4,Sz=mg.width/Z,cx=hover[0]*S,cy=hover[1]*S;mctx.imageSmoothingEnabled=false;
+  mctx.fillStyle='#000';mctx.fillRect(0,0,mg.width,mg.height);
+  mctx.drawImage(im,cx-Sz/2,cy-Sz/2,Sz,Sz,0,0,mg.width,mg.height);
+  for(const [id,pts] of Object.entries(lines))for(const p of pts){const px=(p[0]*S-cx+Sz/2)*Z,py=(p[1]*S-cy+Sz/2)*Z;
+    if(px>=0&&px<=mg.width&&py>=0&&py<=mg.height){mctx.strokeStyle=COL[id];mctx.lineWidth=2;mctx.beginPath();mctx.arc(px,py,8,0,7);mctx.stroke();}}
+  mctx.strokeStyle='#ff0';mctx.lineWidth=1;mctx.beginPath();mctx.moveTo(mg.width/2-14,mg.height/2);mctx.lineTo(mg.width/2+14,mg.height/2);
+  mctx.moveTo(mg.width/2,mg.height/2-14);mctx.lineTo(mg.width/2,mg.height/2+14);mctx.stroke();}
+// autosave in this browser, and import of an earlier export (paste into the box, then Load)
+const KEY='line_labels_'+CAM+'_'+"__CLOCK__";
+const _draw=draw;draw=function(){_draw();try{localStorage.setItem(KEY,JSON.stringify(lines));}catch(e){}};
+function loadJSON(){try{const d=JSON.parse(document.getElementById('out').value);const L=d.lines||d;
+  for(const [id,pts] of Object.entries(L)) if(lines[id]!==undefined) lines[id]=pts.map(p=>[+p[0],+p[1]]);draw();}catch(e){alert('not valid JSON: '+e);}}
 function exportJSON(){const out={};for(const [id,pts] of Object.entries(lines)) if(pts.length) out[id]=pts;
   const data={camera:CAM,clock:"__CLOCK__",frame_size_upright:[IMGW/S,IMGH/S],lines:out};
   const txt=JSON.stringify(data);document.getElementById('out').value=txt;
   const a=document.createElement('a');a.href='data:application/json;charset=utf-8,'+encodeURIComponent(txt);a.download='line_labels_'+CAM+'.json';a.click();}
+try{const s=localStorage.getItem(KEY);if(s){const L=JSON.parse(s);for(const [id,pts] of Object.entries(L)) if(lines[id]!==undefined) lines[id]=pts;}}catch(e){}
 zoom(0.5);draw();
 </script></body></html>"""
 html = (html.replace("__CAM__", cam).replace("__CLOCK__", clock).replace("__B64__", b64)
