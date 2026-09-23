@@ -47,8 +47,15 @@ CONE_SIGMA = float(os.environ.get("FIT_CONE_SIGMA", 60.0))   # the cone labels a
 STATION_SIGMA = float(os.environ.get("FIT_STATION_SIGMA", 100.0))   # how near a plate corner lands to its cone, mm
                                     # (env overrides exist so the fit can be run with the anchors switched off: then the
                                     #  cameras are tied only by the boards they share, and the design grid is a CHECK)
-FLAT_SIGMA_DEG = 3.0                # measured: board normals scatter 1-8 deg about the common
-FLAT_SIGMA_Z = 40.0                 # plane, and their points 7-38 mm off it. Grass, not error.
+FLAT_SIGMA_DEG = float(os.environ.get("FIT_FLAT_SIGMA_DEG", 2.0))   # a plate on grass tilts a few degrees;
+FLAT_SIGMA_Z = float(os.environ.get("FIT_FLAT_SIGMA_Z", 1.0))       # its HEIGHT is pinned to the ground (see below)
+# Why the height is pinned (2026-09-23): with a 40 mm height prior under the robust loss, the bundle
+# slid the far plates DOWN their rays (by 0.2-0.5 m) instead of moving the cameras, because the
+# panos have many more corners than the ordinary lenses. The cameras then disagreed by 0.3-0.5 m at
+# the ends of the paddock. Pinned to 6 mm the same data give a cross-camera median of 78 mm
+# (p90 174 mm) against 112 mm (p90 341 mm) loose, and 104 mm (212 mm) at 10 mm. A plate on grass
+# is never 0.5 m below the grass; the 1-3 cm it can really sit above the soil costs less than the
+# freedom did. FIT_FLAT_SIGMA_Z=40 reproduces the loose fit.
 args = sys.argv[1:]
 SPLIT = "--split" in args        # one pose per pano by default: splitting the canvas into its
                                  # two lens halves and giving each its own pose does NOT reduce

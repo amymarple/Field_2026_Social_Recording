@@ -1,29 +1,41 @@
 # -*- coding: utf-8 -*-
 """Build a single-file HTML GUI for labelling cones: click a cone in the pano (or click empty grass
 to add a missed cone), then click its station on the field map or type the ID. Export = JSON.
-Usage: python cone_gui.py CH01 15:47:30   -> E:\calibration\qc\cone_gui_CH01.html"""
+Usage: python cone_gui.py CHxx HH:MM:SS [--session <dir|date>]   -> <qc>/cone_gui_CHxx.html
+Any camera: the panos are shown upright (rotated), the ordinary lenses as stored. The candidate
+points come from cones_CHxx.csv when the cone detector has been run for that camera; otherwise the
+page starts empty and every cone is added by clicking it. Coordinates are exported in the full
+UPRIGHT frame (frame_size_upright), which is what qc_paths.load_cones expects."""
 import sys, csv, json, base64, subprocess
 from pathlib import Path
 from datetime import datetime
 import numpy as np, cv2
-
-QC = Path(r"E:\calibration\qc"); SESSION = Path(r"E:\calibration\session_2026-09-18_13-54-34")
-FFMPEG = r"E:\Reolink_record\bin\ffmpeg.exe"
-cam, clock = sys.argv[1], sys.argv[2]
+sys.path.insert(0, str(Path(__file__).resolve().parent)); import qc_paths  # noqa: E402
+FFMPEG = r"E:/Reolink_record/bin/ffmpeg.exe"; FFPROBE = r"E:/Reolink_record/bin/ffprobe.exe"
+args, sess = qc_paths.pop_session(sys.argv[1:])
+SESSION, QC = qc_paths.resolve(sess)
+cam, clock = args[0], args[1]
+PANO = cam in ("CH01", "CH02")
 DISPLAY_W = 3840          # embedded image width (px); clicks are scaled back to full-res upright coords
 t = datetime.strptime(clock, "%H:%M:%S"); seg = off = None
 for s in sorted(SESSION.glob(f"{cam}_*_to_*.mp4")):
     a = datetime.strptime(s.name.split("_")[1] + " " + s.name.split("_")[2], "%Y-%m-%d %H-%M-%S")
     b = datetime.strptime(s.name.split("_")[1] + " " + s.name.split("_to_")[1][:8], "%Y-%m-%d %H-%M-%S")
     if a.time() <= t.time() <= b.time(): seg, off = s, (datetime.combine(a.date(), t.time()) - a).total_seconds()
+if seg is None:
+    sys.exit(f"no closed {cam} segment covers {clock}")
+w, h = [int(v) for v in subprocess.check_output([FFPROBE, "-v", "error", "-select_streams", "v:0", "-show_entries",
+                                                 "stream=width,height", "-of", "csv=p=0", str(seg)]).decode().strip().split(",")[:2]]
 buf = subprocess.run([FFMPEG, "-v", "error", "-ss", f"{off:.1f}", "-i", str(seg), "-frames:v", "1", "-f", "rawvideo",
                       "-pix_fmt", "bgr24", "-"], capture_output=True).stdout
-up = cv2.rotate(np.frombuffer(buf, np.uint8).reshape(7680, 2160, 3), cv2.ROTATE_90_COUNTERCLOCKWISE)
+img = np.frombuffer(buf, np.uint8).reshape(h, w, 3)
+up = cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE) if PANO else img.copy()
 H, W = up.shape[:2]; scale = DISPLAY_W / W
 small = cv2.resize(up, (DISPLAY_W, int(H * scale)), interpolation=cv2.INTER_AREA)
 ok, jpg = cv2.imencode(".jpg", small, [cv2.IMWRITE_JPEG_QUALITY, 74]); b64 = base64.b64encode(jpg).decode()
-points = [dict(idx=int(c["idx"]), x=float(c["upright_x"]), y=float(c["upright_y"]), station=c["station"] or "")
-          for c in csv.DictReader(open(QC / f"cones_{cam}.csv", encoding="utf-8"))]
+cand = QC / f"cones_{cam}.csv"
+points = ([dict(idx=int(c["idx"]), x=float(c["upright_x"]), y=float(c["upright_y"]), station=c["station"] or "")
+           for c in csv.DictReader(open(cand, encoding="utf-8"))] if cand.exists() else [])
 TRAIN_X = [24, 96, 168, 240, 312, 384, 456]; TRAIN_Y = [12, 66, 120, 174, 228]
 VT_X = [60, 132, 204, 276, 348, 420]; VT_Y = [39, 93, 147, 201]
 stations = [dict(id=f"T{li}{si}", x=x, y=y, set="T") for li, x in enumerate(TRAIN_X, 1) for si, y in enumerate(TRAIN_Y, 1)]

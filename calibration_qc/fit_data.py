@@ -39,6 +39,24 @@ WEAK = ("outline",)                     # not corner measurements: four operator
 CLUSTER_PX = float(os.environ.get("FIT_CLUSTER_PX", "4.0"))   # frames of one placement agree to this
 HOM_REJECT = 4.0                        # px; see hom_rms()
 
+# Burnt-in OSD text (timestamp top-centre, model name bottom-right) sits ON the footage: a corner
+# detector run over it returns corners of the letters. Corners inside these boxes (UPRIGHT px,
+# fractions of the frame so they hold for any resolution) are dropped before anything else.
+# Measured on 2026-09-18/19 frames: Duo 3 pano 7680x2160, RLC-1212A 4512x2512 and 2560x1920.
+OSD_BOXES = {
+    "pano": [(0.41, 0.0, 0.60, 0.065), (0.855, 0.93, 1.0, 1.0)],
+    "rlc":  [(0.34, 0.0, 0.66, 0.05), (0.73, 0.94, 1.0, 1.0)],
+}
+
+
+def in_osd(px, upright, cam):
+    W, H = upright
+    boxes = OSD_BOXES["pano" if cam in ("CH01", "CH02") else "rlc"]
+    m = np.zeros(len(px), bool)
+    for x0, y0, x1, y1 in boxes:
+        m |= (px[:, 0] >= x0 * W) & (px[:, 0] <= x1 * W) & (px[:, 1] >= y0 * H) & (px[:, 1] <= y1 * H)
+    return m
+
 # Windows whose station label the footage itself contradicts (frames rendered and looked at, not
 # inferred from a residual). The fit must not anchor these to that station; they are left out
 # until the operator confirms or relabels them. (session, station, window_start) -> what was seen.
@@ -118,6 +136,11 @@ def placements(sess_arg, min_corners=12):
             if len(ids) < min_corners:
                 continue
             px = qc_paths.stored_to_upright(px, session, cam)
+            osd = in_osd(px, qc_paths.upright_size(session, cam), cam)
+            if osd.any():
+                ids, px = ids[~osd], px[~osd]
+                if len(ids) < min_corners:
+                    continue
             frames.append(dict(ids=ids, px=px, method=meth, clock=r["clock"],
                                ctr=px.mean(0), n=len(ids)))
         if not frames:
@@ -176,9 +199,19 @@ def placements(sess_arg, min_corners=12):
         man = any(m.startswith("manual-") for m in meths) or method == "operator-clicks"
         hr = 0.0 if weak else hom_rms(obs_mm, obs_px)
         sigma = max(sigma, min(hr, HOM_REJECT))     # a board only as good as its own planarity
+        # a plate cut by the frame edge (or mostly hidden) is a partial measurement: its pose from
+        # a few corners in the most distorted part of the lens is the weakest thing in the fit
+        # (CH04/T65, CH03/F12, CH06/T64 were 60-140 px off the other cameras). Half weight.
+        uw, uh = qc_paths.upright_size(session, cam)
+        edge = 0.02
+        partial = (not weak) and (len(ids) < 30 or bool(((obs_px[:, 0] < edge * uw) | (obs_px[:, 0] > (1 - edge) * uw) |
+                                                          (obs_px[:, 1] < edge * uh) | (obs_px[:, 1] > (1 - edge) * uh)).any()))
+        if partial:
+            sigma *= 2.0
         out.append(dict(session=date, cam=cam, station=st, win=win, method=method, manual=man,
-                        hom_rms=float(hr), bad=bool(hr > HOM_REJECT) or moving, moving=moving,
+                        hom_rms=float(hr), bad=bool(hr > HOM_REJECT) or moving, moving=moving, partial=partial,
                         n_frames=len(keep), n_frames_all=len(frames), ids=ids,
+                        clocks=[f["clock"] for f in keep], clocks_all=[f["clock"] for f in frames],
                         obj_mm=np.asarray(obs_mm, float), px=np.asarray(obs_px, float),
                         sigma=float(sigma), weak=bool(weak),
                         cone_corner=cone.get((cam, st, win)),

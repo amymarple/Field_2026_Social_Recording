@@ -299,3 +299,37 @@ since the 09-19 manual re-decode: 551 rows vs 845 on E:. Every fit before this o
 copy, so it was missing 295 operator-decoded frames of the 09-19 boards (CH01 T65 44 -> 162
 frames, CH02 T12 1 -> 15, CH02 T23 absent). `label_timeline.py` writes to the session QC folder;
 the copy into the repo is a separate step and must follow every re-decode.
+
+## The far-board disagreement was the fit, not the panos (2026-09-23, evening)
+
+Tested against the ordinary lenses' OWN geometry (each pinhole's boards as rigid 3-D objects in its
+frame, one rigid pano pose per pinhole, `scratchpad pano_vs_pinhole.py`): the nominal equirect
+explains the shared boards at 6-10 px median once a handful of corrupted boards are set aside,
+and no smooth alternative (per-lens rotation, per-lens vertical scale, two rectilinear halves)
+does better with physical parameters. The corrupted boards were looked at, not inferred:
+
+* CH01/F52 lies under the burnt-in "Reolink Duo 3 PoE" watermark; CH06/F52 has a cable across it.
+* CH04/T65, CH03/F12, CH06/T64 are cut by the frame edge (16-43 corners in the most distorted
+  part of the lens).
+
+So the 0.3-1.0 m "far boards closer" readings came from the bundle itself: with a 40 mm height
+prior under the robust loss it slid far plates DOWN their rays instead of moving the cameras (the
+panos have many more corners than the ordinary lenses). Control runs with the same data:
+
+| plate height prior | cross-camera median | p90 | CH01-CH04 |
+|---|---|---|---|
+| 40 mm (as before) | 112 mm | 341 mm | 276 mm |
+| 10 mm | 104 mm | 212 mm | 159 mm |
+| 1 mm (pinned) | 78 mm | 174 mm | 89 mm |
+
+Pinned is now the default (`FLAT_SIGMA_Z = 1`, tilt 2 deg; `FIT_FLAT_SIGMA_Z=40` reproduces the
+old fit). Two more guards in `fit_data.py`: corners under the OSD boxes (timestamp, model name)
+are dropped before anything else, and a plate cut by the frame edge or with fewer than 30 corners
+carries half weight (`partial`). Final: median 87 mm, p90 179 mm, max 279 mm over 2600 shared
+corners; worst stations T11/T75/T22 at ~200 mm; CH01-CH02 55 mm; CH01-CH03 59 mm; CH01-CH04 126 mm.
+
+Still open, and what the operator can label: the ends of the paddock are held by few boards.
+`cone_gui.py` now works for any camera (`python cone_gui.py CH03 15:20:00`), pages built for
+CH03-CH06 (`E:\calibration\qc\cone_gui_CH0[3-6].html`). A cone clicked in an ordinary lens is a
+point on that camera's own ground plane at a place the panos see well, so every labelled cone at
+the ends is one more tie between a pinhole and a pano where the boards are thin.
