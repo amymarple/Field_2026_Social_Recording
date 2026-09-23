@@ -123,9 +123,19 @@ function Get-Inventory {
     param([string]$Root)
     $inv = @{}
     if (-not (Test-Path -LiteralPath $Root)) { return $inv }
-    $prefix = (Resolve-Path -LiteralPath $Root).Path.TrimEnd('\') + '\'
+    # ProviderPath, NOT .Path: for a UNC root .Path returns the provider-qualified form
+    # ("Microsoft.PowerShell.Core\FileSystem::\\server\share\...") which is 38 chars longer
+    # than $f.FullName, so Substring throws or silently shifts every relative path.
+    # Found by the lab agent 2026-09-23 on the UNC-dest staging run (verify phase only;
+    # the copy phase is robocopy and was never affected).
+    $prefix = (Resolve-Path -LiteralPath $Root).ProviderPath.TrimEnd('\') + '\'
     foreach ($f in (Get-ChildItem -LiteralPath $Root -Recurse -File -ErrorAction SilentlyContinue)) {
-        $inv[$f.FullName.Substring($prefix.Length)] = $f.Length
+        # guard: a prefix mismatch must never present as "every file is missing"
+        if ($f.FullName.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) {
+            $inv[$f.FullName.Substring($prefix.Length)] = $f.Length
+        } else {
+            $inv['!!UNRESOLVED!! ' + $f.FullName] = $f.Length
+        }
     }
     return $inv
 }
@@ -180,6 +190,21 @@ if ($SelfTest) {
     $rows = Compare-Trees -SrcInv (Get-Inventory (Join-Path $t 'src')) -DstInv (Get-Inventory $dst) -Area 'test'
     if (@($rows | Where-Object { $_.status -ne 'ok' }).Count -ne 0) { Say '  FAIL: re-run did not heal the tree' Red; $ok = $false }
 
+    # UNC case (regression guard for the 2026-09-23 .Path bug): every other check above
+    # runs under a drive-letter TEMP path, where .Path and .ProviderPath are identical, so
+    # none of them can catch it. Uses the local admin share; skipped when unreachable.
+    $uncSrc = '\\localhost\' + $t.Substring(0, 1) + '$' + (Join-Path $t 'src').Substring(2)
+    if (Test-Path -LiteralPath $uncSrc) {
+        $uncInv = Get-Inventory $uncSrc
+        if (@($uncInv.Keys | Where-Object { $_ -like '!!UNRESOLVED!!*' }).Count -ne 0) {
+            Say '  FAIL: UNC root produced unresolved relative paths' Red; $ok = $false
+        } elseif (@($uncInv.Keys).Count -ne 2 -or -not ($uncInv.Keys -contains '2026-01-01\CH01\CH01_2026-01-01_01-00-00.mp4')) {
+            Say "  FAIL: UNC inventory wrong: $($uncInv.Keys -join ' | ')" Red; $ok = $false
+        } else { Say '  UNC root inventory ok (relative paths intact)' DarkGray }
+    } else {
+        Say '  (UNC case skipped - admin share not reachable from this session)' DarkGray
+    }
+
     Remove-Item -LiteralPath $t -Recurse -Force -ErrorAction SilentlyContinue
     if ($ok) { Say 'SELF-TEST PASSED' Green; exit 0 }
     Say 'SELF-TEST FAILED' Red
@@ -205,7 +230,7 @@ if (-not $Ssd) {
     }
 }
 if (-not (Test-Path -LiteralPath $Ssd)) { Say "Source not found: $Ssd" Red; exit 2 }
-$Ssd = (Resolve-Path -LiteralPath $Ssd).Path
+$Ssd = (Resolve-Path -LiteralPath $Ssd).ProviderPath
 
 # ---- destination sanity: never copy onto the source drive ----
 $srcQual  = if ($Ssd  -match '^[A-Za-z]:') { Split-Path $Ssd  -Qualifier } else { '' }

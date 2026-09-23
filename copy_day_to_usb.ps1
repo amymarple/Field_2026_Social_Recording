@@ -137,7 +137,7 @@ function Add-SaveLogEntry([string]$LogPath, $Entry) {
 # under <USB>\Wiser_backup.
 function Invoke-WiserBackupSweep {
     param([string]$Src, [string]$UsbRoot, [bool]$DoHash, [bool]$IsDryRun)
-    $srcFull  = (Resolve-Path -LiteralPath $Src).Path
+    $srcFull  = (Resolve-Path -LiteralPath $Src).ProviderPath
     $destRoot = Join-Path $UsbRoot 'Wiser_backup'
     $destRootFull = [System.IO.Path]::GetFullPath($destRoot)
     if (-not $IsDryRun) { New-Item -ItemType Directory -Force -Path $destRoot | Out-Null }
@@ -214,7 +214,7 @@ if (-not $Usb) {
 # ---- resolve + sanity-check the USB destination ----
 $usbRoot = $Usb.Trim()
 if ($usbRoot -match '^[A-Za-z]:$') { $usbRoot += '\' }      # "F:" -> "F:\"
-try { $usbRoot = (Resolve-Path -LiteralPath $usbRoot -ErrorAction Stop).Path }
+try { $usbRoot = (Resolve-Path -LiteralPath $usbRoot -ErrorAction Stop).ProviderPath }
 catch { Say "USB path not found / not mounted: $Usb" Red; exit 2 }
 
 $usbQual = (Split-Path $usbRoot -Qualifier)

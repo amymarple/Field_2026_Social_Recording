@@ -92,7 +92,7 @@ function Get-HandleLen([string]$Path, [double]$Fallback = 0) {
 function Resolve-FfprobePath([string[]]$Candidates) {
     foreach ($candidate in $Candidates) {
         if ($candidate -and (Test-Path -LiteralPath $candidate)) {
-            return (Resolve-Path -LiteralPath $candidate).Path
+            return (Resolve-Path -LiteralPath $candidate).ProviderPath
         }
     }
     $cmd = Get-Command ffprobe -ErrorAction SilentlyContinue
