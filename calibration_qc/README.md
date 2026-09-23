@@ -285,3 +285,17 @@ Lens models from the reviewed sweeps: CH03 f 2990 -> 2949 px, principal point mo
 168 -> 52 mm (CH03 shares two more boards with CH01 now), overall median 122 -> 108 mm;
 CH01-CH04 (286 mm, dx -252) and CH02-CH03 (384 mm) unchanged - the boards at the ends are what
 the operator confirmed, so the remaining disagreement is on the pano side, as in the section above.
+
+### 12:41 on 09-19 is nothing (operator, 2026-09-23)
+
+The row `12:41:05-12:42:24 T61` in the 09-19 timeline was one of the frame-verified additions of
+09-19 (mine, comment-marked "operator may veto"), and the operator vetoed it: "nothing there, I
+just set the plate down". Both copies of the timeline now carry the row with the label `NONE` so
+those 43 frames are neither a station nor a free lens view; `fit_data.EXCLUDE` keeps the entry as a
+guard with the operator's words. T61 on 09-19 is the 12:29:25 window only (CH02 and CH04).
+
+Regenerating the 09-19 labelled-frames table for this also showed the REPO copy had been stale
+since the 09-19 manual re-decode: 551 rows vs 845 on E:. Every fit before this one read the repo
+copy, so it was missing 295 operator-decoded frames of the 09-19 boards (CH01 T65 44 -> 162
+frames, CH02 T12 1 -> 15, CH02 T23 absent). `label_timeline.py` writes to the session QC folder;
+the copy into the repo is a separate step and must follow every re-decode.

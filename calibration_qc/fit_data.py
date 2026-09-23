@@ -44,9 +44,9 @@ HOM_REJECT = 4.0                        # px; see hom_rms()
 # until the operator confirms or relabels them. (session, station, window_start) -> what was seen.
 EXCLUDE = {
     ("2026-09-19", "T61", "12:41:05"):
-        "second T61 window: the plate is set down beside house 7 with no cone at its corner "
-        "(CH06 12:41:48-12:42:24, 65 corners) - and CH06 cannot see the T61 cone at all; the "
-        "CH01/CH02/CH04 frames in this window are the plate being carried",
+        "not a placement - operator 2026-09-23: 'nothing there, I just set the plate down'. The frames "
+        "agree (plate beside house 7, no cone at its corner; CH06 cannot see the T61 cone). The "
+        "timeline row now carries the label NONE, so this entry only guards an old labelled_frames table",
 }
 
 

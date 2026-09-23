@@ -11,9 +11,11 @@
 12:39:23-12:40:09  T35
 12:40:21-12:40:59  V44
 # --- rows added after the frame review of 2026-09-19 (Claude; operator may veto) ---
-# T61 was already settled from ~12:29:25 (CH04 pose within 1 px of the operator's window) and was placed a SECOND time at the end (CH02 12:41:30: board on the T61 cone)
+# T61 was already settled from ~12:29:25 (CH04 pose within 1 px of the operator's window). The plate seen again at 12:41:05-12:42:24
+# is NOT a placement: operator 2026-09-23 - "nothing there, I just set the plate down" (frames: beside house 7, no cone at its corner).
+# The row is kept with the label NONE so those frames are neither a station nor a free lens view.
 12:29:25-12:29:36  T61
-12:41:05-12:42:24  T61
+12:41:05-12:42:24  NONE
 # T62 already in place from 12:29:39 (CH01 origin corner on the T62 cone)
 12:29:39-12:29:45  T62
 # T65 stayed on the ground until 12:34:55 (CH04 one pose 12:32:39-12:34:53; picked up ~12:35:00 and carried across the field - CH01/CH02/CH03 12:35:03-12:35:19 are hand-held)
