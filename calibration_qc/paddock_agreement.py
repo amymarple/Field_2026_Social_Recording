@@ -18,7 +18,7 @@ Two things it does NOT measure, both of which matter more in use:
     common error in that frame (see the cone-label note in CALIBRATION_FIT.txt) cancels here and
     would move all the cameras together.
 
-Usage: python paddock_agreement.py [--z 6] [--plot]
+Usage: python paddock_agreement.py [--z 6] [--plot] [--fit <camera_fit.npz>] [--out <dir>]
 """
 import sys, itertools
 from pathlib import Path
@@ -29,7 +29,8 @@ import fit_data as fd, paddock_map as pm                                   # noq
 
 args = sys.argv[1:]
 Z_MM = float(args[args.index("--z") + 1]) if "--z" in args else 6.0
-OUT = Path(r"E:\calibration\qc")
+FIT = Path(args[args.index("--fit") + 1]) if "--fit" in args else pm.FIT
+OUT = Path(args[args.index("--out") + 1]) if "--out" in args else FIT.parent
 MM_PER_IN = 25.4
 L = []
 
@@ -39,11 +40,11 @@ def say(s=""):
     L.append(s)
 
 
-cams = pm.load()
+cams = pm.load(FIT)
 P = [p for p in fd.all_placements() if not p["bad"] and not p["weak"]]
 # views the fit itself refused (a plate that is not flat where the others are, or that no camera
 # geometry could explain). Including them here would measure those, not the calibration.
-_z = np.load(pm.FIT, allow_pickle=False)
+_z = np.load(FIT, allow_pickle=False)
 DROPPED = {tuple(s.split("|")[:4]) for s in _z["dropped_views"]} if "dropped_views" in _z else set()
 P = [p for p in P if (p["cam"], p["session"], p["station"], p["win"]) not in DROPPED]
 if DROPPED:

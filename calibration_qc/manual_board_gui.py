@@ -18,7 +18,15 @@ automatic path.
   located  those plus the windows where the board was only LOCATED, not decoded - the machine's
            outline is drawn on the frame so the operator can accept it (key a) or re-click it;
   all      every window, including the decoded ones, for a full audit.
-Usage: python manual_board_gui.py [--session <dir|date>] [--mode missing|located|all] [--cams CH01,CH02]
+  audit    every window in which the machine found something, plus every window whose station the
+           current fit (paddock_map) says is inside this camera's frame - so the operator sees each
+           machine box the fit will use AND each place where the machine found nothing it should have.
+--sweep CH03=15:36:32-15:41:46[,CH04=...]  adds the hand-held distortion sweeps as one frame every
+           --sweep-step seconds (default 2), labelled SW<HHMMSS>; the machine's box is drawn where it
+           has one. On a hand-held plate there is no cone: click any corner first and go around.
+--timeline <file>  windows file to use instead of <qc>\placement_timeline.txt; --out <dir> output dir.
+Usage: python manual_board_gui.py [--session <dir|date>] [--mode missing|located|all|audit] [--cams CH01,CH02]
+                                  [--sweep CHxx=HH:MM:SS-HH:MM:SS,...] [--sweep-step 2] [--timeline <file>] [--out <dir>]
 Output: <qc>\manual\  (frames + manual_board_gui.html)
 """
 import sys, re, json, subprocess
@@ -41,7 +49,14 @@ CROP = "--crop" in args                   # old behaviour: cut a window around w
                                           # the real board and invites the operator to confirm the wrong object
                                           # (operator, 2026-09-22). The page zooms and pans instead.
 MAXW = int(opt("--max-width", "3840"))
-OUT = QC / "manual"; OUT.mkdir(parents=True, exist_ok=True)
+OUT = Path(opt("--out")) if opt("--out") else QC / "manual"; OUT.mkdir(parents=True, exist_ok=True)
+TIMELINE = Path(opt("--timeline")) if opt("--timeline") else QC / "placement_timeline.txt"
+SWEEP_STEP = float(opt("--sweep-step", "2"))
+SWEEPS = []                                   # (cam, start, end) hand-held distortion sweeps
+for item in (opt("--sweep", "") or "").split(","):
+    if item.strip():
+        c, rng = item.split("="); a, b = rng.split("-")
+        SWEEPS.append((c.strip().upper(), a.strip(), b.strip()))
 TRAIN_X = [24, 96, 168, 240, 312, 384, 456]; TRAIN_Y = [12, 66, 120, 174, 228]
 VT_X = [60, 132, 204, 276, 348, 420]; VT_Y = [39, 93, 147, 201]
 LATTICE = {f"T{li}{si}": (x, y) for li, x in enumerate(TRAIN_X, 1) for si, y in enumerate(TRAIN_Y, 1)}
@@ -49,16 +64,31 @@ LATTICE.update({f"{'V' if (i + j) % 2 == 0 else 'F'}{i}{j}": (x, y) for i, x in 
 
 def clk(s): return datetime.strptime(f"{DATE} {s}", "%Y-%m-%d %H:%M:%S")
 wins = []
-for ln in (QC / "placement_timeline.txt").read_text(encoding="utf-8").splitlines():
+for ln in TIMELINE.read_text(encoding="utf-8").splitlines():
     m = re.match(r"\s*(\d\d:\d\d:\d\d)-(\d\d:\d\d:\d\d)\s+(\S+)", ln)
     if m:
-        a, b = clk(m.group(1)), clk(m.group(2)); wins.append([min(a, b), max(a, b), m.group(3).upper()])
+        a, b = clk(m.group(1)), clk(m.group(2)); wins.append([min(a, b), max(a, b), m.group(3).upper(), None])
 merged = []
 for w in sorted(wins, key=lambda w: w[0]):
     same = next((c for c in merged if c[2] == w[2] and w[0] <= c[1] + timedelta(seconds=1) and w[1] >= c[0] - timedelta(seconds=1)), None)
     if same: same[0], same[1] = min(same[0], w[0]), max(same[1], w[1])
     else: merged.append(list(w))
 wins = merged
+for c, a, b in SWEEPS:                        # one window per sample, this camera only
+    t, end = clk(a), clk(b)
+    while t <= end:
+        wins.append([t, t + timedelta(seconds=SWEEP_STEP), f"SW{t.strftime('%H%M%S')}", c])
+        t += timedelta(seconds=SWEEP_STEP)
+_FIT = None
+if MODE == "audit":
+    try:
+        import paddock_map as _pm; _FIT = _pm.load()
+        print("audit mode: windows are also included when the current fit puts the station inside the frame", flush=True)
+    except Exception as e:
+        print(f"audit mode: no usable fit ({e}); including every window", flush=True)
+def in_view(cam, st):
+    if _FIT is None or cam not in _FIT or st not in LATTICE: return True
+    return bool(_FIT[cam].sees(LATTICE[st], units="in", margin=-150))
 
 BOARD = cv2.aruco.CharucoBoard((12, 9), 0.060, 0.045, cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_5X5_100))
 OBJ_MM = np.asarray(BOARD.getChessboardCorners(), float).reshape(-1, 3)[:, :2] * 1000.0
@@ -114,12 +144,16 @@ for cam in CAMS:
     pano = cam in ("CH01", "CH02")
     cones = cone_map(cam) if pano else {}
     have = cached(cam)
-    for a, b, st in wins:
+    for a, b, st, only in wins:
+        if only is not None and only != cam:
+            continue
         inwin = [r for r in have if a <= r[0] <= b]
         decoded = [r for r in inwin if r[1] >= 12]
         if MODE == "missing" and len(inwin) >= MIN_FRAMES:
             continue
         if MODE == "located" and decoded:
+            continue
+        if MODE == "audit" and only is None and not inwin and not in_view(cam, st):
             continue
         # Take a frame from the LATE part of the window: the operator may still be walking in front of
         # the plate at the start, and the plate does not move within a window (operator, 2026-09-22).
@@ -232,7 +266,8 @@ function load(){const j=JOBS[i];img=new Image();img.onload=()=>{fitView();draw()
   pts=(quads[j.file]&&quads[j.file].pts)?quads[j.file].pts.slice():[];
   $('idx').textContent=i+1;$('tot').textContent=JOBS.length;
   $('what').textContent=`${j.cam} ${j.station}  window ${j.win[0]}-${j.win[1]}  frame ${j.clock}`
-    + (j.machine?`  |  machine: ${j.machine_method} ${j.machine_corners}c`:'  |  machine: nothing');
+    + (j.machine?`  |  machine: ${j.machine_method} ${j.machine_corners}c`:'  |  machine: nothing')
+    + (j.station.startsWith('SW')?'  |  HAND-HELD SWEEP: any corner first, then around the plate':'');
   render();showStatus();}
 function draw(){const j=JOBS[i],S2I=(p)=>[p[0]*view.z+view.ox,p[1]*view.z+view.oy];
   ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#000';ctx.fillRect(0,0,cv.width,cv.height);

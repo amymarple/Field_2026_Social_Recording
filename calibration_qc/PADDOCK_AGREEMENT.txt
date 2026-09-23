@@ -2,65 +2,68 @@
 CROSS-CAMERA AGREEMENT ON THE PADDOCK FLOOR   (points taken at z = 6 mm)
 ================================================================================================
 
-  4682 board corners mapped; 1861 of them were decoded by two or more
+  4993 board corners mapped; 2328 of them were decoded by two or more
   cameras, so each has two or more independent paddock positions for one physical spot.
-  11 camera-views excluded because the fit itself rejected them: CH01/T53, CH01/T61, CH01/T63, CH01/V13, CH01/V42, CH02/T12, CH02/T33, CH02/T53, CH02/T61, CH03/T14, CH04/T61
+  7 camera-views excluded because the fit itself rejected them: CH01/T53, CH01/T63, CH01/V42, CH02/T12, CH02/T33, CH02/T53, CH02/V13
 
   pair             n pts  boards   median      p90      max     systematic offset (dx, dy)
-  CH01-CH04         439       7    279mm    411mm    470mm        -244,      -67 mm
-  CH01-CH05         315       4    134mm    201mm    235mm        -129,      +33 mm
-  CH02-CH04         293       5    127mm    259mm    298mm         +93,       +0 mm
-  CH02-CH06         244       5     75mm    102mm    122mm         +60,       -4 mm
-  CH01-CH06         243       6     75mm    115mm    253mm         -15,       -1 mm
-  CH02-CH05         175       4    196mm    349mm    388mm        +193,      +32 mm
-  CH02-CH03         117       2    356mm    405mm    435mm        +350,      +54 mm
-  CH01-CH02         107       3     35mm     62mm     77mm          +2,       +6 mm
-  CH01-CH03          92       3     72mm    186mm    226mm         -19,      +30 mm
-  CH04-CH06           2       1     96mm     97mm     97mm         -48,      +83 mm
+  CH01-CH04         481       7    282mm    436mm    510mm        -254,      -71 mm
+  CH02-CH04         390       6    131mm    196mm    239mm         +88,       -6 mm
+  CH01-CH05         327       4    117mm    158mm    180mm        -103,      +24 mm
+  CH02-CH05         286       5     99mm    313mm    368mm         +89,      +16 mm
+  CH01-CH06         282       6     75mm    120mm    265mm         -17,       -4 mm
+  CH02-CH06         279       5    111mm    138mm    147mm        +109,       -9 mm
+  CH01-CH03         243       5    164mm    231mm    261mm        -162,      +24 mm
+  CH01-CH02         134       3     34mm     71mm     88mm          +9,      +25 mm
+  CH02-CH03          88       1    437mm    488mm    518mm        +432,      +69 mm
+  CH04-CH06           2       1     79mm     79mm     79mm         -53,      +58 mm
 
-  over every shared corner: median 116 mm, p90 352 mm, max 470 mm
-  (4.6 in / 13.8 in)
+  over every shared corner: median 122 mm, p90 351 mm, max 518 mm
+  (4.8 in / 13.8 in)
 
   by station (worst pair at that station, median over its corners):
   station   session           x,y (in)  n corners  disagreement
-  T75       09-18       424.0,  215.8         88        411 mm
-  T11       09-19        71.1,   28.9         87        373 mm
-  T65       09-19       393.2,  214.9         43        334 mm
-  T74       09-18       426.9,  185.5         88        331 mm
-  T22       09-18       121.2,   75.4         70        321 mm
-  T71       09-18       438.2,   20.5         88        251 mm
-  F21       09-18       147.7,   56.1         11        247 mm
-  T64       09-19       390.2,  185.9         52        245 mm
-  T34       09-18       187.4,  184.9         74        195 mm
-  F12       09-18        86.1,  106.2         24        178 mm
-  V13       09-18        80.5,  157.7         30        175 mm
-  V22       09-18       151.0,   78.4         47        159 mm
-  T23       09-19        82.7,  130.3         19        150 mm
-  T33       09-18       183.9,  127.2         78        144 mm
-  F63       09-18       432.8,  159.5         84        142 mm
-  F23       09-18       148.6,  157.4         85        114 mm
-  T63       09-19       404.7,  136.4         15        104 mm
-  T73       09-18       437.8,  133.7         88         98 mm
-  V42       09-18       298.7,  102.8         61         98 mm
-  V62       09-18       429.8,  101.7         84         91 mm
-  F43       09-18       300.9,  157.4         56         88 mm
-  F41       09-18       295.6,   53.2         30         79 mm
-  T52       09-18       329.9,   74.6         42         74 mm
-  V53       09-18       352.7,  158.0         56         71 mm
-  V51       09-18       365.5,   48.1         61         67 mm
-  T54       09-18       329.0,  181.9         64         62 mm
-  F54       09-18       349.9,  182.5         15         59 mm
-  F52       09-18       364.7,   81.2         61         49 mm
-  T24       09-18       109.7,  187.8         81         42 mm
-  F14       09-19        72.4,  218.4         49         37 mm
-  T62       09-19       396.8,   78.3         42         26 mm
-  T72       09-18       438.1,   75.9         88         18 mm
+  T75       09-18       421.0,  216.7         88        441 mm
+  T11       09-19        63.0,   26.0         88        437 mm
+  T74       09-18       424.5,  186.8         88        342 mm
+  T65       09-19       388.9,  215.2         59        333 mm
+  T22       09-18       117.0,   74.6         70        302 mm
+  T64       09-19       389.4,  186.7         69        253 mm
+  T23       09-19        80.1,  128.7         36        226 mm
+  F12       09-18        82.9,  105.2         25        225 mm
+  T71       09-18       439.4,   19.1         88        190 mm
+  F21       09-18       146.9,   55.2         14        180 mm
+  V13       09-18        82.4,  158.6         41        168 mm
+  F14       09-19        74.9,  218.1         77        165 mm
+  F63       09-18       431.2,  160.6         84        154 mm
+  T34       09-18       182.7,  185.4         82        147 mm
+  V22       09-18       147.9,   79.9         68        143 mm
+  V42       09-18       296.7,  103.3         62        137 mm
+  T63       09-19       402.9,  134.5         32        133 mm
+  F41       09-18       291.1,   51.4         50        125 mm
+  T33       09-18       180.2,  127.7         80        122 mm
+  T73       09-18       436.8,  134.7         88        119 mm
+  T52       09-18       328.6,   74.8         54        119 mm
+  F43       09-18       298.4,  158.3         56         88 mm
+  T24       09-18       106.1,  187.6         82         87 mm
+  F23       09-18       145.2,  157.9         86         82 mm
+  V53       09-18       350.7,  160.1         81         75 mm
+  F54       09-18       348.8,  183.6         22         70 mm
+  T62       09-19       398.0,   76.4         65         59 mm
+  T61       09-19       398.1,   17.4         75         58 mm
+  T72       09-18       438.4,   76.5         88         55 mm
+  V62       09-18       428.9,  103.0         86         53 mm
+  T54       09-18       326.5,  182.5         70         51 mm
+  V51       09-18       365.1,   47.1         61         38 mm
+  F52       09-18       363.7,   81.5         62         33 mm
+  T14       09-18        49.8,  188.2         64         33 mm
+  T32       09-18       183.6,   73.5         87         15 mm
 
   for comparison, the error from assuming the wrong HEIGHT (a pixel is a ray, not a point):
   camera    mm slide per mm of height   a 60 mm-high back read as ground
-  CH01                       0.74                             44 mm
-  CH02                       0.67                             40 mm
-  CH03                       0.81                             49 mm
-  CH04                       0.85                             51 mm
-  CH05                       0.07                              4 mm
-  CH06                       0.08                              5 mm
+  CH01                       0.71                             43 mm
+  CH02                       0.68                             41 mm
+  CH03                       0.88                             53 mm
+  CH04                       0.90                             54 mm
+  CH05                       0.05                              3 mm
+  CH06                       0.09                              6 mm

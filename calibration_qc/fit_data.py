@@ -39,6 +39,16 @@ WEAK = ("outline",)                     # not corner measurements: four operator
 CLUSTER_PX = float(os.environ.get("FIT_CLUSTER_PX", "4.0"))   # frames of one placement agree to this
 HOM_REJECT = 4.0                        # px; see hom_rms()
 
+# Windows whose station label the footage itself contradicts (frames rendered and looked at, not
+# inferred from a residual). The fit must not anchor these to that station; they are left out
+# until the operator confirms or relabels them. (session, station, window_start) -> what was seen.
+EXCLUDE = {
+    ("2026-09-19", "T61", "12:41:05"):
+        "second T61 window: the plate is set down beside house 7 with no cone at its corner "
+        "(CH06 12:41:48-12:42:24, 65 corners) - and CH06 cannot see the T61 cone at all; the "
+        "CH01/CH02/CH04 frames in this window are the plate being carried",
+}
+
 
 def hom_rms(obj_mm, px):
     """How well the corners of ONE placement fit a plane-to-plane homography, in pixels.
@@ -95,7 +105,7 @@ def placements(sess_arg, min_corners=12):
         groups.setdefault((r["cam"], r["station"], r["window_start"]), []).append(r)
     out = []
     for (cam, st, win), rs in sorted(groups.items()):
-        if st not in STATION_MM:
+        if st not in STATION_MM or (date, st, win) in EXCLUDE:
             continue
         frames = []
         for r in rs:
@@ -112,14 +122,31 @@ def placements(sess_arg, min_corners=12):
                                ctr=px.mean(0), n=len(ids)))
         if not frames:
             continue
-        # ---- keep the largest cluster of frames that agree on the board position (latest wins ties)
-        C = np.array([f["ctr"] for f in frames])
+        # ---- keep the largest cluster of frames that agree on the board position (latest wins ties).
+        # Agreement is measured on the corners two frames SHARE (median displacement of the same
+        # ids), never on the centroid of whatever each frame happened to decode: a partly occluded
+        # board decodes a different subset every frame and its centroid wanders by tens of pixels
+        # while the plate has not moved a millimetre. (The centroid version kept 1-4 frames of 20-60
+        # for a dozen placements, and at T61/T65 it kept the one frame where the board was still in
+        # the operator's hands.)
+        n = len(frames)
+        agree = np.eye(n, dtype=bool)
+        for i in range(n):
+            di = dict(zip(frames[i]["ids"].tolist(), frames[i]["px"]))
+            for j in range(i + 1, n):
+                shared = [k for k in frames[j]["ids"].tolist() if k in di]
+                if len(shared) < 6:
+                    continue
+                dj = dict(zip(frames[j]["ids"].tolist(), frames[j]["px"]))
+                d = np.median(np.linalg.norm(np.array([di[k] - dj[k] for k in shared]), axis=1))
+                agree[i, j] = agree[j, i] = d < CLUSTER_PX
         best, bi = None, None
-        for i in range(len(frames)):
-            m = np.linalg.norm(C - C[i], axis=1) < CLUSTER_PX
-            if best is None or m.sum() > best or (m.sum() == best and i > bi):
-                best, bi = int(m.sum()), i
-        keep = [f for f, m in zip(frames, np.linalg.norm(C - C[bi], axis=1) < CLUSTER_PX) if m]
+        for i in range(n):
+            m = int(agree[i].sum())
+            if best is None or m > best or (m == best and i > bi):
+                best, bi = m, i
+        keep = [f for f, m in zip(frames, agree[bi]) if m]
+        moving = n >= 3 and best == 1          # no two frames agree: the plate was in motion
         meths = [f["method"] for f in keep]
         weak = all(base_method(m) in WEAK for m in meths)
         if weak:
@@ -150,7 +177,7 @@ def placements(sess_arg, min_corners=12):
         hr = 0.0 if weak else hom_rms(obs_mm, obs_px)
         sigma = max(sigma, min(hr, HOM_REJECT))     # a board only as good as its own planarity
         out.append(dict(session=date, cam=cam, station=st, win=win, method=method, manual=man,
-                        hom_rms=float(hr), bad=bool(hr > HOM_REJECT),
+                        hom_rms=float(hr), bad=bool(hr > HOM_REJECT) or moving, moving=moving,
                         n_frames=len(keep), n_frames_all=len(frames), ids=ids,
                         obj_mm=np.asarray(obs_mm, float), px=np.asarray(obs_px, float),
                         sigma=float(sigma), weak=bool(weak),

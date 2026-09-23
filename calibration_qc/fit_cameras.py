@@ -28,7 +28,7 @@ STAGES
 
 Usage: python fit_cameras.py [--split] [--out <dir>]
 """
-import sys, json, csv
+import sys, json, csv, os
 from pathlib import Path
 import numpy as np, cv2
 from scipy.optimize import least_squares
@@ -41,10 +41,12 @@ import fit_intrinsics as fi                                                # noq
 REPO = Path(__file__).resolve().parent
 PANO = ("CH01", "CH02")
 PLATE_Z = 6.0                       # printed plane sits on 6 mm of plate above the grass
-CONE_SIGMA = 60.0                   # the cone labels are coarse operator marks and the
+CONE_SIGMA = float(os.environ.get("FIT_CONE_SIGMA", 60.0))   # the cone labels are coarse operator marks and the
                                     # operator has already said they need re-doing; they are
                                     # kept only to pick the right branch of the frame
-STATION_SIGMA = 100.0               # how near a plate corner lands to its cone, mm
+STATION_SIGMA = float(os.environ.get("FIT_STATION_SIGMA", 100.0))   # how near a plate corner lands to its cone, mm
+                                    # (env overrides exist so the fit can be run with the anchors switched off: then the
+                                    #  cameras are tied only by the boards they share, and the design grid is a CHECK)
 FLAT_SIGMA_DEG = 3.0                # measured: board normals scatter 1-8 deg about the common
 FLAT_SIGMA_Z = 40.0                 # plane, and their points 7-38 mm off it. Grass, not error.
 args = sys.argv[1:]

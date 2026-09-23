@@ -223,3 +223,48 @@ looking 6-8 m away. CH01-CH04 carries a real -244 mm bias in x. -> `PADDOCK_AGRE
 
 Two errors this number does NOT contain: the height assumption above, and the paddock frame itself
 (a common error moves all the cameras together and cancels in a camera-to-camera comparison).
+
+## Where the end-of-paddock disagreement comes from (2026-09-23)
+
+Checked, in this order, after the operator asked whether the CH03/CH04 boards were solved right:
+
+1. **Board labels in CH03/CH04 are consistent.** Every board seen by two cameras was refitted on the
+   ground from each camera alone; the plate yaw agrees between cameras to within 8 deg for all 50
+   shared boards (a wrong id set or the 180-degree twin would show as ~180). Own-view flatness:
+   CH05 1.4 px, CH06 0.8 px, CH03 4.1 px, CH04 4.7 px, panos 5.8-6.6 px.
+2. **The station anchors are not distorting the fit.** `FIT_STATION_SIGMA=10000 FIT_CONE_SIGMA=1e6`
+   (anchors effectively off) reproduces the same camera positions to 0.1 in and the same agreement
+   table. The design grid is a check, not a force.
+3. **What remains is the panos' geometry at long range.** Each pano reads the far boards in the
+   upper part of its right lens (CH01: T74/T75/T64/T65; CH02: T11/T12/T21/T22/V11) 0.3-1.0 m
+   CLOSER than the pinholes and the design grid do, with the plate 15-25 % smaller than a ground
+   board should look there; the left lens at the same range is fine (CH02/T71 at 6.3 m: -0.1 m).
+   In the joint fit the panos win (more corners) and the nadir cameras, which see their own boards
+   coplanar to 1-2 px, are strained to 12-14 px. A free vertical scale / cubic / two-lens pose does
+   NOT make the pano boards coplanar, so it is not a smooth lens correction. Open. The operator-
+   verified CH03/CH04 boards and the hand-held sweeps (below) are the independent geometry at the
+   ends that will decide it.
+
+Two bugs of mine found on the way, both fixed in `fit_data.py`:
+
+* frames of one window were clustered on the centroid of whatever corners each frame decoded, so a
+  partly occluded board (different subset each frame) fell apart into single-frame clusters and the
+  LAST frame won - at T61/T65 (09-19) that was the frame with the plate in the operator's hands.
+  Now frames agree when the corners they SHARE sit within 4 px; a window whose frames never agree
+  is flagged `moving` and kept out.
+* the second T61 window of 09-19 (12:41:05-12:42:24) is not a T61 placement: the frames show the
+  plate set down beside house 7 with no cone at its corner (CH06 12:41:48-12:42:24), and CH06
+  cannot see the T61 cone at all. It is listed in `fit_data.EXCLUDE` with that reason; the
+  976 mm "T61" line in the previous RESULT 3 was this board. The first T61 window (12:29:25) is
+  fine: CH02 puts its plate corner 73 mm from the design point.
+
+### Operator review of CH03/CH04 (`manual_board_gui.py --mode audit --sweep ...`)
+
+`--mode audit` shows, per camera, every window where the machine found something plus every
+window whose station the current fit puts inside the frame (so a missing detection is visible as
+a frame with no box). `--sweep CH03=15:32:20-15:41:46,CH04=15:41:42-15:45:38 --sweep-step 2` adds
+the hand-held distortion sweeps as one frame every 2 s (`SW<HHMMSS>`); on a hand-held plate any
+corner may be clicked first. Built into `E:\calibration\qc\manual_ch0304\manual_board_gui.html`:
+426 frames (CH03 12 placement windows + 284 sweep frames, CH04 9 + 119). The exported
+`manual_quads.json` goes through `manual_boards.py` as before; sweep frames land in the labelled
+frames with no station and feed `fit_intrinsics.free_views`.
