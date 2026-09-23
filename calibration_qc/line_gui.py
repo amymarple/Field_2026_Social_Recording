@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-r"""Single-file HTML GUI for labelling LINES on a calibration frame: the cords (x = 24..456 in,
-y = 12..228 in) and the foot of the wall (WALL). The operator picks a line in the side panel and
+r"""Single-file HTML GUI for labelling LINES on a calibration frame: the 13 cross cords
+(x = 24..456 in; there were no cords along the length) and the foot of the wall (WALL). The operator picks a line in the side panel and
 clicks along it in the image; each line is a polyline in click order. Faint dashed guides show
 where the CURRENT fit (with its frame correction) puts each cord, so the operator can tell X96
 from X132 - he clicks the real cord, not the guide, and the gap between them is the measurement.
@@ -30,7 +30,10 @@ PANO = cam in ("CH01", "CH02")
 TRAIN_X = [24, 96, 168, 240, 312, 384, 456]; TRAIN_Y = [12, 66, 120, 174, 228]
 VT_X = [60, 132, 204, 276, 348, 420]; VT_Y = [39, 93, 147, 201]
 XS = sorted(TRAIN_X + VT_X); YS = sorted(TRAIN_Y + VT_Y)
-LINES = [f"X{x}" for x in XS] + [f"Y{y}" for y in YS] + ["WALL"]
+# Only the 13 cross cords exist on the ground (x = 24..456 in, each running across the paddock);
+# the y positions were tick marks along them, there were never cords along the length
+# (operator, 2026-09-23). So: the 13 cords, and the foot of the wall.
+LINES = [f"X{x}" for x in XS] + ["WALL"]
 
 t = datetime.strptime(clock, "%H:%M:%S"); seg = off = None
 for s in sorted(SESSION.glob(f"{cam}_*_to_*.mp4")):
@@ -60,11 +63,6 @@ try:
         uv = c.to_paddock_inv(pts, z_mm=0.0, units="in"); vis = c.sees(pts, units="in", margin=-100)
         seg_pts = [[round(float(u), 1), round(float(v), 1)] for (u, v), ok_ in zip(uv, vis) if ok_ and np.isfinite(u) and np.isfinite(v)]
         if len(seg_pts) > 1: guides[f"X{x0}"] = seg_pts
-    for y0 in YS:
-        pts = np.array([[x, y0] for x in np.arange(0, 480.1, 2.0)])
-        uv = c.to_paddock_inv(pts, z_mm=0.0, units="in"); vis = c.sees(pts, units="in", margin=-100)
-        seg_pts = [[round(float(u), 1), round(float(v), 1)] for (u, v), ok_ in zip(uv, vis) if ok_ and np.isfinite(u) and np.isfinite(v)]
-        if len(seg_pts) > 1: guides[f"Y{y0}"] = seg_pts
 except Exception as e:                                                   # no fit yet: no guides
     print(f"[line_gui] no guides ({e})")
 
