@@ -33,7 +33,12 @@ XS = sorted(TRAIN_X + VT_X); YS = sorted(TRAIN_Y + VT_Y)
 # Only the 13 cross cords exist on the ground (x = 24..456 in, each running across the paddock);
 # the y positions were tick marks along them, there were never cords along the length
 # (operator, 2026-09-23). So: the 13 cords, and the foot of the wall.
-LINES = [f"X{x}" for x in XS] + ["WALL"]
+# The wall foot is labelled per side, so a polyline never has to jump a corner: WALL_X0 is the end
+# wall behind the T11-T15 cord (CH03's end), WALL_X480 the end behind T71-T75 (CH04's), WALL_Y0 the
+# long side outside the y = 12 row (T11..T71), WALL_Y240 the long side outside the y = 228 row.
+# A rounded corner may go with either neighbour. WALL (unsplit) is kept for points already made.
+WALLS = ["WALL_X0", "WALL_X480", "WALL_Y0", "WALL_Y240", "WALL"]
+LINES = [f"X{x}" for x in XS] + WALLS
 
 t = datetime.strptime(clock, "%H:%M:%S"); seg = off = None
 for s in sorted(SESSION.glob(f"{cam}_*_to_*.mp4")):
@@ -91,14 +96,15 @@ html = r"""<!doctype html><html><head><meta charset="utf-8"><title>Line labellin
  <div id="imgwrap"><div id="stage"><img id="img" src="data:image/jpeg;base64,__B64__"><svg id="ov"></svg></div></div>
  <div id="side">
   <b>1. pick a line &nbsp; 2. click along it in the image</b><br>
-  <small>Click ON the cord (the thin line on the grass), every 0.5-1 m, wall to wall, as far as you can see it. The dashed guide only tells you which cord is which - if the real cord is beside the guide, click the real cord. WALL = the FOOT of the wall, where the sheet meets the ground. <b>Drag</b> a point to adjust it; <b>right-click</b> a point to delete it. The magnifier shows 4x around the cursor. Points are kept in this browser between visits.</small>
+  <small>Click ON the cord (the thin line on the grass), every 0.5-1 m, wall to wall, as far as you can see it. The dashed guide only tells you which cord is which - if the real cord is beside the guide, click the real cord. WALL_* = the FOOT of the wall, where the sheet meets the ground, one line per side: X0 = the end behind T11-T15, X480 = the end behind T71-T75, Y0 = the long side outside T11..T71, Y240 = the long side outside T15..T75 (a corner may go with either). <b>Drag</b> a point to adjust it; <b>right-click</b> a point to delete it. The magnifier shows 4x around the cursor. Points are kept in this browser between visits.</small>
   <canvas id="mag" width="240" height="240" style="display:block;margin:6px 0;border:1px solid #888"></canvas>
   <div id="list"></div>
   <b>Export</b> (also copied here) / paste an earlier export here and <button onclick="loadJSON()">Load</button>:<br><textarea id="out"></textarea>
  </div></div>
 <script>
 const CAM="__CAM__", S=__SCALE__, IMGW=__IMGW__, IMGH=__IMGH__, LINES=__LINES__, GUIDES=__GUIDES__;
-const COL={};LINES.forEach((l,i)=>{COL[l]=l==='WALL'?'#ff3030':(l[0]==='X'?`hsl(${(i*37)%360},90%,55%)`:`hsl(${(i*53+180)%360},90%,60%)`);});
+const WCOL={WALL_X0:'#ff3030',WALL_X480:'#ff8c00',WALL_Y0:'#ff40ff',WALL_Y240:'#ffffff',WALL:'#aaaaaa'};
+const COL={};LINES.forEach((l,i)=>{COL[l]=WCOL[l]||`hsl(${(i*37)%360},90%,55%)`;});
 let lines={}; LINES.forEach(l=>lines[l]=[]); let cur=null, z=0.5;
 const ov=document.getElementById('ov'), stage=document.getElementById('stage');
 function zoom(f){z=f;stage.style.transform='scale('+z+')';stage.style.width=IMGW+'px';stage.style.height=IMGH+'px';}
