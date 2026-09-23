@@ -40,8 +40,9 @@ PANO = ("CH01", "CH02")
 class Camera:
     """One calibrated camera. X_cam = R @ X_field + t, all lengths in millimetres."""
 
-    def __init__(self, name, model, intr, rvec, tvec, stored_size):
+    def __init__(self, name, model, intr, rvec, tvec, stored_size, correction=None):
         self.name = name
+        self.correction = correction                         # frame_correction.json, or None
         self.model = str(model)
         self.intr = np.asarray(intr, float)
         self.rvec = np.asarray(rvec, float)
@@ -86,12 +87,13 @@ class Camera:
             s = (z_mm - self.centre[2]) / d[:, 2]
         X = self.centre + s[:, None] * d
         X[(s <= 0) | ~np.isfinite(s)] = np.nan
-        out = X[:, :2] / (MM_PER_IN if units == "in" else 1.0)
+        xy = fit_to_physical(X[:, :2], self.correction)
+        out = xy / (MM_PER_IN if units == "in" else 1.0)
         return out[0] if np.ndim(uv) == 1 else out
 
     def to_paddock_inv(self, xy, z_mm=0.0, space="upright", units="mm"):
         """paddock (x, y) at height z_mm -> pixel(s). The exact inverse of to_paddock."""
-        p = np.asarray(xy, float).reshape(-1, 2) * (MM_PER_IN if units == "in" else 1.0)
+        p = physical_to_fit(np.asarray(xy, float).reshape(-1, 2) * (MM_PER_IN if units == "in" else 1.0), self.correction)
         X = np.concatenate([p, np.full((len(p), 1), float(z_mm))], 1)
         uv = fm.project(self.model, self.intr, X @ self.R.T + self.tvec)
         if space == "stored":
@@ -100,7 +102,7 @@ class Camera:
 
     def sees(self, xy, z_mm=0.0, units="mm", margin=0):
         """Is that paddock point inside this camera's frame, and in front of it?"""
-        p = np.asarray(xy, float).reshape(-1, 2) * (MM_PER_IN if units == "in" else 1.0)
+        p = physical_to_fit(np.asarray(xy, float).reshape(-1, 2) * (MM_PER_IN if units == "in" else 1.0), self.correction)
         X = np.concatenate([p, np.full((len(p), 1), float(z_mm))], 1) @ self.R.T + self.tvec
         uv = fm.project(self.model, self.intr, X)
         W, H = self.upright_size
@@ -122,6 +124,7 @@ class Camera:
 
     def homography(self, z_mm=0.0):
         """3x3 H with  [u, v, 1]^T ~ H @ [X_mm, Y_mm, 1]^T  for UNDISTORTED pixels, None for a pano.
+        X, Y are in the FIT frame: apply fit_to_physical() to what comes out of H^-1 (to_paddock does).
 
         Derivation: a paddock point on the plane is [X, Y, z], so
         X_cam = R[:,0] X + R[:,1] Y + (R[:,2] z + t)  - linear in [X, Y, 1]. H = K @ that."""
@@ -155,18 +158,51 @@ class Camera:
                 f"h={self.centre[2]/1000:.2f}m>")
 
 
-def load(fit=FIT, session=None):
-    """-> {name: Camera}. Frame sizes come from the videos via qc_paths, never hardcoded."""
-    import qc_paths
+# ---------------------------------------------------------------- fit frame <-> physical cords
+# The bundle's frame is compressed along x at the ends (see frame_correction.py); the correction
+# is a smooth dx(x), dy(y) in INCHES measured from the operator's cone labels in all six cameras.
+def fit_to_physical(xy_mm, corr):
+    if corr is None:
+        return xy_mm
+    p = np.asarray(xy_mm, float) / MM_PER_IN
+    out = p.copy()
+    out[:, 0] = p[:, 0] - np.polyval(corr["dx_coef"], p[:, 0])
+    out[:, 1] = p[:, 1] - np.polyval(corr["dy_coef"], p[:, 1])
+    return out * MM_PER_IN
+
+
+def physical_to_fit(xy_mm, corr):
+    """inverse of fit_to_physical, by a few Newton steps on each axis (the polynomials are gentle)."""
+    if corr is None:
+        return xy_mm
+    q = np.asarray(xy_mm, float) / MM_PER_IN
+    p = q.copy()
+    for _ in range(8):
+        fx = p[:, 0] - np.polyval(corr["dx_coef"], p[:, 0]) - q[:, 0]
+        fy = p[:, 1] - np.polyval(corr["dy_coef"], p[:, 1]) - q[:, 1]
+        dfx = 1.0 - np.polyval(np.polyder(np.asarray(corr["dx_coef"], float)), p[:, 0])
+        dfy = 1.0 - np.polyval(np.polyder(np.asarray(corr["dy_coef"], float)), p[:, 1])
+        p[:, 0] -= fx / dfx; p[:, 1] -= fy / dfy
+    return p * MM_PER_IN
+
+
+def load(fit=FIT, session=None, correct=True):
+    """-> {name: Camera}. Frame sizes come from the videos via qc_paths, never hardcoded.
+    correct=True applies <fit dir>/frame_correction.json when it exists (fit frame -> physical cords)."""
+    import qc_paths, json
     z = np.load(Path(fit), allow_pickle=False)
     if float(np.abs(z["cam_tvec"]).max()) < 100:
         raise SystemExit(f"{fit} has translations in metres - re-run fit_cameras.py")
+    corr = None
+    cf = Path(fit).parent / "frame_correction.json"
+    if correct and cf.exists():
+        corr = json.loads(cf.read_text(encoding="utf-8"))
     sess = qc_paths.resolve(session)[0]
     out = {}
     for i, name in enumerate(z["units"]):
         cam = str(name)
         out[cam] = Camera(cam, z["models"][i], z["intr"][i], z["cam_rvec"][i], z["cam_tvec"][i],
-                          qc_paths.frame_size(sess, cam[:4]))
+                          qc_paths.frame_size(sess, cam[:4]), correction=corr)
     return out
 
 

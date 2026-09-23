@@ -41,6 +41,7 @@ import fit_intrinsics as fi                                                # noq
 REPO = Path(__file__).resolve().parent
 PANO = ("CH01", "CH02")
 PLATE_Z = 6.0                       # printed plane sits on 6 mm of plate above the grass
+CONE_Z = 50.0                       # the hole the operator clicks is the top of a ~5 cm disc cone
 CONE_SIGMA = float(os.environ.get("FIT_CONE_SIGMA", 60.0))   # the cone labels are coarse operator marks and the
                                     # operator has already said they need re-doing; they are
                                     # kept only to pick the right branch of the frame
@@ -252,19 +253,22 @@ say("")
 station_mm = fd.STATION_MM
 FIELD = {}
 CONE_OBS = {}
+# Every camera's cone labels enter the bundle (the panos' also seed the frame in this stage). The
+# operator clicks the hole at the TOP of the disc cone, CONE_Z above the station point on the cord
+# crossing; the cones sit where the cords were laid, so they are the best absolute reference at
+# the ends of the paddock, where the boards are few (operator labels for CH03-CH06, 2026-09-23).
 for u in sorted(UNITS):
     cam = UNITS[u]["cam"]
-    if cam not in PANO:
-        continue
     session, qc = qc_paths.resolve(None)
     W, H = qc_paths.upright_size(session, cam)
     for st, uv in qc_paths.load_cones(qc, cam, session, space="upright").items():
         if st not in station_mm:
             continue
-        if SPLIT and ((u.endswith("L")) != (uv[0] < W / 2)):
+        if SPLIT and cam in PANO and ((u.endswith("L")) != (uv[0] < W / 2)):
             continue
         CONE_OBS.setdefault(u, []).append(
-            (np.array([station_mm[st][0], station_mm[st][1], 0.0]), np.asarray(uv, float), st))
+            (np.array([station_mm[st][0], station_mm[st][1], CONE_Z]), np.asarray(uv, float), st))
+say("  cone labels per camera: " + ", ".join(f"{u} {len(v)}" for u, v in sorted(CONE_OBS.items())))
 for u in sorted(UNITS):
     U = UNITS[u]
     cam = U["cam"]

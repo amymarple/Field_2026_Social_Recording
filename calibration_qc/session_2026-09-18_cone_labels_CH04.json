@@ -1,0 +1,68 @@
+{
+ "camera": "CH04",
+ "clock": "15:47:30",
+ "frame_size_upright": [
+  4512,
+  2510.975
+ ],
+ "points": [
+  {
+   "idx": 1,
+   "x": 4124.25,
+   "y": 1165.6,
+   "station": "T71"
+  },
+  {
+   "idx": 2,
+   "x": 3372.25,
+   "y": 1210.25,
+   "station": "T72"
+  },
+  {
+   "idx": 3,
+   "x": 2192.55,
+   "y": 1240.8,
+   "station": "T73"
+  },
+  {
+   "idx": 4,
+   "x": 968.2,
+   "y": 1301.9,
+   "station": "T74"
+  },
+  {
+   "idx": 5,
+   "x": 204.45,
+   "y": 1332.45,
+   "station": "T75"
+  },
+  {
+   "idx": 7,
+   "x": 3029.15,
+   "y": 1983.4,
+   "station": "V62",
+   "note": "was F63 - mirrored with V62 (3600/1450 px off, the two land on each other's station); swapped by Claude 2026-09-23, operator may veto"
+  },
+  {
+   "idx": 8,
+   "x": 1511.05,
+   "y": 2023.35,
+   "station": "F63",
+   "note": "was V62 - mirrored with F63 (3600/1450 px off, the two land on each other's station); swapped by Claude 2026-09-23, operator may veto"
+  },
+  {
+   "idx": 11,
+   "x": 361.9,
+   "y": 1896.45,
+   "station": "V64",
+   "note": "was F61 - mirrored with V64 (3600/1450 px off, the two land on each other's station); swapped by Claude 2026-09-23, operator may veto"
+  },
+  {
+   "idx": 12,
+   "x": 4089,
+   "y": 1788.35,
+   "station": "F61",
+   "note": "was V64 - mirrored with F61 (3600/1450 px off, the two land on each other's station); swapped by Claude 2026-09-23, operator may veto"
+  }
+ ]
+}

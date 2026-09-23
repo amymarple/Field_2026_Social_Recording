@@ -333,3 +333,26 @@ Still open, and what the operator can label: the ends of the paddock are held by
 CH03-CH06 (`E:\calibration\qc\cone_gui_CH0[3-6].html`). A cone clicked in an ordinary lens is a
 point on that camera's own ground plane at a place the panos see well, so every labelled cone at
 the ends is one more tie between a pinhole and a pano where the boards are thin.
+
+## Cone labels from all six cameras, and the frame tied to the cords (2026-09-23, late)
+
+The operator labelled the cones in CH03-CH06 (`cone_labels_CH0[3-6].json`, 31 cones). Two label
+errors were found by projection, not judgement, and corrected with a note in the file (operator
+may veto): in CH04 the V/F column was mirrored (V64<->F61, V62<->F63: each landed exactly on the
+other's station, 1450-3640 px off), and CH02's "F54" is a cone behind CH02 - it sits on V53, which
+was already labelled, so it is NONE now. The bundle now uses every camera's cones, at cone-top
+height (`CONE_Z = 50 mm`). They change the fit very little (cross-camera median 86 mm), because a
+few hundred corners outweigh nine cones; raising their weight to 20 px changes nothing either.
+
+What the cones DO show is that the fitted frame is compressed along x: the x = 24 in cord reads
+at 40 in, x = 60 at 69, x = 456 at 448 (the panos read far boards a little too close and CH03/CH04
+follow them); the y cords are all within 2 in. An independent check that uses nothing from the
+fit: the fit's x = 0 line drawn on the CH03 frame lies on the end wall a hand above its base
+(`frames/CH03_walltest.jpg`), while the cones sit 24 in from the wall base as designed.
+
+`frame_correction.py` fits a smooth dx(x) (cubic) and dy(y) (linear) to the per-cord medians of
+all 108 cone labels and writes `frame_correction.json` next to the fit; `paddock_map.load()`
+applies it on the way out and inverts it on the way in (round trip still 1e-11 mm). After it the
+wall base seen by CH03 lands at x = -1..1 in and by CH04 at 476..489 in, and the cone labels sit
+4.6 in (median) from their stations. It is a correction of the FRAME, measured on the cords the
+operator laid; it does not touch any camera and leaves the cross-camera agreement as it is.
