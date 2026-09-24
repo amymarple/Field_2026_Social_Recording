@@ -389,3 +389,36 @@ segment agree to 1-4 in. `paddock_map.load()` applies the warp (inverse by Newto
 ## Downstream validation (2026-09-24)
 
 `downstream_validation.py`: an ensemble of legitimate calibrations (warp variants + bootstrap) pushed through 10 cm bins - handoff continuity, bin flip rate, occupancy and simulated place-field robustness, error vector field, distance-to-feature. Results and reading in section 9 of `CALIBRATION_REPORT_2026-09-24.md`; the numbers in `DOWNSTREAM_VALIDATION.txt`.
+
+## The taped heights fix the lens scales (2026-09-24, evening)
+
+The operator taped the lens heights (grass to lens centre: CH01 2.362 m, CH02 2.337, CH03 2.235,
+CH04 2.286; the tape reads high if anything) and measured the plate (23.5 in across, squares
+exactly 60 mm). The fit had every camera 8-20 % higher than the tape. Cause, established with the
+heights held HARD (camera z fixed by parametrisation, plates on the ground, `scratchpad
+flatworld_f.py / flatworld_pano.py`):
+
+* the hand-held sweeps do not determine a pinhole's focal length - CH04's sweep is fitted at
+  1.95-2.00 px rms by any f between 2956 and 3173, CH03's at 1.29-1.37 px from 2800 to 3130 (the
+  operator stood in one spot; distance and f trade off). CH04's sweep value 3130 was where LM
+  wandered; with its height fixed its plates ask for 2964, the ground cones/cords/walls for 2956,
+  and CH03 (same camera model) has 2949. CH04 f := 2960.
+* the Duo 3 canvas is not the nominal 180 x 50.6 deg equirect: with the heights fixed, CH01's
+  plates ask for fu = 2333, fv = 2711 px/rad and CH02's for 2318 / 2616 (nominal 2444.6 both),
+  i.e. ~190 deg across and ~47 deg high. Panos fu := 2325, fv := 2660.
+
+Both live in `fit_intrinsics.py` (`FOCAL_OVERRIDE`, `PANO_SCALE`; `FIT_NOMINAL_LENS=1` restores the
+old values). Everything after them got better without touching anything else:
+
+| | before | after |
+|---|---|---|
+| heights vs tape (CH01/02/03/04) | +0.19 / +0.30 / +0.17 / +0.45 m | +0.00 / +0.06 / +0.11 / +0.17 m |
+| bundle positions vs tape (no warp) | 4-10 in off, CH03-CH04 separation 237 vs 257 | 2-8 in off, separation 262 |
+| corner residual median (CH03/04/05/06) | 5.8 / 8.8 / 7.0 / 9.5 px | 3.9 / 6.1 / 3.4 / 6.1 px |
+| plate corner to its cone | 206 mm | 157 mm |
+| cross-camera boards, warped: median / p90 / max | 64 / 147 / 302 mm | 70 / 114 / 243 mm |
+
+CH04 is still 17 cm above its tape height and CH03 11 cm; the panos' scale was set from two
+cameras that agree to 1 %, but it is a two-parameter model of a canvas whose corners still need
+the ground warp. The tape heights themselves are not in the fit; they were used once, to pick
+these four numbers.

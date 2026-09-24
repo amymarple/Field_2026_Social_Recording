@@ -172,10 +172,16 @@ for cam in cams:
         say(f"  {cam}  too few free-pose views - cannot calibrate intrinsics")
         continue
     INTR[cam] = r
+    # FIT_F_OVERRIDE="CH04:2956": replace a pinhole's sweep focal length (an experiment hook: the
+    # ground labels at the taped height asked for a different f than the sweep gave)
+    for item in os.environ.get("FIT_F_OVERRIDE", "").split(","):
+        if item.strip() and item.split(":")[0].strip() == cam and cam not in PANO:
+            r["intr"] = np.array(r["intr"], float); r["intr"][0] = float(item.split(":")[1])
+            say(f"  {cam}  focal length OVERRIDDEN to {r['intr'][0]:.1f} px (FIT_F_OVERRIDE)")
     if cam in PANO:
         i = r["intr"]
-        say(f"  {cam}  equirect 180 deg canvas {W}x{H}: fu=fv={i[0]:.1f} px/rad (=W/pi), "
-            f"centre ({i[1]:.1f},{i[3]:.1f})  [nominal, confirmed by {r['n_views']} free-pose views]")
+        say(f"  {cam}  equirect canvas {W}x{H}: fu={i[0]:.1f} fv={i[2]:.1f} px/rad "
+            f"({r.get('scale_source', 'nominal')}; W/pi = {W/np.pi:.1f}), centre ({i[1]:.1f},{i[3]:.1f})  [{r['n_views']} free-pose views]")
         continue
     f, cx, cy, k1, k2 = r["intr"]
     say(f"  {cam}  pinhole {W}x{H}: f={f:8.1f}px  c=({cx:7.1f},{cy:7.1f})  k1={k1:+.4f} k2={k2:+.4f}"
@@ -413,10 +419,30 @@ say("         prior that a plate on grass is flat and 6 mm above the ground.")
 unit_list = [u for u in sorted(UNITS) if u in FIELD]
 board_list = sorted(BOARD)
 uidx = {u: i for i, u in enumerate(unit_list)}
+# FIT_HEIGHT_PRIOR="CH01:2.41,CH02:2.39" (metres above the plate plane), FIT_HEIGHT_SIGMA (m, default 0.03):
+# the operator's tape heights as priors on the camera centres (experiment hook, 2026-09-24)
+H_PRIOR = {}
+for item in os.environ.get("FIT_HEIGHT_PRIOR", "").split(","):
+    if item.strip():
+        u, h = item.split(":"); u = u.strip()
+        for uu in unit_list:
+            if UNITS[uu]["cam"] == u:
+                H_PRIOR[uidx[uu]] = float(h)
+H_SIGMA = float(os.environ.get("FIT_HEIGHT_SIGMA", 0.03))
+if H_PRIOR:
+    say(f"  height priors (m, sigma {H_SIGMA}): " + ", ".join(f"{unit_list[i]} {h:.3f}" for i, h in sorted(H_PRIOR.items())))
+h_ui = np.array(sorted(H_PRIOR), int); h_val = np.array([H_PRIOR[i] for i in h_ui])
 bidx = {k: i for i, k in enumerate(board_list)}
 cam_list = sorted(set(UNITS[u]["cam"] for u in unit_list))
 cidx = {c: i for i, c in enumerate(cam_list)}
-free_f = []     # intrinsics stay where stage 1 put them: the placements are coplanar and
+free_f = [c for c in os.environ.get("FIT_FREE_F", "").split(",") if c.strip() in cams and c.strip() not in PANO]
+# FIT_FREE_F="CH03,CH04": let the bundle solve those pinholes' focal length. The hand-held sweeps
+# do NOT determine f (f fixed anywhere from 2800 to 3130 fits them equally, 2026-09-24: the operator
+# stood in one place, so distance and f trade off), and plates on the ground cannot either - but a
+# camera whose HEIGHT is known (FIT_HEIGHT_PRIOR from the tape) can: the plates' apparent size at
+# the range the height implies fixes f. cx, cy, k1, k2 keep the sweep values through priors below.
+INTR0 = {c: np.array(INTR[c]["intr"], float) for c in cams if c in INTR}
+INTR_SIGMA = np.array([5.0, 5.0, 0.01, 0.01])                      # cx, cy px; k1, k2
                 # carry no information about f, c or k, so a free lens here only absorbs
                 # pose error. A pano canvas has nothing to refine either.
 MODEL_OF = {c: ("equirect" if c in PANO else "pinhole") for c in cam_list}
@@ -513,16 +539,27 @@ def residuals(x, split=False):
     e_st = (plate[np.arange(NB), b_corner, :2] - b_station) / (STATION_SIGMA * 1e-3)
     e_tilt = np.degrees(np.arccos(np.clip(np.abs(Rb[:, 2, 2]), -1, 1))) / FLAT_SIGMA_DEG
     e_z = (np.einsum("nij,j->ni", Rb, PAT_CTR * 1e-3)[:, 2] + bp[:, 5] - PLATE_Z * 1e-3) / (FLAT_SIGMA_Z * 1e-3)
+    if len(h_ui):
+        Cz = np.array([-(Rc[i].T @ cp[i, 3:])[2] for i in h_ui])
+        e_h = (Cz - h_val) / H_SIGMA
+    else:
+        e_h = np.zeros(0)
+    e_ip = np.concatenate([(ip[c][1:] - INTR0[c][1:]) / INTR_SIGMA for c in free_f]) if free_f else np.zeros(0)
     if split:
         return e_corner, e_cone, e_tilt, e_z, e_st
-    return np.concatenate([e_corner.ravel(), e_cone.ravel(), e_tilt, e_z, e_st.ravel()])
+    return np.concatenate([e_corner.ravel(), e_cone.ravel(), e_tilt, e_z, e_st.ravel(), e_h, e_ip])
 
 
 def build_sparsity():
     """Which parameter each residual row can possibly touch. Without this the 446-column jacobian
     is rebuilt by 446 full evaluations per iteration instead of a handful."""
-    nr = 2 * len(c_obs) + 2 * len(k_obs) + 2 * NB + 2 * NB
+    nr = 2 * len(c_obs) + 2 * len(k_obs) + 2 * NB + 2 * NB + len(h_ui) + 4 * len(free_f)
     S = np.zeros((nr, len(x0)), bool)
+    r_h = nr - len(h_ui) - 4 * len(free_f)
+    for j, i in enumerate(h_ui):
+        S[r_h + j, 6 * i:6 * i + 6] = True
+    for i, c in enumerate(free_f):
+        S[r_h + len(h_ui) + 4 * i:r_h + len(h_ui) + 4 * i + 4, OFF_I + 5 * i + 1:OFF_I + 5 * i + 5] = True
     rw = np.arange(2 * len(c_obs))
     for j in range(6):
         S[rw, 6 * np.repeat(c_ui, 2) + j] = True
@@ -640,7 +677,8 @@ say("RESULT 2  LENS MODELS (the panos have none to fit - their canvas is a fixed
 say("=" * 100)
 for c in cam_list:
     if c in PANO:
-        say(f"  {c}  equirect  {2444.6:.1f} px/rad, centre (3839.5, 1079.5)   [format, not fitted]")
+        ip_ = INTR[c]["intr"]
+        say(f"  {c}  equirect  fu={ip_[0]:.1f} fv={ip_[2]:.1f} px/rad, centre ({ip_[1]:.1f}, {ip_[3]:.1f})   [{INTR[c].get('scale_source', 'nominal')}; W/pi = {qc_paths.upright_size(qc_paths.resolve(None)[0], c)[0]/np.pi:.1f}]")
         continue
     f, cx, cy, k1, k2 = ip[c]
     W, H = qc_paths.upright_size(qc_paths.resolve(None)[0], c)

@@ -22,20 +22,20 @@ CAMERA CALIBRATION FROM THE CHARUCO PLACEMENTS   (sessions 2026-09-18, 2026-09-1
 STAGE 1  INTRINSICS - from the free-pose views (board carried / swept, orientations vary).
          A board lying flat is one plane; one plane cannot fix a focal length. These views can.
 
-  CH01  equirect 180 deg canvas 7680x2160: fu=fv=2444.6 px/rad (=W/pi), centre (3839.5,1079.5)  [nominal, confirmed by 224 free-pose views]
-  CH02  equirect 180 deg canvas 7680x2160: fu=fv=2444.6 px/rad (=W/pi), centre (3839.5,1079.5)  [nominal, confirmed by 81 free-pose views]
+  CH01  equirect canvas 7680x2160: fu=2325.0 fv=2660.0 px/rad (taped heights; W/pi = 2444.6), centre (3839.5,1079.5)  [224 free-pose views]
+  CH02  equirect canvas 7680x2160: fu=2325.0 fv=2660.0 px/rad (taped heights; W/pi = 2444.6), centre (3839.5,1079.5)  [81 free-pose views]
   CH03  pinhole 4512x2512: f=  2948.6px  c=( 2177.2, 1273.6)  k1=-0.3928 k2=+0.1109   HFOV= 74.8 deg   rms=0.782px  (240 views, 11 rejected)
-  CH04  pinhole 4512x2512: f=  3129.9px  c=( 2319.0, 1173.8)  k1=-0.3726 k2=+0.0913   HFOV= 71.6 deg   rms=1.439px  (125 views, 5 rejected)
+  CH04  pinhole 4512x2512: f=  2960.0px  c=( 2319.0, 1173.8)  k1=-0.3726 k2=+0.0913   HFOV= 74.6 deg   rms=1.439px  (125 views, 5 rejected)
   CH05  pinhole 2560x1920: f=  2011.1px  c=( 1207.3,  868.4)  k1=-0.3593 k2=+0.0938   HFOV= 64.9 deg   rms=0.679px  (13 views, 0 rejected)
   CH06  pinhole 2560x1920: f=  1995.5px  c=( 1270.8,  888.4)  k1=-0.3374 k2=+0.0834   HFOV= 65.4 deg   rms=0.523px  (29 views, 0 rejected)
 
 STAGE 2  BOARD POSES - one 6-DOF pose per placement, in each camera's own coordinates.
-  CH01    36 placements   reprojection rms  3.16 px   (median per placement 2.30)
-  CH02    29 placements   reprojection rms  3.61 px   (median per placement 2.83)
-  CH03    13 placements   reprojection rms 10.13 px   (median per placement 1.85)
-  CH04    14 placements   reprojection rms  7.91 px   (median per placement 2.24)
+  CH01    36 placements   reprojection rms  2.56 px   (median per placement 1.94)
+  CH02    29 placements   reprojection rms  3.09 px   (median per placement 2.75)
+  CH03    13 placements   reprojection rms  9.98 px   (median per placement 1.84)
+  CH04    14 placements   reprojection rms 13.74 px   (median per placement 1.60)
   CH05     8 placements   reprojection rms  0.45 px   (median per placement 0.42)
-  CH06    11 placements   reprojection rms  0.76 px   (median per placement 0.34)
+  CH06    11 placements   reprojection rms  0.74 px   (median per placement 0.34)
 
 STAGE 3  GROUND PLANE - the placements a camera sees are all on one plane. The distance from
          the projection centre to that plane is the camera height. Nothing was measured.
@@ -43,56 +43,55 @@ STAGE 3  GROUND PLANE - the placements a camera sees are all on one plane. The d
          always has a mirror twin, and for a small far board the solver can pick the twin.
 
   unit     n    height  flat-fit rms       optical axis
-  CH01    36   2.669 m      10.06 px         33.8 deg down
-  CH02    29   2.660 m       8.00 px         33.6 deg down
-  CH03    13   2.365 m       6.63 px         41.6 deg down
-  CH04    14   2.419 m       9.60 px         47.7 deg down
+  CH01    36   2.461 m       7.81 px         37.3 deg down
+  CH02    29   2.492 m       7.08 px         36.5 deg down
+  CH03    13   2.368 m       6.78 px         41.6 deg down
+  CH04    14   2.233 m       8.92 px         48.1 deg down
+         dropped T65 2026-09-19 12:30:45: 62.0 px once the plate is held flat - that measurement is not a flat board where the others are
   CH05     8   2.292 m       2.20 px          7.0 deg down
-  CH06    11   2.316 m       1.56 px          5.9 deg down
+  CH06    11   2.317 m       1.53 px          5.9 deg down
 
 STAGE 4  PADDOCK FRAME - entered through the operator's own cone labels on the panos; every
          other camera is carried in by the placements it shares with them.
 
   cone labels per camera: CH01 39, CH02 38, CH03 9, CH04 9, CH05 7, CH06 6
-  CH01   38/39 cone labels  ->  field frame, cone residual median 185 mm (p90 336 mm)
-  CH02   35/38 cone labels  ->  field frame, cone residual median 135 mm (p90 283 mm)
-  CH03   7 shared placements -> field frame (coarse 3-D residual median 147 mm)
-  CH04   12 shared placements -> field frame (coarse 3-D residual median 153 mm)
-  CH05   8 shared placements -> field frame (coarse 3-D residual median 92 mm)
-  CH06   11 shared placements -> field frame (coarse 3-D residual median 76 mm)
+  CH01   36/39 cone labels  ->  field frame, cone residual median 195 mm (p90 384 mm)
+  CH02   34/38 cone labels  ->  field frame, cone residual median 166 mm (p90 419 mm)
+  CH03   7 shared placements -> field frame (coarse 3-D residual median 69 mm)
+  CH04   11 shared placements -> field frame (coarse 3-D residual median 161 mm)
+  CH05   8 shared placements -> field frame (coarse 3-D residual median 26 mm)
+  CH06   11 shared placements -> field frame (coarse 3-D residual median 62 mm)
 
   64 distinct physical board placements now have a pose in the paddock frame.
 
   refining camera <-> board alternately (image domain, robust):
-    round 1: median reprojection per camera  CH01 4.5  CH02 8.1  CH03 7.8  CH04 10.8  CH05 10.1  CH06 13.7  px
-    round 2: median reprojection per camera  CH01 4.2  CH02 7.6  CH03 6.7  CH04 10.2  CH05 9.1  CH06 11.5  px
-    round 3: median reprojection per camera  CH01 4.1  CH02 7.0  CH03 6.2  CH04 9.7  CH05 8.4  CH06 10.9  px
+    round 1: median reprojection per camera  CH01 3.4  CH02 8.0  CH03 5.7  CH04 9.4  CH05 4.8  CH06 8.7  px
+    round 2: median reprojection per camera  CH01 3.3  CH02 7.0  CH03 6.2  CH04 8.2  CH05 4.1  CH06 6.3  px
+    round 3: median reprojection per camera  CH01 3.2  CH02 6.4  CH03 6.4  CH04 7.2  CH05 3.5  CH06 5.6  px
 
 STAGE 5  BUNDLE ADJUSTMENT - camera poses, board poses and (for the ordinary lenses) focal
          length and distortion, against every corner pixel, the cone pixels, and the physical
          prior that a plate on grass is flat and 6 mm above the ground.
 
   a second pass, after dropping the views no camera geometry can explain:
-     CH01    T53  2026-09-18 15:25:37   88 corners at    26.2 px
-     CH01    V42  2026-09-18 15:23:08   65 corners at    28.7 px
-     CH01    T63  2026-09-19 12:30:05   49 corners at    36.8 px
-     CH02    T33  2026-09-18 15:15:11   85 corners at    38.8 px
-     CH02    T53  2026-09-18 15:25:37   73 corners at    48.7 px
-     CH02    V13  2026-09-18 15:05:23   88 corners at    33.3 px
-     CH06    T64  2026-09-19 12:30:27   16 corners at   112.3 px
+     CH01    V42  2026-09-18 15:23:08   65 corners at    48.9 px
+     CH02    F23  2026-09-18 15:12:45   47 corners at    22.1 px
+     CH02    V13  2026-09-18 15:05:23   88 corners at    20.9 px
+     CH03    F12  2026-09-18 15:04:38   25 corners at    34.0 px
+     CH04    T62  2026-09-19 12:29:39   21 corners at    57.7 px
 
   420 parameters (6 camera poses, 64 board poses, 0 lens models)
-  7654 corner observations, 108 cone labels
-  weighted corner rms 6.05 sigma; cone rms 106 px; plate tilt rms 6.79 deg; plate height rms 99 mm
-  plate corner to its cone: median 207 mm   <- how well the placements reproduce the designed station grid
-  operator cone LABEL to the same grid: median 63 px = 103 mm at 4 m
+  7813 corner observations, 108 cone labels
+  weighted corner rms 4.55 sigma; cone rms 91 px; plate tilt rms 5.64 deg; plate height rms 73 mm
+  plate corner to its cone: median 157 mm   <- how well the placements reproduce the designed station grid
+  operator cone LABEL to the same grid: median 63 px = 104 mm at 4 m
   per-camera reprojection of the CORNERS only (the cone labels are listed separately):
-     CH01    33 boards  2620 corners   median  3.21 px   rms   5.30 px
-     CH02    26 boards  1958 corners   median  3.07 px   rms   8.58 px
-     CH03    13 boards   858 corners   median  5.75 px   rms  14.97 px
-     CH04    14 boards  1022 corners   median  8.84 px   rms  19.19 px
-     CH05     8 boards   586 corners   median  6.96 px   rms  13.38 px
-     CH06    10 boards   610 corners   median  9.52 px   rms  16.75 px
+     CH01    35 boards  2757 corners   median  2.45 px   rms   6.11 px
+     CH02    27 boards  2069 corners   median  2.96 px   rms   6.54 px
+     CH03    12 boards   833 corners   median  3.88 px   rms  10.94 px
+     CH04    12 boards   942 corners   median  6.12 px   rms  12.19 px
+     CH05     8 boards   586 corners   median  3.35 px   rms   6.47 px
+     CH06    11 boards   626 corners   median  6.04 px   rms   8.85 px
 
 ====================================================================================================
 RESULT 1  WHERE THE CAMERAS ARE.  Paddock frame: origin at pole A0, x along the long cord
@@ -100,12 +99,12 @@ RESULT 1  WHERE THE CAMERAS ARE.  Paddock frame: origin at pole A0, x along the 
 ====================================================================================================
 
   camera    x (in)   y (in)    height  looks toward    down  boards  reproj rms
-  CH01       240.4     90.6   2.551 m   104.7 deg   53.4      33      5.30 px
-  CH02       245.6    152.8   2.635 m   -77.8 deg   53.8      26      8.58 px
-  CH03       121.8    123.7   2.406 m  -176.2 deg   48.8      13     14.97 px
-  CH04       358.7    131.1   2.738 m    -8.4 deg   47.8      14     19.19 px
-  CH05       144.5    122.4   2.371 m  near-nadir   83.6       8     13.38 px
-  CH06       336.6    131.6   2.340 m  near-nadir   83.6      10     16.75 px
+  CH01       243.9     85.4   2.367 m   105.0 deg   49.3      35      6.11 px
+  CH02       248.8    160.1   2.398 m   -79.5 deg   49.2      27      6.54 px
+  CH03       112.5    123.0   2.348 m  -177.4 deg   46.1      12     10.94 px
+  CH04       374.3    128.4   2.458 m    -7.5 deg   44.6      12     12.19 px
+  CH05       139.0    126.4   2.293 m  near-nadir   81.9       8      6.47 px
+  CH06       344.1    126.9   2.320 m  near-nadir   84.8      11      8.85 px
 
   (x,y in inches on the cord grid; height in metres above the paddock ground plane;
    'looks toward' is the compass-style bearing of the optical axis in the paddock frame,
@@ -114,10 +113,10 @@ RESULT 1  WHERE THE CAMERAS ARE.  Paddock frame: origin at pole A0, x along the 
 ====================================================================================================
 RESULT 2  LENS MODELS (the panos have none to fit - their canvas is a fixed 180 deg equirect)
 ====================================================================================================
-  CH01  equirect  2444.6 px/rad, centre (3839.5, 1079.5)   [format, not fitted]
-  CH02  equirect  2444.6 px/rad, centre (3839.5, 1079.5)   [format, not fitted]
+  CH01  equirect  fu=2325.0 fv=2660.0 px/rad, centre (3839.5, 1079.5)   [taped heights; W/pi = 2444.6]
+  CH02  equirect  fu=2325.0 fv=2660.0 px/rad, centre (3839.5, 1079.5)   [taped heights; W/pi = 2444.6]
   CH03  pinhole   f=  2948.6 px  c=( 2177.2, 1273.6)  k1=-0.3928 k2=+0.1109   HFOV 74.8 deg
-  CH04  pinhole   f=  3129.9 px  c=( 2319.0, 1173.8)  k1=-0.3726 k2=+0.0913   HFOV 71.6 deg
+  CH04  pinhole   f=  2960.0 px  c=( 2319.0, 1173.8)  k1=-0.3726 k2=+0.0913   HFOV 74.6 deg
   CH05  pinhole   f=  2011.1 px  c=( 1207.3,  868.4)  k1=-0.3593 k2=+0.0938   HFOV 64.9 deg
   CH06  pinhole   f=  1995.5 px  c=( 1270.8,  888.4)  k1=-0.3374 k2=+0.0834   HFOV 65.4 deg
 
@@ -130,71 +129,71 @@ RESULT 3  DOES THE DESIGNED STATION GRID MATCH THE GROUND?
 ====================================================================================================
 
   station  session   cams                   cone corner      offset   tilt       h
-  T12      09-19     CH01,CH02              short-far         593mm   6.7d    88mm
-  T55      09-18     CH01                   short-far         429mm   3.9d  -339mm
-  T11      09-18     CH03                   short-far         411mm   6.3d     4mm
-  V44      09-18     CH01                   short-far         394mm   0.9d  -258mm
-  V44      09-19     CH01                   short-far         393mm   3.8d  -255mm
-  T11      09-19     CH02,CH03              short-far         378mm   4.3d  -185mm
-  T41      09-18     CH02                   short-far         377mm   4.2d     7mm
-  T75      09-18     CH01,CH04              long-far          373mm   4.1d  -166mm
-  T12      09-18     CH03                   short-far         351mm   3.7d     5mm
-  T13      09-18     CH03                   short-far         335mm   2.4d    36mm
-  V64      09-18     CH04                   short-far         326mm   8.0d     5mm
-  F63      09-18     CH02,CH04              short-far         322mm   2.2d    69mm
-  T71      09-18     CH02,CH04              long-far          321mm   6.6d  -124mm
-  T31      09-18     CH02                   origin            312mm   1.8d  -198mm
-  T63      09-19     CH02,CH04              short-far         306mm   5.0d   118mm
-  T25      09-18     CH01                   origin            289mm  10.1d   -78mm
-  F54      09-18     CH01,CH06              origin            288mm  10.9d   -59mm
-  T74      09-18     CH01,CH04              diagonal          282mm   1.7d  -109mm
-  T73      09-18     CH02,CH04              diagonal          276mm   5.2d    70mm
-  T24      09-18     CH01,CH05              short-far         273mm   9.6d  -150mm
-  V11      09-19     CH02                   short-far         267mm   4.2d     5mm
-  T51      09-18     CH02                   short-far         266mm   4.3d   -61mm
-  T65      09-19     CH01,CH04              origin            266mm   7.2d   -92mm
-  T22      09-18     CH02,CH05              short-far         263mm   4.7d  -217mm
-  T23      09-18     CH03                   diagonal          259mm   0.7d     7mm
-  T23      09-19     CH01,CH03              diagonal          245mm   5.9d    45mm
-  T21      09-18     CH02                   short-far         229mm   4.3d   -70mm
-  T64      09-19     CH01,CH04              short-far         228mm   8.4d   -48mm
-  V62      09-18     CH01,CH04              short-far         228mm   6.2d    21mm
-  F12      09-18     CH01,CH03              short-far         215mm   7.9d     9mm
-  V11      09-18     CH03                   short-far         213mm   5.2d     5mm
-  V53      09-18     CH01,CH06              short-far         209mm   5.3d   -87mm
-  F61      09-18     CH04                   short-far         206mm   6.9d    28mm
-  F21      09-18     CH02,CH05              short-far         197mm  17.9d   -40mm
-  T15      09-18     CH03                   origin            196mm   6.5d    11mm
-  T14      09-18     CH01,CH03              short-far         172mm   5.5d  -116mm
-  T72      09-18     CH01,CH04              diagonal          170mm   6.9d    83mm
-  V13      09-18     CH01,CH03              short-far         156mm   7.6d     5mm
-  F43      09-18     CH01,CH06              short-far         153mm  11.9d    42mm
-  T62      09-19     CH01,CH02,CH04         short-far         152mm   6.5d    59mm
-  T61      09-19     CH02,CH04              short-far         134mm   8.7d     8mm
-  T33      09-18     CH01,CH05              short-far         129mm   3.0d    42mm
-  T41      09-18     CH02                   short-far         125mm   1.8d     6mm
-  T35      09-19     CH01                   origin            118mm   6.6d    89mm
-  T32      09-18     CH02,CH05              short-far         114mm   6.3d     7mm
-  V22      09-18     CH02,CH05              origin            113mm   7.0d   -87mm
-  T34      09-18     CH01,CH05              short-far         113mm   7.9d    92mm
-  V51      09-18     CH02,CH06              short-far         109mm   7.8d     2mm
-  T35      09-18     CH01                   origin            109mm   7.7d    60mm
-  T44      09-18     CH01                   short-far         105mm   7.3d     7mm
-  F14      09-19     CH01,CH03              short-far         101mm   6.9d    65mm
-  F14      09-18     CH01,CH03              short-far          97mm  10.0d    33mm
-  F32      09-18     CH02                   short-far          92mm   6.1d    13mm
-  V31      09-18     CH02                   short-far          92mm   0.6d     8mm
-  T45      09-18     CH01                   origin             90mm   5.8d    18mm
-  T53      09-18     CH06                   diagonal           88mm   7.3d    -5mm
-  V42      09-18     CH02,CH06              short-far          86mm   1.6d    96mm
-  V24      09-18     CH01                   short-far          79mm   1.0d    -2mm
-  T54      09-18     CH01,CH06              short-far          74mm  11.3d     7mm
-  T43      09-18     CH01                   origin             73mm   3.9d     6mm
-  T52      09-18     CH02,CH06              short-far          55mm   9.0d   101mm
-  F23      09-18     CH01,CH02,CH05         short-far          44mm   8.3d     3mm
-  F41      09-18     CH02,CH06              short-far          29mm   3.0d   126mm
-  F52      09-18     CH01,CH02,CH06         origin             18mm  11.2d   -18mm
+  T55      09-18     CH01                   origin            475mm   6.4d  -222mm
+  T25      09-18     CH01                   long-far          421mm   7.9d    -4mm
+  T41      09-18     CH02                   short-far         418mm   3.7d     7mm
+  T71      09-18     CH02,CH04              short-far         415mm   9.2d     7mm
+  V44      09-19     CH01                   short-far         376mm   4.0d  -164mm
+  V44      09-18     CH01                   short-far         366mm   2.6d  -160mm
+  T61      09-19     CH02,CH04              short-far         353mm   6.2d    19mm
+  T15      09-18     CH03                   origin            334mm   8.3d    25mm
+  T51      09-18     CH02                   short-far         332mm   4.9d    -1mm
+  T35      09-19     CH01                   origin            318mm   9.4d   217mm
+  T45      09-18     CH01                   origin            303mm   8.0d   131mm
+  F61      09-18     CH04                   short-far         290mm   8.5d    70mm
+  T35      09-18     CH01                   origin            281mm  10.3d   194mm
+  T53      09-18     CH01,CH02,CH06         diagonal          241mm   4.1d    12mm
+  T72      09-18     CH01,CH04              diagonal          229mm   9.8d    63mm
+  F43      09-18     CH01,CH06              short-far         227mm   3.1d    29mm
+  F14      09-18     CH01,CH03              short-far         223mm   6.1d    93mm
+  F14      09-19     CH01,CH03              short-far         201mm   4.0d   128mm
+  T54      09-18     CH01,CH06              short-far         192mm   4.3d    17mm
+  T65      09-19     CH01                   origin            189mm   4.3d  -129mm
+  V13      09-18     CH01,CH03              short-far         188mm   5.1d     0mm
+  V62      09-18     CH01,CH04              short-far         184mm   7.6d     5mm
+  V42      09-18     CH02,CH06              short-far         184mm   3.4d     4mm
+  T12      09-19     CH01,CH02              short-far         184mm   3.7d   -90mm
+  T31      09-18     CH02                   short-far         183mm   1.7d   -78mm
+  F41      09-18     CH02,CH06              short-far         180mm   5.4d    29mm
+  T44      09-18     CH01                   short-far         179mm   4.0d     8mm
+  T52      09-18     CH02,CH06              short-far         178mm   4.8d    59mm
+  T73      09-18     CH02,CH04              diagonal          176mm   7.8d     2mm
+  V24      09-18     CH01                   short-far         171mm   4.6d     6mm
+  T41      09-18     CH02                   short-far         171mm   3.2d     6mm
+  T63      09-19     CH01,CH02,CH04         short-far         158mm   1.4d   -52mm
+  T43      09-18     CH01                   origin            157mm  10.6d     6mm
+  T24      09-18     CH01,CH05              short-far         150mm   6.9d    74mm
+  T75      09-18     CH01,CH04              long-far          148mm   5.6d   -82mm
+  T23      09-19     CH01,CH03              diagonal          135mm   1.4d    -6mm
+  F12      09-18     CH01                   short-far         130mm   2.4d   -38mm
+  V11      09-18     CH03                   short-far         129mm   5.5d     4mm
+  V51      09-18     CH02,CH06              short-far         128mm   5.2d    84mm
+  T14      09-18     CH01,CH03              short-far         128mm   4.7d    26mm
+  F54      09-18     CH01,CH06              origin            128mm   6.0d   -16mm
+  T74      09-18     CH01,CH04              diagonal          126mm   4.2d   -65mm
+  T64      09-19     CH01,CH04,CH06         short-far         116mm   4.4d   -79mm
+  F63      09-18     CH02,CH04              short-far         112mm   2.0d   -22mm
+  T23      09-18     CH03                   diagonal          111mm   2.1d     7mm
+  T34      09-18     CH01,CH05              short-far         109mm   8.1d    34mm
+  F52      09-18     CH01,CH02,CH06         origin            102mm   8.4d    35mm
+  F21      09-18     CH02,CH05              short-far          96mm  13.6d     6mm
+  V22      09-18     CH02,CH05              origin             95mm   4.3d   -52mm
+  T11      09-18     CH03                   short-far          94mm   3.8d     4mm
+  F23      09-18     CH01,CH05              short-far          89mm   3.6d    29mm
+  T33      09-18     CH01,CH02,CH05         short-far          88mm   0.3d   -20mm
+  T62      09-19     CH01,CH02              short-far          87mm   7.9d    55mm
+  V53      09-18     CH01,CH06              short-far          83mm   3.1d   -43mm
+  T22      09-18     CH02,CH05              short-far          81mm   1.3d   -56mm
+  V11      09-19     CH02                   short-far          80mm   1.5d     8mm
+  T11      09-19     CH02,CH03              short-far          68mm   2.0d   -62mm
+  F32      09-18     CH02                   short-far          63mm   1.7d     9mm
+  T21      09-18     CH02                   short-far          60mm   2.7d    -0mm
+  V64      09-18     CH04                   short-far          59mm   4.8d    35mm
+  T32      09-18     CH02,CH05              short-far          58mm   1.4d    -7mm
+  V31      09-18     CH02                   short-far          55mm   2.3d    55mm
+  T12      09-18     CH03                   short-far          54mm   1.3d     5mm
+  T13      09-18     CH03                   short-far          37mm   3.2d    67mm
 
-  64 placements: offset from the designed station median 207 mm, p90 376 mm, max 593 mm
+  64 placements: offset from the designed station median 157 mm, p90 347 mm, max 475 mm
 
   -> E:\calibration\qc\camera_fit.npz

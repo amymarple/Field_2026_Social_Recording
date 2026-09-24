@@ -7,9 +7,19 @@ material in this capture whose board orientations vary, and that is exactly what
 calibration needs - the 136 station placements all lie in one plane (the ground), and one plane
 carries only its own homography, which cannot separate focal length from tilt.
 
-Nothing here uses a measured camera height, camera position or field dimension.
+Two numbers here DO come from the operator's tape-measured lens heights (2026-09-24), because
+nothing in the footage can give them: a hand-held sweep from one standing spot leaves focal
+length and distance degenerate (CH04's sweep is fitted equally well by any f from 2800 to 3130
+px), and plates on the ground are one plane. With the height hard-fixed at the tape value and the
+plates on the ground, the plates' apparent size fixes the scale:
+  * CH04 f = 2960 px (sweep said 3130; same camera model as CH03, whose sweep 2949 agrees with its
+    tape height; the ground cones/cords/walls at CH04's tape height ask for 2956).
+  * Duo 3 canvas fu = 2325, fv = 2660 px/rad (nominal W/pi = 2444.6 for both): CH01 and CH02
+    fitted independently give 2333/2711 and 2318/2616 - the canvas is ~190 deg x 47 deg, not
+    180 x 50.6. With the nominal scale every camera came out 8-20 % too high.
+FIT_NOMINAL_LENS=1 restores the sweep / nominal values.
 """
-import csv, json
+import csv, json, os
 from pathlib import Path
 import numpy as np, cv2
 import qc_paths, board_detect as bd
@@ -17,6 +27,9 @@ import qc_paths, board_detect as bd
 REPO = Path(__file__).resolve().parent
 PANO = ("CH01", "CH02")
 SESSIONS = ("2026-09-18", "2026-09-19")
+NOMINAL = os.environ.get("FIT_NOMINAL_LENS", "") == "1"
+FOCAL_OVERRIDE = {} if NOMINAL else {"CH04": 2960.0}            # px, from the taped height (see above)
+PANO_SCALE = None if NOMINAL else (2325.0, 2660.0)              # fu, fv px/rad, from the taped heights
 
 
 def _sec(hms):
@@ -94,8 +107,9 @@ def pano_intrinsics(W, H):
     the free-pose views returns W/pi, (W-1)/2, W/pi, (H-1)/2 to within 0.03 %, from either half and
     either session. They are held at nominal - a pano has no focal length to calibrate, only a
     pose."""
-    return dict(model="equirect", intr=np.array([W / np.pi, (W - 1) / 2.0, W / np.pi, (H - 1) / 2.0, 0.0]),
-                rms=float("nan"), n_views=0, n_dropped=0)
+    fu, fv = PANO_SCALE if PANO_SCALE else (W / np.pi, W / np.pi)
+    return dict(model="equirect", intr=np.array([fu, (W - 1) / 2.0, fv, (H - 1) / 2.0, 0.0]),
+                rms=float("nan"), n_views=0, n_dropped=0, scale_source="taped heights" if PANO_SCALE else "nominal W/pi")
 
 
 def for_camera(cam, min_c=20):
@@ -107,4 +121,7 @@ def for_camera(cam, min_c=20):
     V = free_views(cam, min_c)
     if len(V) < 8:
         return None
-    return robust_pinhole(V, W, H)
+    r = robust_pinhole(V, W, H)
+    if cam in FOCAL_OVERRIDE:
+        r["intr"] = np.array(r["intr"], float); r["intr"][0] = FOCAL_OVERRIDE[cam]; r["f_source"] = "taped height"
+    return r

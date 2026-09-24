@@ -5,7 +5,7 @@ plate placed at 59 designed stations, so that a pixel in any camera can be turne
 (x, y) and the six cameras agree with each other and with the physical lattice. This document
 states what was measured, what was assumed, what was computed, how it was checked, and what
 remains unexplained. Everything quoted here is reproducible from the repository
-`Field_2026_Social_Recording/calibration_qc` (commit `d8539c7`) and the session data on the field
+`Field_2026_Social_Recording/calibration_qc` (commit `d8539c7`; addendum at the end supersedes sections 4.1-4.2, 5.5 and 6.1) and the session data on the field
 PC (`E:\calibration`).
 
 ---
@@ -315,3 +315,45 @@ every alternative (met); camera handoff is 6 cm median with the 10-15 cm tail co
 end (CH01-CH04), the only place a further calibration effort would still pay; raw landmark error
 is no longer the limiting quantity. Metrics 1 (trajectory-extrapolation form), 3 and 4 should be
 re-run on real tracks and real cells when they exist; the script takes them as input.
+
+---
+
+## Addendum (2026-09-24, evening): the taped heights resolve the height discrepancy
+
+Section 6.1 above is resolved. The operator confirmed the tape values are grass-to-lens-centre
+(and would read high, not low, if anything) and measured the plate: 23.5 in across, squares
+exactly 60 mm - the plate scale is right. With the heights held HARD in a per-camera plane fit
+(camera z fixed by parametrisation, plates on the ground), the plates' apparent size fixes the
+lens scale, and two things came out:
+
+1. **The hand-held sweeps do not determine a pinhole's focal length.** CH04's sweep is fitted at
+   1.95-2.00 px rms by any f from 2956 to 3173; CH03's at 1.29-1.37 px from 2800 to 3130 (one
+   standing spot: distance and f trade off). The sweep's CH04 value (3130) was arbitrary. With its
+   height fixed, CH04's plates ask for f = 2964; the ground cones, cords and wall at its taped
+   height ask for 2956; CH03, the same camera model, has 2949. **CH04 f := 2960.**
+2. **The Duo 3 canvas is not the nominal 180 x 50.6 deg equirect.** With the heights fixed, CH01's
+   plates ask for fu = 2333, fv = 2711 px/rad and CH02's for 2318 / 2616 (nominal 2444.6 for both):
+   about 190 deg across and 47 deg high. **Panos fu := 2325, fv := 2660.**
+
+These four numbers are the only place the tape enters (`fit_intrinsics.py`, `FIT_NOMINAL_LENS=1`
+restores the old values). Re-running sections 3-5 with them (`CALIBRATION_FIT.txt`,
+`PADDOCK_AGREEMENT.txt`, `LINE_CHECK.txt`, `frame_correction.json` in the repository are now
+these):
+
+| camera | tape (x, y) in / h m | bundle, no warp (x, y) / h | delta h | corner residual median (px) |
+|---|---|---|---|---|
+| CH01 | (236, 92) / 2.362 | (244.0, 85.4) / 2.366 | +0.00 m | 2.46 |
+| CH02 | (249, 160) / 2.337 | (248.9, 160.1) / 2.397 | +0.06 m | 2.96 |
+| CH03 | (112, 128) / 2.235 | (112.5, 123.0) / 2.348 | +0.11 m | 3.87 |
+| CH04 | (369, 123) / 2.286 | (374.3, 128.4) / 2.455 | +0.17 m | 6.11 |
+| CH05 | - | (139.1, 126.4) / 2.292 | - | 3.35 |
+| CH06 | - | (344.1, 126.9) / 2.318 | - | 6.13 |
+
+The bundle's positions now match the tape to 2-8 in with no correction (CH03-CH04 separation
+262 in vs 257 taped); the plate corners sit 157 mm (median) from their cones (was 206); the
+ordinary lenses' residuals fell from 5.8-9.5 px to 3.4-6.1 px. Cross-camera agreement on the
+boards, with the ground warp re-fitted: **median 70 mm, p90 114 mm, max 243 mm** (was 64 / 147 /
+302); cones 2.8 in median from their stations; wall foot at x = 1..12 (CH03) and 473..481 (CH04),
+y = 0.2 / 240.2. Sections 4.1-4.2 and 5.5 above describe the superseded fit; the tables in this
+addendum are current. Remaining: CH04 +17 cm and CH03 +11 cm against the tape, and the panos'
+two-parameter scale still needs the ground warp for the canvas corners (section 6.2 stands).
