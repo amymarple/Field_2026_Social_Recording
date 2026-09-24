@@ -356,3 +356,32 @@ applies it on the way out and inverts it on the way in (round trip still 1e-11 m
 wall base seen by CH03 lands at x = -1..1 in and by CH04 at 476..489 in, and the cone labels sit
 4.6 in (median) from their stations. It is a correction of the FRAME, measured on the cords the
 operator laid; it does not touch any camera and leaves the cross-camera agreement as it is.
+
+## Cords and wall foot: the frame is now tied per camera (2026-09-24)
+
+The operator labelled the seven T-series cords and the foot of the wall in all six cameras
+(`session_2026-09-18_line_labels_CH0*.json`, ~250 points; two wall segments relabelled by
+projection with a note: CH02 "WALL_Y240" is the x = 480 end, CH03 "WALL_X480" is the y = 240 corner).
+`line_check.py` pushes them onto the ground: every cord came out STRAIGHT (0.1-2 in rms) but
+TILTED differently in different cameras - X456 at 0 deg in CH02, 6 deg in CH04, 11 deg in CH01 -
+and each camera's cones agreed with its own cords. So the cameras' ground mappings differ from
+each other by a smooth, camera-specific warp, largest in the corners of the pano canvas, and no
+lens model tried reproduces it.
+
+`frame_correction.py` therefore fits, per camera, a 2-D polynomial warp from the bundle's frame to
+the lattice (cones at their stations, cords straight at their x, the straight middles of the wall
+at x = 0/480 and y = 0/240), degree 4 for the panos and 1 for the others, with a ridge prior of 8 in
+per term. The boards are not used in it and are the acceptance test:
+
+| | cross-camera median | p90 | max | CH01-CH04 | wall foot (CH03 / CH04 side) |
+|---|---|---|---|---|---|
+| bundle, x-only correction (before) | 84 mm | 179 mm | 275 mm | 122 mm | x = 0 / 480 by construction |
+| per-camera warp, panos degree 1-2 | 118-126 mm | 206-248 mm | 336-386 mm | 119-147 mm | fine |
+| per-camera warp, panos degree 4, ridge 8 | **64 mm** | **147 mm** | 302 mm | 100 mm | -1 / 478 in |
+
+A low-degree pano warp cannot follow the canvas corners and bends the middle instead (CH01-CH02
+went to 140-200 mm); degree 4 with the ridge does both. After it the cords sit within 5 in of
+their x with tilts under 3 deg in every camera, the wall foot lands at x = -5..0 / 478..480 and
+y = 0 / 240, the cones 3 in (median) from their stations, and the cameras' traces of the same wall
+segment agree to 1-4 in. `paddock_map.load()` applies the warp (inverse by Newton, round trip
+1e-10 mm); `load(correct=False)` is the raw bundle frame.

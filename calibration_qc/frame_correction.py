@@ -1,64 +1,133 @@
 # -*- coding: utf-8 -*-
-r"""Tie the fitted paddock frame to the physical cords, using the operator's cone labels from every
-camera.
+r"""Tie each camera's ground mapping to the physical lattice, using everything the operator labelled
+on the ground: cones (a point at a known station), the seven T-series cords (a straight line at a
+known x) and the foot of the wall (a straight line at x = 0 / 480 or y = 0 / 240 on its straight
+middle; the rounded corners are left out).
 
-The bundle fixes the cameras' RELATIVE geometry well (cross-camera median < 0.1 m) but its
-absolute frame is compressed along the long axis: the panos read far boards a little too close
-and CH03/CH04 follow them, so the x = 24 in cord lands at x ~ 40 in and the x = 456 in cord at
-~448 in, and the fit's x = 0 line sits on the end wall a hand above its base (CH03/CH04 frames
-with the lines drawn, 2026-09-23). The cones sit on the cord crossings, so their labels in all six
-cameras measure this directly: push each label through its camera onto the ground (cone-top
-height), compare with the design station, and fit a smooth offset dx(x) (cubic) and dy(y) (linear)
-to the cord medians. paddock_map applies the correction on the way out and inverts it on the way
-in. It is an empirical correction of the FRAME, not of any camera; the cross-camera numbers are
-unchanged by it, and the wall (never used here) is the independent check.
+Why: the bundle fixes the cameras' relative geometry to < 0.1 m, but the panos' ray model is off in
+the corners of their canvas (the far ends of the paddock seen at the bottom and top of the
+picture): pushed onto the ground, the same cord comes out tilted 0 deg in one camera, 6 deg in
+another and 11 deg in a third, and the fit's x = 0 line sat on the end wall a hand above its base.
+No smooth lens model tried explained it, so the correction is made where it is measured: on the
+ground, per camera. Each camera gets a 2-D polynomial warp (x, y)_fit -> (x, y)_lattice fitted to
+its own labels; its degree follows how many labels it has (affine for the nadir cameras with a
+handful of points, degree 4 for the panos with ~130). The lattice - cones on the cord crossings as
+designed, cords straight, walls where they were built - IS the paddock frame by definition, so
+after this every camera agrees with it and hence with every other camera. paddock_map applies the
+warp on the way out and inverts it on the way in.
 
-Usage: python frame_correction.py [--fit <camera_fit.npz>]   -> <fit dir>\frame_correction.json
+The warp is kept gentle: --ridge (default 8) is a prior of that many inches per polynomial term
+pulling every coefficient toward zero, so terms the labels do not constrain (a camera's y warp
+from nine cones, the panos' corners) stay near the identity; --deg-pano (default 4) caps the panos'
+degree. The boards, which are NOT used here, are the independent check: paddock_agreement.py
+after this must not get worse anywhere.
+
+Usage: python frame_correction.py [--fit <camera_fit.npz>] [--ridge 8] [--deg-pano 4]
+       -> <fit dir>\frame_correction.json
 """
 import sys, json
 from pathlib import Path
 import numpy as np
+from scipy.optimize import least_squares
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import qc_paths, fit_data as fd, paddock_map as pm                        # noqa: E402
 
 args = sys.argv[1:]
 FIT = Path(args[args.index("--fit") + 1]) if "--fit" in args else pm.FIT
+RIDGE = float(args[args.index("--ridge") + 1]) if "--ridge" in args else 8.0
+DEG_PANO = int(args[args.index("--deg-pano") + 1]) if "--deg-pano" in args else 4
 CONE_Z = 50.0
 MM = 25.4
-
-cams = pm.load(FIT, correct=False)
 S, QC = qc_paths.resolve(None)
-by_x, by_y, rows = {}, {}, []
-for c in cams:
-    for st, uv in qc_paths.load_cones(QC, c, S, space="upright").items():
-        if st not in fd.LATTICE:
-            continue
-        g = cams[c].to_paddock(uv, z_mm=CONE_Z, units="in")
-        d = g - np.array(fd.LATTICE[st], float)
-        if not np.isfinite(d).all() or np.linalg.norm(d) > 40:      # a wrong label, not a frame error
-            continue
-        x0, y0 = fd.LATTICE[st]
-        by_x.setdefault(x0, []).append(d[0]); by_y.setdefault(y0, []).append(d[1])
-        rows.append((c, st, x0, y0, d[0], d[1]))
+cams = pm.load(FIT, correct=False)
 
-xs = np.array(sorted(by_x)); mx = np.array([np.median(by_x[x]) for x in xs]); nx = np.array([len(by_x[x]) for x in xs])
-ys = np.array(sorted(by_y)); my = np.array([np.median(by_y[y]) for y in ys])
-# offsets are in the FIT frame (where the cone was read); the correction maps fit -> physical
-px = np.polyfit(xs + mx, mx, 3, w=np.sqrt(nx))          # dx as a function of fit-frame x
-py = np.polyfit(ys + my, my, 1)
-resx = mx - np.polyval(px, xs + mx)
-print(f"{len(rows)} cone labels from {len(cams)} cameras")
-print("cord      design x   read at   offset   after correction")
-for x0, m, n, r in zip(xs, mx, nx, resx):
-    print(f"  x cord   {x0:6.0f}   {x0 + m:7.1f}   {m:+6.1f}    {r:+5.1f} in   (n={n})")
-for y0, m in zip(ys, my):
-    print(f"  y cord   {y0:6.0f}   {y0 + m:7.1f}   {m:+6.1f}    {m - np.polyval(py, y0 + m):+5.1f} in")
-print(f"\n  x correction at fit x = 0 / 240 / 480 in: {np.polyval(px, 0):+.1f} / {np.polyval(px, 240):+.1f} / {np.polyval(px, 480):+.1f} in")
-out = dict(note="paddock_fit_to_physical: x_phys = x_fit - polyval(dx_coef, x_fit); y_phys = y_fit - polyval(dy_coef, y_fit); inches",
-           fit=str(FIT), dx_coef=[float(v) for v in px], dy_coef=[float(v) for v in py],
-           cords_x=[dict(design=float(x0), read=float(x0 + m), n=int(n)) for x0, m, n in zip(xs, mx, nx)],
-           cords_y=[dict(design=float(y0), read=float(y0 + m)) for y0, m in zip(ys, my)],
-           residual_in=dict(x_rms=float(np.sqrt((resx ** 2).mean())), n_labels=len(rows)))
+
+def terms(p, deg):
+    """monomials up to degree deg in (x, y) scaled to ~[-1, 1] over the paddock."""
+    x, y = (p[:, 0] - 240.0) / 240.0, (p[:, 1] - 120.0) / 120.0
+    cols = [np.ones_like(x)]
+    for d in range(1, deg + 1):
+        for i in range(d + 1):
+            cols.append(x ** (d - i) * y ** i)
+    return np.stack(cols, 1)
+
+
+def warp(p, coef, deg):
+    T = terms(p, deg)
+    return p + np.stack([T @ coef[0], T @ coef[1]], 1)
+
+
+out = {"note": "per-camera warp from the bundle's frame to the physical lattice, in INCHES: "
+               "xy_lattice = xy_fit + [T(xy_fit) @ cx, T(xy_fit) @ cy], T = monomials of degree <= deg in "
+               "((x-240)/240, (y-120)/120), order 1, x, y, x^2, xy, y^2, x^3, x^2y, xy^2, y^3 ...",
+       "fit": str(FIT), "cameras": {}}
+summary = []
+for cam in sorted(cams):
+    c = cams[cam]
+    pts, tgt, kind = [], [], []                        # kind: 'p' point, 'x' line x = t, 'y' line y = t
+    for st, uv in qc_paths.load_cones(QC, cam, S, space="upright").items():
+        if st in fd.LATTICE:
+            g = c.to_paddock(uv, z_mm=CONE_Z, units="in")
+            if np.isfinite(g).all() and np.linalg.norm(g - fd.LATTICE[st]) < 40:
+                pts.append(g); tgt.append(fd.LATTICE[st]); kind.append("p")
+    lf = QC / f"line_labels_{cam}.json"
+    if lf.exists():
+        d = json.loads(lf.read_text(encoding="utf-8"))
+        uw, uh = qc_paths.upright_size(S, cam); dw, dh = d.get("frame_size_upright", [uw, uh])
+        sc = np.array([uw / float(dw), uh / float(dh)])
+        for k, v in d["lines"].items():
+            g = c.to_paddock(np.asarray(v, float) * sc, z_mm=0.0, units="in")
+            g = g[np.isfinite(g).all(1)]
+            if k.startswith("X"):
+                x0 = float(k[1:])
+                for q in g:
+                    if abs(q[0] - x0) < 40 and -10 < q[1] < 250:
+                        pts.append(q); tgt.append((x0, np.nan)); kind.append("x")
+            elif k in ("WALL_X0", "WALL_X480"):
+                x0 = 0.0 if k.endswith("X0") else 480.0
+                for q in g:
+                    if 60 < q[1] < 180 and abs(q[0] - x0) < 40:          # the straight middle only
+                        pts.append(q); tgt.append((x0, np.nan)); kind.append("x")
+            elif k in ("WALL_Y0", "WALL_Y240"):
+                y0 = 0.0 if k.endswith("Y0") else 240.0
+                for q in g:
+                    if 100 < q[0] < 380 and abs(q[1] - y0) < 40:
+                        pts.append(q); tgt.append((np.nan, y0)); kind.append("y")
+    pts = np.array(pts); tgt = np.array(tgt, float); kind = np.array(kind)
+    n = len(pts); npt = int((kind == "p").sum())
+    if n < 6:
+        summary.append(f"  {cam}: {n} constraints - no warp (global correction only)"); continue
+    deg = DEG_PANO if n >= 90 else 1
+    nt = terms(pts[:1], deg).shape[1]
+
+    def resid(x, prior=True):
+        coef = x.reshape(2, nt)
+        w = warp(pts, coef, deg)
+        r = []
+        for q, t, k in zip(w, tgt, kind):
+            if k == "p":
+                r += [q[0] - t[0], q[1] - t[1]]
+            elif k == "x":
+                r.append(q[0] - t[0])
+            else:
+                r.append(q[1] - t[1])
+        if prior:
+            r += list(x / RIDGE)                 # ridge: each coefficient costs like RIDGE inches of misfit
+        return np.array(r)
+
+    x0 = np.zeros(2 * nt)
+    before = resid(x0, prior=False)
+    r = least_squares(resid, x0, loss="soft_l1", f_scale=3.0)
+    after = resid(r.x, prior=False)
+    coef = r.x.reshape(2, nt)
+    out["cameras"][cam] = dict(deg=deg, cx=[float(v) for v in coef[0]], cy=[float(v) for v in coef[1]],
+                               n_points=npt, n_cord=int((kind == "x").sum()), n_wall_y=int((kind == "y").sum()),
+                               rms_before_in=float(np.sqrt((before ** 2).mean())), rms_after_in=float(np.sqrt((after ** 2).mean())))
+    summary.append(f"  {cam}: {npt} cones, {int((kind == 'x').sum())} cord/end-wall points, {int((kind == 'y').sum())} side-wall points"
+                   f" -> degree {deg} warp, residual {np.sqrt((before ** 2).mean()):.1f} -> {np.sqrt((after ** 2).mean()):.1f} in rms"
+                   f" (p90 {np.percentile(np.abs(after), 90):.1f} in)")
+
+print("\n".join(summary))
 (FIT.parent / "frame_correction.json").write_text(json.dumps(out, indent=1), encoding="utf-8")
 print("->", FIT.parent / "frame_correction.json")

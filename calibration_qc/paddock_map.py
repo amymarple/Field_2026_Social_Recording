@@ -158,51 +158,65 @@ class Camera:
                 f"h={self.centre[2]/1000:.2f}m>")
 
 
-# ---------------------------------------------------------------- fit frame <-> physical cords
-# The bundle's frame is compressed along x at the ends (see frame_correction.py); the correction
-# is a smooth dx(x), dy(y) in INCHES measured from the operator's cone labels in all six cameras.
+# ---------------------------------------------------------------- fit frame <-> physical lattice
+# Per-camera 2-D polynomial warp measured on the ground from the operator's cones, cords and wall
+# foot (frame_correction.py): xy_lattice = xy_fit + [T @ cx, T @ cy], T = monomials of degree <= deg
+# in ((x - 240) / 240, (y - 120) / 120), inches. None = no correction for that camera.
+def _terms(p, deg):
+    x, y = (p[:, 0] - 240.0) / 240.0, (p[:, 1] - 120.0) / 120.0
+    cols = [np.ones_like(x)]
+    for d in range(1, deg + 1):
+        for i in range(d + 1):
+            cols.append(x ** (d - i) * y ** i)
+    return np.stack(cols, 1)
+
+
 def fit_to_physical(xy_mm, corr):
     if corr is None:
         return xy_mm
     p = np.asarray(xy_mm, float) / MM_PER_IN
-    out = p.copy()
-    out[:, 0] = p[:, 0] - np.polyval(corr["dx_coef"], p[:, 0])
-    out[:, 1] = p[:, 1] - np.polyval(corr["dy_coef"], p[:, 1])
-    return out * MM_PER_IN
+    T = _terms(p, corr["deg"])
+    return (p + np.stack([T @ np.asarray(corr["cx"], float), T @ np.asarray(corr["cy"], float)], 1)) * MM_PER_IN
 
 
 def physical_to_fit(xy_mm, corr):
-    """inverse of fit_to_physical, by a few Newton steps on each axis (the polynomials are gentle)."""
+    """inverse of fit_to_physical by Newton on both axes (the warp is a few inches on a 480 in field)."""
     if corr is None:
         return xy_mm
     q = np.asarray(xy_mm, float) / MM_PER_IN
     p = q.copy()
-    for _ in range(8):
-        fx = p[:, 0] - np.polyval(corr["dx_coef"], p[:, 0]) - q[:, 0]
-        fy = p[:, 1] - np.polyval(corr["dy_coef"], p[:, 1]) - q[:, 1]
-        dfx = 1.0 - np.polyval(np.polyder(np.asarray(corr["dx_coef"], float)), p[:, 0])
-        dfy = 1.0 - np.polyval(np.polyder(np.asarray(corr["dy_coef"], float)), p[:, 1])
-        p[:, 0] -= fx / dfx; p[:, 1] -= fy / dfy
+    h = 0.05
+    for _ in range(12):
+        f = fit_to_physical(p * MM_PER_IN, corr) / MM_PER_IN - q
+        if np.nanmax(np.abs(f)) < 1e-9:
+            break
+        fx = (fit_to_physical((p + [h, 0]) * MM_PER_IN, corr) / MM_PER_IN - q - f) / h
+        fy = (fit_to_physical((p + [0, h]) * MM_PER_IN, corr) / MM_PER_IN - q - f) / h
+        det = fx[:, 0] * fy[:, 1] - fx[:, 1] * fy[:, 0]
+        det = np.where(np.abs(det) < 1e-12, 1e-12, det)
+        dx = (f[:, 0] * fy[:, 1] - f[:, 1] * fy[:, 0]) / det
+        dy = (fx[:, 0] * f[:, 1] - fx[:, 1] * f[:, 0]) / det
+        p[:, 0] -= dx; p[:, 1] -= dy
     return p * MM_PER_IN
 
 
 def load(fit=FIT, session=None, correct=True):
     """-> {name: Camera}. Frame sizes come from the videos via qc_paths, never hardcoded.
-    correct=True applies <fit dir>/frame_correction.json when it exists (fit frame -> physical cords)."""
+    correct=True applies <fit dir>/frame_correction.json when it exists (per-camera warp to the lattice)."""
     import qc_paths, json
     z = np.load(Path(fit), allow_pickle=False)
     if float(np.abs(z["cam_tvec"]).max()) < 100:
         raise SystemExit(f"{fit} has translations in metres - re-run fit_cameras.py")
-    corr = None
+    corr = {}
     cf = Path(fit).parent / "frame_correction.json"
     if correct and cf.exists():
-        corr = json.loads(cf.read_text(encoding="utf-8"))
+        corr = json.loads(cf.read_text(encoding="utf-8")).get("cameras", {})
     sess = qc_paths.resolve(session)[0]
     out = {}
     for i, name in enumerate(z["units"]):
         cam = str(name)
         out[cam] = Camera(cam, z["models"][i], z["intr"][i], z["cam_rvec"][i], z["cam_tvec"][i],
-                          qc_paths.frame_size(sess, cam[:4]), correction=corr)
+                          qc_paths.frame_size(sess, cam[:4]), correction=corr.get(cam))
     return out
 
 
