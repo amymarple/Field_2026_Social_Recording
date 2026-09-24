@@ -759,6 +759,7 @@ np.savez(OUT / "camera_fit.npz",
          board_pose=np.concatenate([bp[:, :3], bp[:, 3:] * 1000.0], 1),
          board_station_mm=b_station * 1000.0, board_cone_corner=b_corner,
          dropped_views=np.array(["|".join(d) for d in DROPPED]),
+         stored_size=np.array([qc_paths.frame_size(qc_paths.resolve(None)[0], UNITS[u]["cam"]) for u in unit_list], int),
          note="X_cam = Rodrigues(cam_rvec) @ X_field + cam_tvec; ALL lengths mm, "
               "field origin pole A0, x along the long cord, y across, z up")
 import hashlib, subprocess, datetime

@@ -1,5 +1,5 @@
 {
- "fit_sha256": "d1b29681e1a54101bf2b066139a7f8e9e93e00544f354fdf896a359f58b792e6",
+ "fit_sha256": "6e4b54e9264a3675e810d52d5b02aa03fe8af3cf2618282a08935b7c9840f3db",
  "note": "per-camera warp from the bundle's frame to the physical lattice, in INCHES: xy_lattice = xy_fit + [T(xy_fit) @ cx, T(xy_fit) @ cy], T = monomials of degree <= deg in ((x-240)/240, (y-120)/120), order 1, x, y, x^2, xy, y^2, x^3, x^2y, xy^2, y^3 ...",
  "fit": "E:\\calibration\\qc\\camera_fit.npz",
  "ridge_in": 8.0,

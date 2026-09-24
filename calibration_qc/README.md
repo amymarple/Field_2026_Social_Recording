@@ -445,3 +445,24 @@ What the honest numbers are: held-out placements 76 mm median, 137 mm p90, 256 m
 within 50 mm, 18/26 within 100 mm); held-out label groups 65 mm median, 185 mm p90; taped heights
 -0.01 / +0.07 / +0.06 / +0.12 m; wall foot within 3 in of x = 0 / 480. Whole-field 50 mm is not
 claimed. The pano warp degree is 3 (chosen by the folds), not 4.
+
+## Taking the calibration to another machine (2026-09-24)
+
+The release fit is committed here and is self-contained: `camera_fit.npz` (poses, lens models,
+plate poses, dropped views and now the stored frame sizes), `frame_correction.json` (per-camera
+ground warp + verified support, sha-bound to that fit) and `fit_manifest.json` (provenance). On any
+machine with numpy, scipy and OpenCV:
+
+```python
+import sys; sys.path.insert(0, r"<repo>\calibration_qc")
+from paddock_map import load
+cams = load()            # finds E:\calibration\qc\camera_fit.npz if this is the field PC, else the repo copy
+cams["CH01"].to_paddock((u, v), z_mm=0, units="in")
+```
+`paddock_map.py`, `fit_models.py` and `qc_paths.py` are the only modules it imports; no video,
+no ffprobe, no E: drive is needed to USE the calibration.
+
+To RE-RUN the fit elsewhere you also need `E:\calibration\qc\corners\` (20 MB of cached corner
+detections), the label files (all in this repository) and, only for rendering frames or
+re-detecting, the session videos (`E:\calibration\session_*`, 50 GB). Copy `E:\calibration\qc`
+whole (it also holds the review GUIs and rendered frames); the videos are optional.

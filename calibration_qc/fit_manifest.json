@@ -2,7 +2,7 @@
  "written": "2026-09-24T14:50:46",
  "git_commit": "283020e4d1cbafd3f4287d03e11078b6bf5cf51f",
  "fit_file": "E:\\calibration\\qc\\camera_fit.npz",
- "fit_sha256": "d1b29681e1a54101bf2b066139a7f8e9e93e00544f354fdf896a359f58b792e6",
+ "fit_sha256": "6e4b54e9264a3675e810d52d5b02aa03fe8af3cf2618282a08935b7c9840f3db",
  "env": {},
  "constants": {
   "PLATE_Z": 6.0,
@@ -144,5 +144,5 @@
   "session_2026-09-19_manual_cone_corner.json": "594e27b8b27b0de03d84c1d0e2f355f705748c76c673dd3ffdd70e1588725dbe",
   "session_2026-09-19_manual_quads.json": "16303c8caa92fcb06da47d0e7e2beff3e8e2846982c5606008e52cc14ffe7ae8"
  },
- "note": "the fit is this camera_fit.npz; frame_correction.json must carry this fit_sha256 to be applied"
+ "note": "the fit is this camera_fit.npz; frame_correction.json must carry this fit_sha256 to be applied | stored_size added 2026-09-24 (portable), sha rebound"
 }

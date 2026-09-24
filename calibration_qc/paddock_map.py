@@ -32,7 +32,10 @@ import numpy as np, cv2
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import fit_models as fm                                                   # noqa: E402
 
+# the release fit: the field PC's copy if present, else the copy committed next to this file
 FIT = Path(r"E:\calibration\qc\camera_fit.npz")
+if not FIT.exists():
+    FIT = Path(__file__).resolve().parent / "camera_fit.npz"
 MM_PER_IN = 25.4
 PANO = ("CH01", "CH02")
 
@@ -246,7 +249,7 @@ def physical_to_fit(xy_mm, corr):
 def load(fit=FIT, session=None, correct=True):
     """-> {name: Camera}. Frame sizes come from the videos via qc_paths, never hardcoded.
     correct=True applies <fit dir>/frame_correction.json when it exists (per-camera warp to the lattice)."""
-    import qc_paths, json
+    import json
     z = np.load(Path(fit), allow_pickle=False)
     if float(np.abs(z["cam_tvec"]).max()) < 100:
         raise SystemExit(f"{fit} has translations in metres - re-run fit_cameras.py")
@@ -264,12 +267,14 @@ def load(fit=FIT, session=None, correct=True):
             raise SystemExit(f"{cf} was made for a different fit (sha {str(want)[:12]} vs {have[:12]}): "
                              f"re-run frame_correction.py, or load(correct=False)")
         corr = cj.get("cameras", {})
-    sess = qc_paths.resolve(session)[0]
     out = {}
+    sizes = z["stored_size"] if "stored_size" in z.files else None      # portable fits carry them
+    sess = None if sizes is not None else qc_paths.resolve(session)[0]  # otherwise ask the videos
     for i, name in enumerate(z["units"]):
         cam = str(name)
+        size = tuple(int(v) for v in sizes[i]) if sizes is not None else qc_paths.frame_size(sess, cam[:4])
         out[cam] = Camera(cam, z["models"][i], z["intr"][i], z["cam_rvec"][i], z["cam_tvec"][i],
-                          qc_paths.frame_size(sess, cam[:4]), correction=corr.get(cam))
+                          size, correction=corr.get(cam))
     return out
 
 
