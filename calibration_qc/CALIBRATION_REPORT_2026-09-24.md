@@ -287,3 +287,31 @@ the labelled-frame tables and all reports are in the repository under `calibrati
 `PADDOCK_AGREEMENT.txt`, `LINE_CHECK.txt`, `frame_correction.json`). The narrative of every
 decision and dead end is in `calibration_qc/README.md`; the detection rules in
 `.claude/skills/detect-then-decode/SKILL.md`.
+
+---
+
+## 9. Downstream validation for the place-field analysis (added 2026-09-24)
+
+The auditor's brief asked not for landmark millimetres but for what the analysis would see:
+`downstream_validation.py` builds an ensemble of 27 legitimate calibrations (the default warp,
+degree/ridge neighbours, the warp without cords, without wall foot, and 20 bootstrap resamples of
+the constraint points per camera), pushes 120,000 positions through each (synthetic occupancy:
+50 % uniform, 30 % wall-following, 20 % shelter-centred - real tracks plug in with `--positions`),
+and reports, with 10 cm bins and identical smoothing everywhere (`DOWNSTREAM_VALIDATION.txt`,
+`downstream_validation.png`):
+
+| metric | result |
+|---|---|
+| 1. handoff continuity (boards, never used by the warp) | 63 mm median, 144 mm p90, 199 mm p95 between cameras; per pair 45-100 mm median; worst CH01-CH04 (100 / 245 mm), i.e. the +x end; centre 62, corners 74 mm. Ensemble seam jump 42 / 114 / 156 mm. |
+| 2. bin flip rate (10 cm) | 37 % of samples change bin under another legitimate calibration (centre 32 %, corners 48 %); only 2.6 % move by more than one bin; the ensemble displacement is 27 mm median, 81 mm p90 (corners 44 mm). These are boundary flips of a few centimetres, not relocations. |
+| 3. occupancy robustness | Pearson r 0.988 median, 0.950 minimum; Spearman 0.957 / 0.893; normalised abs difference 0.065 / 0.117 max; JSD 0.002 / 0.0075 bits max; per-bin CV 5 % centre, 12 % corners. |
+| 4. place-field robustness (300 simulated cells, sigma 10-25 cm) | centroid shift 25 mm median, 75 mm p90 (max 480 mm); peak bin unchanged for 64 % of cell x calibration, one bin for 32 %; rate-map correlation 0.994 median (p10 0.963); area change 4 % median; classification (SI > 0.5) unchanged for every cell in every member. |
+| 5. error vs position | Ensemble displacement is centred (mean vector < 10 mm everywhere): no region is pushed one way. On the boards, the per-camera bias relative to the other cameras is < 25 mm in the centre; the largest is CH04 vs CH01 at the +x short-wall end / corner (+46, -48 mm and +28, -58 mm) - a local seam bias, not a whole-region one. |
+| 6. distance to feature | change of the distance to the nearest wall 11 mm median / 47 mm p90; to either shelter 13-15 / ~50 mm. |
+
+Reading, in the brief's priority order: place-field peaks and centroids move by a quarter of a
+bin and no cell changes class (primary criterion met); occupancy maps correlate at r > 0.95 under
+every alternative (met); camera handoff is 6 cm median with the 10-15 cm tail confined to the +x
+end (CH01-CH04), the only place a further calibration effort would still pay; raw landmark error
+is no longer the limiting quantity. Metrics 1 (trajectory-extrapolation form), 3 and 4 should be
+re-run on real tracks and real cells when they exist; the script takes them as input.

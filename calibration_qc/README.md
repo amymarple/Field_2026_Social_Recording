@@ -385,3 +385,7 @@ their x with tilts under 3 deg in every camera, the wall foot lands at x = -5..0
 y = 0 / 240, the cones 3 in (median) from their stations, and the cameras' traces of the same wall
 segment agree to 1-4 in. `paddock_map.load()` applies the warp (inverse by Newton, round trip
 1e-10 mm); `load(correct=False)` is the raw bundle frame.
+
+## Downstream validation (2026-09-24)
+
+`downstream_validation.py`: an ensemble of legitimate calibrations (warp variants + bootstrap) pushed through 10 cm bins - handoff continuity, bin flip rate, occupancy and simulated place-field robustness, error vector field, distance-to-feature. Results and reading in section 9 of `CALIBRATION_REPORT_2026-09-24.md`; the numbers in `DOWNSTREAM_VALIDATION.txt`.
