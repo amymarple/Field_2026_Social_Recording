@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-r"""Single-file HTML GUI for labelling LINES on a calibration frame: the 13 cross cords
-(x = 24..456 in; there were no cords along the length) and the foot of the wall (WALL). The operator picks a line in the side panel and
+r"""Single-file HTML GUI for labelling LINES on a calibration frame: the 7 T-series cross
+cords (x = 24, 96, ..., 456 in; the V/F rows had no cord, nor was there one along the length) and the foot of the wall (WALL). The operator picks a line in the side panel and
 clicks along it in the image; each line is a polyline in click order. Faint dashed guides show
 where the CURRENT fit (with its frame correction) puts each cord, so the operator can tell X96
 from X132 - he clicks the real cord, not the guide, and the gap between them is the measurement.
@@ -30,15 +30,16 @@ PANO = cam in ("CH01", "CH02")
 TRAIN_X = [24, 96, 168, 240, 312, 384, 456]; TRAIN_Y = [12, 66, 120, 174, 228]
 VT_X = [60, 132, 204, 276, 348, 420]; VT_Y = [39, 93, 147, 201]
 XS = sorted(TRAIN_X + VT_X); YS = sorted(TRAIN_Y + VT_Y)
-# Only the 13 cross cords exist on the ground (x = 24..456 in, each running across the paddock);
-# the y positions were tick marks along them, there were never cords along the length
-# (operator, 2026-09-23). So: the 13 cords, and the foot of the wall.
+# Only the 7 T-series cross cords exist on the ground (x = 24, 96, ..., 456 in, each running
+# across the paddock through T?1..T?5); the V/F stations had cones but no cord, the y positions
+# were tick marks along the cords, and there were never cords along the length (operator,
+# 2026-09-23). So: the 7 cords, and the foot of the wall.
 # The wall foot is labelled per side, so a polyline never has to jump a corner: WALL_X0 is the end
 # wall behind the T11-T15 cord (CH03's end), WALL_X480 the end behind T71-T75 (CH04's), WALL_Y0 the
 # long side outside the y = 12 row (T11..T71), WALL_Y240 the long side outside the y = 228 row.
 # A rounded corner may go with either neighbour. WALL (unsplit) is kept for points already made.
 WALLS = ["WALL_X0", "WALL_X480", "WALL_Y0", "WALL_Y240", "WALL"]
-LINES = [f"X{x}" for x in XS] + WALLS
+LINES = [f"X{x}" for x in TRAIN_X] + WALLS
 
 t = datetime.strptime(clock, "%H:%M:%S"); seg = off = None
 for s in sorted(SESSION.glob(f"{cam}_*_to_*.mp4")):
@@ -63,7 +64,7 @@ guides = {}
 try:
     import paddock_map as pm
     c = pm.load()[cam]
-    for x0 in XS:
+    for x0 in TRAIN_X:
         pts = np.array([[x0, y] for y in np.arange(0, 240.1, 2.0)])
         uv = c.to_paddock_inv(pts, z_mm=0.0, units="in"); vis = c.sees(pts, units="in", margin=-100)
         seg_pts = [[round(float(u), 1), round(float(v), 1)] for (u, v), ok_ in zip(uv, vis) if ok_ and np.isfinite(u) and np.isfinite(v)]
