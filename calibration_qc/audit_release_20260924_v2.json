@@ -1,0 +1,146 @@
+{
+  "fit_sha256": "6faa9e02094e67a8852186ce55ced5d7484f9c36d3c35886e181e08e470657ad",
+  "board_count": 64,
+  "height_centre_mm_min_max": [
+    -222.10794806653485,
+    216.8656763913733
+  ],
+  "height_error_from_6mm_rms": 72.6007314179627,
+  "boards_over_10mm_from_plane": 43,
+  "boards_over_50mm_from_plane": 24,
+  "tilt_rms_deg": 5.639978973194137,
+  "negative_Rzz_count": 64,
+  "dropped_views": [
+    "CH04|2026-09-19|T65|12:30:45|not flat (62 px)",
+    "CH01|2026-09-18|V42|15:23:08|bundle 49 px",
+    "CH02|2026-09-18|F23|15:12:45|bundle 22 px",
+    "CH02|2026-09-18|V13|15:05:23|bundle 21 px",
+    "CH03|2026-09-18|F12|15:04:38|bundle 34 px",
+    "CH04|2026-09-19|T62|12:29:39|bundle 58 px"
+  ],
+  "warp": {
+    "CH01": {
+      "grid_points": 29161,
+      "det_min_max": [
+        0.7168836077601055,
+        1.4433896441980236
+      ],
+      "nonpositive_determinants": 0,
+      "grid_roundtrip_max_mm": 8.708120705528787e-09,
+      "max_displacement_mm": 914.8570865398568,
+      "centre_pixel_height_derivative": 0.881664939524826,
+      "helper_height_sensitivity": 0.8878988103777044,
+      "out_of_image_pixels_with_finite_xy": 1,
+      "synthetic_perfect_board_homography": {
+        "full_visible_boards": 50,
+        "max_rms_px": 1.9803408189117186,
+        "above_4px": 0
+      }
+    },
+    "CH02": {
+      "grid_points": 29161,
+      "det_min_max": [
+        0.5431316582279881,
+        1.5683157112181687
+      ],
+      "nonpositive_determinants": 0,
+      "grid_roundtrip_max_mm": 3.0628373461388103e-10,
+      "max_displacement_mm": 1035.9416117280446,
+      "centre_pixel_height_derivative": 0.8533821119294921,
+      "helper_height_sensitivity": 0.8625864471859137,
+      "out_of_image_pixels_with_finite_xy": 1,
+      "synthetic_perfect_board_homography": {
+        "full_visible_boards": 56,
+        "max_rms_px": 2.1286231949155057,
+        "above_4px": 0
+      }
+    },
+    "CH03": {
+      "grid_points": 29161,
+      "det_min_max": [
+        1.0032380015272884,
+        1.0032380021575802
+      ],
+      "nonpositive_determinants": 0,
+      "grid_roundtrip_max_mm": 1.888269805295429e-09,
+      "max_displacement_mm": 573.334732335064,
+      "centre_pixel_height_derivative": 0.9946442534186329,
+      "helper_height_sensitivity": 0.9329574941738842,
+      "out_of_image_pixels_with_finite_xy": 2,
+      "synthetic_perfect_board_homography": {
+        "full_visible_boards": 13,
+        "max_rms_px": 3.2498359314114467,
+        "above_4px": 0
+      }
+    },
+    "CH04": {
+      "grid_points": 29161,
+      "det_min_max": [
+        0.9190692249213138,
+        0.9190692254556433
+      ],
+      "nonpositive_determinants": 0,
+      "grid_roundtrip_max_mm": 1.655385358058079e-09,
+      "max_displacement_mm": 549.5888638812431,
+      "centre_pixel_height_derivative": 0.9119878937118053,
+      "helper_height_sensitivity": 0.860548008790293,
+      "out_of_image_pixels_with_finite_xy": 2,
+      "synthetic_perfect_board_homography": {
+        "full_visible_boards": 7,
+        "max_rms_px": 1.85609767132942,
+        "above_4px": 0
+      }
+    },
+    "CH05": {
+      "grid_points": 29161,
+      "det_min_max": [
+        0.9885078857173167,
+        0.9885078862643918
+      ],
+      "nonpositive_determinants": 0,
+      "grid_roundtrip_max_mm": 3.4778511335387325e-10,
+      "max_displacement_mm": 141.02391864748805,
+      "centre_pixel_height_derivative": 0.09193399958625695,
+      "helper_height_sensitivity": 0.11823259441897023,
+      "out_of_image_pixels_with_finite_xy": 2,
+      "synthetic_perfect_board_homography": {
+        "full_visible_boards": 7,
+        "max_rms_px": 2.55193553137858,
+        "above_4px": 0
+      }
+    },
+    "CH06": {
+      "grid_points": 29161,
+      "det_min_max": [
+        1.0144229973088217,
+        1.0144229979088755
+      ],
+      "nonpositive_determinants": 0,
+      "grid_roundtrip_max_mm": 5.28324838165256e-10,
+      "max_displacement_mm": 307.8548453872593,
+      "centre_pixel_height_derivative": 0.0675647361896662,
+      "helper_height_sensitivity": 0.11041292457696428,
+      "out_of_image_pixels_with_finite_xy": 2,
+      "synthetic_perfect_board_homography": {
+        "full_visible_boards": 6,
+        "max_rms_px": 1.930069271798738,
+        "above_4px": 0
+      }
+    }
+  },
+  "sources": {
+    "frame_correction.json": {
+      "repo_equals_source": true,
+      "sha256": "7bdacf58fb352d48ab91f22ed944c2391848efea4e624e9de90e7f687be45f1e"
+    },
+    "CALIBRATION_FIT.txt": {
+      "repo_equals_source": true,
+      "sha256": "a4b31485d2d645576028b26ba361ca4b7aae28700150bec930faf1be39f1ce1c"
+    }
+  },
+  "notes": [
+    "Warp grid is the raw fit rectangle, not a certified visibility/support region.",
+    "Positive sampled Jacobians do not prove global injectivity.",
+    "No fitting, video decoding, or source-data mutation was performed."
+  ]
+}

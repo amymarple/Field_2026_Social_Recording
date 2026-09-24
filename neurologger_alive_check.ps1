@@ -42,8 +42,15 @@
                              down - the reminder is for the humans doing the round.
                              Pass @() to disable.
 .PARAMETER HistoryPath       Append-only telemetry time series (one row per logger per
-                             run: battery V, storage %, recording elapsed s). Trend
-                             data only - nothing alerts on it yet.
+                             run: battery V, storage %, recording elapsed s). Read
+                             back by the rec-counter freeze check (RecFrozenMinutes).
+.PARAMETER RecFrozenMinutes  Page once per excursion when a logger's advertised recording
+                             counter has not advanced (or reads 0) for this long per the
+                             telemetry history = it is NOT recording when it should be
+                             (auto-stop at a healthy voltage 2026-09-06 SF10, or Record
+                             Start forgotten). Worded "confirm by connecting": the ad's
+                             rec field can freeze while the logger keeps recording
+                             (SF07 2026-09-06 05:36-05:56). 0 = off. Default 15.
 .PARAMETER DryRun            Print status only; send nothing, update no state.
 .PARAMETER TestSlack         Send a test message to the configured destinations, then exit.
 .PARAMETER SelfTest          Offline logic check on synthetic CSV rows (no Slack, no state).
@@ -76,6 +83,7 @@ param(
     [string[]]$ReminderTimes = @('05:40', '17:40'),
     [string]$BleLogPath = 'C:\Users\Cornell\AppData\Local\CE32_console\ble_messages.csv',
     [int]$ConnectedFreshMinutes = 10,
+    [int]$RecFrozenMinutes = 15,
     [switch]$DryRun,
     [switch]$TestSlack,
     [switch]$SelfTest
@@ -287,6 +295,35 @@ function Get-DueReminderSlot([datetime]$now, [string[]]$slots, $sentMap, [int]$w
     return $null
 }
 
+# --- recording-counter freeze check (pure - also used by -SelfTest) ---
+# histLines: raw lines of the telemetry history CSV (ts_local,device,label,age_min,
+# battery_v,storage_pct,rec_elapsed_s). $null when the counter advanced inside the window
+# or the history is too short to judge; otherwise a descriptor of the freeze.
+function Get-RecFrozen($histLines, [datetime]$now, [string]$devKey, [string]$label, [string]$curRec, [string]$curV, [string]$curP, [int]$minutes) {
+    if ($minutes -le 0) { return $null }
+    $rec = 0L
+    if (-not [long]::TryParse($curRec, [ref]$rec)) { return $null }
+    $winStart = $now.AddMinutes(-($minutes + 3))
+    $pts = @()
+    foreach ($line in $histLines) {
+        $p = $line -split ','
+        if ($p.Count -lt 7 -or $p[1] -ne $devKey) { continue }
+        $t = $null
+        try { $t = [datetime]$p[0] } catch { continue }
+        if ($t -lt $winStart -or $t -gt $now) { continue }
+        $r = 0L
+        if (-not [long]::TryParse($p[6], [ref]$r)) { continue }
+        $pts += [pscustomobject]@{ T = $t; Rec = $r; V = $p[4]; P = $p[5] }
+    }
+    if ($pts.Count -lt 2) { return $null }
+    $oldest = ($pts | Sort-Object T | Select-Object -First 1)
+    if (($now - $oldest.T).TotalMinutes -lt ($minutes - 1)) { return $null }
+    foreach ($q in $pts) { if ($q.Rec -ne $rec) { return $null } }
+    $vChanged = (@($pts | Where-Object { $_.V -ne $curV }).Count -gt 0)
+    $pChanged = (@($pts | Where-Object { $_.P -ne $curP }).Count -gt 0)
+    return [pscustomobject]@{ Label = $label; Rec = $rec; Since = $oldest.T; Minutes = [math]::Round(($now - $oldest.T).TotalMinutes); VChanged = $vChanged; PChanged = $pChanged; V = $curV; P = $curP }
+}
+
 # --- SELF TEST: synthetic rows, no Slack, no disk state ---
 if ($SelfTest) {
     $now = Get-Date
@@ -342,7 +379,24 @@ if ($SelfTest) {
     $r5 = Get-DueReminderSlot ([datetime]'2026-08-30 05:45') $rt @{ '05:40' = '2026-08-29' }  # new day -> due again
     $okRem = ($r1 -eq '05:40') -and ($null -eq $r2) -and ($null -eq $r3) -and ($r4 -eq '17:40') -and ($r5 -eq '05:40')
     Say ("SelfTest reminders: due/sent/late/evening/next-day -> {0}" -f $(if ($okRem) { 'PASS' } else { "FAIL [$r1|$r2|$r3|$r4|$r5]" }))
-    $ok = $okMissing -and $okBatt -and $okCrit -and $okStor -and $okGrace -and $okRem -and $okCanon -and $okCanonMatch -and $okAf
+    # recording-counter freeze check on synthetic 5-min history
+    function New-Hist([string]$dev, [datetime]$t, [string]$v, [string]$p, [string]$rec) { '{0},{1},SFxx T,0,{2},{3},{4}' -f $t.ToString('yyyy-MM-dd HH:mm:ss'), $dev, $v, $p, $rec }
+    $hA = @(); $hB = @(); $hC = @(); $hD = @()
+    foreach ($m in 20, 15, 10, 5) {
+        $hA += New-Hist 'CE64X_AAAA' $now.AddMinutes(-$m) '3.74' '17' ([string](40000 - 60 * $m))   # advancing
+        $hB += New-Hist 'CE64X_BBBB' $now.AddMinutes(-$m) '3.74' '17' '32745'                        # frozen, V and card flat (SF10 case)
+        $hC += New-Hist 'CE64X_CCCC' $now.AddMinutes(-$m) ([string](3.70 + 0.01 * $m)) '17' '38655'  # frozen counter, V moving (SF07 ad-freeze case)
+    }
+    $hD += New-Hist 'CE64X_DDDD' $now.AddMinutes(-5) '3.74' '17' '0'                                # idle, but only 5 min of history
+    $fA = Get-RecFrozen $hA $now 'CE64X_AAAA' 'SF01 T' '40000' '3.74' '17' 15
+    $fB = Get-RecFrozen $hB $now 'CE64X_BBBB' 'SF02 T' '32745' '3.74' '17' 15
+    $fC = Get-RecFrozen $hC $now 'CE64X_CCCC' 'SF03 T' '38655' '3.70' '17' 15
+    $fD = Get-RecFrozen $hD $now 'CE64X_DDDD' 'SF04 T' '0' '3.74' '17' 15
+    $fOff = Get-RecFrozen $hB $now 'CE64X_BBBB' 'SF02 T' '32745' '3.74' '17' 0
+    # the window is (minutes + 3) wide, so the oldest visible sample is the one at -15 -> Minutes = 15
+    $okFrozen = ($null -eq $fA) -and ($null -ne $fB -and $fB.Minutes -ge 14 -and -not $fB.VChanged -and -not $fB.PChanged) -and ($null -ne $fC -and $fC.VChanged) -and ($null -eq $fD) -and ($null -eq $fOff)
+    Say ("SelfTest rec-frozen: advancing/frozen/ad-freeze/short-history/off -> {0}" -f $(if ($okFrozen) { 'PASS' } else { "FAIL [$($null -ne $fA)|$($null -ne $fB)|$($null -ne $fC)|$($null -ne $fD)|$($null -ne $fOff)]" }))
+    $ok = $okMissing -and $okBatt -and $okCrit -and $okStor -and $okGrace -and $okRem -and $okCanon -and $okCanonMatch -and $okAf -and $okFrozen
     Say ("SelfTest: {0}" -f $(if ($ok) { 'PASS' } else { 'FAIL' })) $(if ($ok) { 'Green' } else { 'Red' })
     exit $(if ($ok) { 0 } else { 2 })
 }
@@ -357,7 +411,7 @@ if ($TestSlack) {
 if ($Roster.Keys.Count -eq 0) { Say 'Roster is empty - nothing to watch.' Red; exit 2 }
 
 # --- load state (de-dup / re-alert / recovery) ---
-$state = @{ missing = $false; lastAlert = $null; feedDown = $false; feedLastAlert = $null; battWarned = @(); battCritWarned = @(); storWarned = @(); reminded = @{} }
+$state = @{ missing = $false; lastAlert = $null; feedDown = $false; feedLastAlert = $null; battWarned = @(); battCritWarned = @(); storWarned = @(); recWarned = @(); reminded = @{} }
 if (Test-Path -LiteralPath $StatePath) {
     try {
         $s = Get-Content -LiteralPath $StatePath -Raw | ConvertFrom-Json
@@ -366,6 +420,7 @@ if (Test-Path -LiteralPath $StatePath) {
         if ($s.PSObject.Properties['battWarned']) { $state.battWarned = @($s.battWarned) }
         if ($s.PSObject.Properties['battCritWarned']) { $state.battCritWarned = @($s.battCritWarned) }
         if ($s.PSObject.Properties['storWarned']) { $state.storWarned = @($s.storWarned) }
+        if ($s.PSObject.Properties['recWarned']) { $state.recWarned = @($s.recWarned) }
         if ($s.PSObject.Properties['reminded']) {
             foreach ($p in $s.reminded.PSObject.Properties) { $state.reminded[$p.Name] = [string]$p.Value }
         }
@@ -495,9 +550,11 @@ if ($connTel.Count -gt 0) {
 
 # --- last-known sightings from our own telemetry history (console-restart grace) ---
 $lastKnown = @{}
+$histTail = @()
 if (Test-Path -LiteralPath $HistoryPath) {
     try {
-        foreach ($line in (Get-Content -LiteralPath $HistoryPath -Tail 600)) {
+        $histTail = @(Get-Content -LiteralPath $HistoryPath -Tail 600)
+        foreach ($line in $histTail) {
             $p = $line -split ','
             if ($p.Count -ge 2 -and $p[0] -match '^\d{4}-') {
                 try { $lastKnown[$p[1]] = [datetime]$p[0] } catch { }
@@ -506,11 +563,26 @@ if (Test-Path -LiteralPath $HistoryPath) {
     } catch { }
 }
 
+# --- recording-counter freeze: "not recording when it should be" (pure, so DryRun shows it) ---
+$recFrozen = @()
+if ($RecFrozenMinutes -gt 0 -and $histTail.Count -gt 0) {
+    foreach ($dev in $Roster.Keys) {
+        $cidWant = Get-CanonicalDeviceId $dev
+        $row = $rows | Where-Object { (Get-CanonicalDeviceId $_.device_name) -eq $cidWant } | Select-Object -First 1
+        if (-not $row) { continue }
+        $fz = Get-RecFrozen $histTail $now $dev $Roster[$dev] ([string]$row.recording_elapsed_seconds) ([string]$row.battery_voltage_volts) ([string]$row.used_storage_percent) $RecFrozenMinutes
+        if ($fz) { $recFrozen += $fz }
+    }
+}
+
 # --- evaluate the fleet ---
 $fs = Get-FleetStatus $rows $Roster $now $StaleMinutes $BatteryWarnVolts $StorageWarnPercent $BatteryCriticalVolts $lastKnown
 $nMissing = @($fs.Missing).Count
 $status = "{0}/{1} loggers missing (>{2} min). [{3}]" -f $nMissing, $Roster.Keys.Count, $StaleMinutes, ($fs.Detail -join ' ')
-Say $status $(if ($nMissing -gt 0) { 'Red' } else { 'Green' })
+if ($recFrozen.Count -gt 0) {
+    $status += (" REC-FROZEN[{0}]" -f (@($recFrozen | ForEach-Object { '{0} {1}s>={2}m{3}' -f (($_.Label -split ' ')[0]), $_.Rec, $_.Minutes, $(if ($_.VChanged -or $_.PChanged) { '(ad-freeze?)' } else { '(stopped?)' }) }) -join ' '))
+}
+Say $status $(if ($nMissing -gt 0 -or $recFrozen.Count -gt 0) { 'Red' } else { 'Green' })
 
 $wasMissing = [bool]$state.missing
 $lastAlert = $null; if ($state.lastAlert) { $lastAlert = [datetime]$state.lastAlert }
@@ -564,8 +636,27 @@ if (-not $DryRun) {
     }
     $state.storWarned = $storNow
 
-    # --- telemetry history: one row per rostered logger per run. Trend data only -
-    # nothing alerts on it yet (storage-growth checks can be added once history exists).
+    # --- recording counter frozen / idle: one page per device per excursion, recovery
+    # note when it advances again. Worded as a question: only a connect proves a stop. ---
+    $recNow = @(); foreach ($fz in $recFrozen) { $recNow += ($fz.Label -split ' ')[0] }
+    $newRec = @($recFrozen | Where-Object { $state.recWarned -notcontains (($_.Label -split ' ')[0]) })
+    if ($newRec.Count -gt 0) {
+        $parts = foreach ($fz in $newRec) {
+            $verdict = if ($fz.VChanged -or $fz.PChanged) { 'V/card% still updating -> may be the ad-telemetry freeze quirk, confirm anyway' } else { 'V and card% frozen too -> probably STOPPED' }
+            '{0}: rec {1} s unchanged >= {2} min (since {3}), {4} V, card {5}% - {6}' -f $fz.Label, $fz.Rec, $fz.Minutes, $fz.Since.ToString('HH:mm'), $fz.V, $fz.P, $verdict
+        }
+        $msg = (":pause_button: *NEUROLOGGER NOT RECORDING?* {0}. Connect to it in wild_console: a counter that walks = false alarm; idle = Resync -> 30-s guard -> Record Start (fresh cell if the round is near). Silence with {1} while handling." -f ($parts -join ' | '), $MutePath)
+        if ($Slack.Token -and $Slack.Channels.Count) { [void](Send-SlackText $Slack.Token $Slack.Channels $msg) } else { Say "(no Slack creds; would alert: $msg)" DarkYellow }
+    }
+    $present = @(); foreach ($dev in $Roster.Keys) { $cidWant = Get-CanonicalDeviceId $dev; if ($rows | Where-Object { (Get-CanonicalDeviceId $_.device_name) -eq $cidWant } | Select-Object -First 1) { $present += (($Roster[$dev] -split ' ')[0]) } }
+    $cleared = @($state.recWarned | Where-Object { $recNow -notcontains $_ -and $present -contains $_ })
+    if ($cleared.Count -gt 0 -and $Slack.Recovery -and $Slack.Token -and $Slack.Channels.Count) {
+        [void](Send-SlackText $Slack.Token $Slack.Channels (":white_check_mark: Neurologger recording counter advancing again: {0} ({1})." -f ($cleared -join ', '), (Get-Date).ToString('HH:mm')))
+    }
+    $state.recWarned = $recNow
+
+    # --- telemetry history: one row per rostered logger per run. Read back by the
+    # rec-counter freeze check above; storage-growth checks could use it too.
     if (-not (Test-Path -LiteralPath $HistoryPath)) {
         Set-Content -LiteralPath $HistoryPath -Encoding UTF8 -Value 'ts_local,device,label,age_min,battery_v,storage_pct,rec_elapsed_s'
     }
@@ -616,5 +707,5 @@ if (-not $DryRun) {
 }
 
 Say ("action={0}{1}" -f $action, $(if ($DryRun) { '  (DRY RUN - nothing sent/written)' } else { '' })) Gray
-$warnAny = ($nMissing -gt 0) -or (@($fs.BattLow).Count -gt 0) -or (@($fs.StorHigh).Count -gt 0)
+$warnAny = ($nMissing -gt 0) -or (@($fs.BattLow).Count -gt 0) -or (@($fs.StorHigh).Count -gt 0) -or (@($recFrozen).Count -gt 0)
 exit $(if ($warnAny) { 1 } else { 0 })

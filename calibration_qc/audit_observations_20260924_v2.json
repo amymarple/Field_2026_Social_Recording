@@ -1,0 +1,114 @@
+{
+  "assembled_views": 135,
+  "bad_views": 5,
+  "weak_not_bad_views": 19,
+  "eligible_before_fit_rejection": 111,
+  "after_saved_rejections": 105,
+  "corners_after_rejection": 7813,
+  "methods_after_rejection": {
+    "rect-markers": 10,
+    "rect-chess": 20,
+    "charuco": 71,
+    "rect-charuco": 2,
+    "chessboard": 2
+  },
+  "predicted_marker_views": [
+    {
+      "camera": "CH01",
+      "station": "F12",
+      "session": "2026-09-18",
+      "corners": 88,
+      "sigma_px": 1.6
+    },
+    {
+      "camera": "CH01",
+      "station": "T24",
+      "session": "2026-09-18",
+      "corners": 88,
+      "sigma_px": 1.6
+    },
+    {
+      "camera": "CH01",
+      "station": "V13",
+      "session": "2026-09-18",
+      "corners": 86,
+      "sigma_px": 1.6
+    },
+    {
+      "camera": "CH02",
+      "station": "F21",
+      "session": "2026-09-18",
+      "corners": 41,
+      "sigma_px": 1.6
+    },
+    {
+      "camera": "CH02",
+      "station": "F52",
+      "session": "2026-09-18",
+      "corners": 75,
+      "sigma_px": 1.6
+    },
+    {
+      "camera": "CH02",
+      "station": "F63",
+      "session": "2026-09-18",
+      "corners": 87,
+      "sigma_px": 1.6
+    },
+    {
+      "camera": "CH02",
+      "station": "T21",
+      "session": "2026-09-18",
+      "corners": 87,
+      "sigma_px": 1.6
+    },
+    {
+      "camera": "CH02",
+      "station": "T22",
+      "session": "2026-09-18",
+      "corners": 88,
+      "sigma_px": 1.6
+    },
+    {
+      "camera": "CH01",
+      "station": "T63",
+      "session": "2026-09-19",
+      "corners": 49,
+      "sigma_px": 1.6
+    },
+    {
+      "camera": "CH02",
+      "station": "T62",
+      "session": "2026-09-19",
+      "corners": 78,
+      "sigma_px": 1.6
+    }
+  ],
+  "all_accepted": {
+    "shared_corners": 2513,
+    "shared_placements": 36,
+    "corner_median_p90_max_mm": [
+      70.62082453000903,
+      114.33041178312304,
+      243.5976516222364
+    ],
+    "fraction_corner_disagreement_le_50mm": 0.290091524074811,
+    "fraction_corner_disagreement_le_100mm": 0.8241146040588938,
+    "placement_medians_le_50mm": 10,
+    "placement_medians_le_100mm": 32
+  },
+  "exclude_rect_markers_majority": {
+    "shared_corners": 2120,
+    "shared_placements": 30,
+    "corner_median_p90_max_mm": [
+      66.61610711729624,
+      118.23891276286221,
+      243.5976516222364
+    ],
+    "fraction_corner_disagreement_le_50mm": 0.33632075471698114,
+    "fraction_corner_disagreement_le_100mm": 0.8089622641509434,
+    "placement_medians_le_50mm": 11,
+    "placement_medians_le_100mm": 26
+  },
+  "caution": "Removing marker-predicted views changes the evaluation set; it does not isolate a causal effect or establish independent accuracy."
+}
