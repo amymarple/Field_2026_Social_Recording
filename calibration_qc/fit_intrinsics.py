@@ -59,8 +59,8 @@ def free_views(cam, min_c=20, sessions=SESSIONS):
         for r in csv.DictReader(open(f, newline="", encoding="utf-8")):
             if r["cam"] != cam or r["station"] or int(r["n_corners"]) < min_c:
                 continue
-            if "outline" in r.get("method", ""):
-                continue
+            if "outline" in r.get("method", "") or "rect-markers" in r.get("method", ""):
+                continue                    # predicted corners, not measurements (audit 2026-09-24)
             if cam in review:
                 t = _sec(r["clock"])
                 if not any(a <= t <= b + 0.5 and v in ("accept", "operator") for a, b, v in review[cam]):

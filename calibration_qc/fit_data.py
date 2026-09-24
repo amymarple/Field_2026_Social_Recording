@@ -92,6 +92,25 @@ def base_method(m):
     return m[7:] if m.startswith("manual-") else m
 
 
+def obj_of(ids):
+    """board coordinates (mm) of corner ids: 0-87 chessboard corners, 1000 + 4*marker + k marker corners."""
+    ids = np.asarray(ids, int)
+    out = np.zeros((len(ids), 2))
+    ch = ids < 1000
+    out[ch] = bd.OBJ_MM[ids[ch]]
+    for j in np.where(~ch)[0]:
+        m, k = divmod(int(ids[j]) - 1000, 4)
+        out[j] = bd.MARKER_MM[m][k]
+    return out
+
+
+# FIT_EXCLUDE="2026-09-18|T11|15:01:03;..." holds placements out of a fit (cross-validation folds)
+for _item in os.environ.get("FIT_EXCLUDE", "").split(";"):
+    if _item.strip():
+        _d, _s, _w = _item.strip().split("|")
+        EXCLUDE[(_d, _s, _w)] = "held out by FIT_EXCLUDE (validation fold)"
+
+
 def load_session(sess_arg):
     session, qc = qc_paths.resolve(sess_arg)
     date = qc_paths.session_date(session)
@@ -133,6 +152,17 @@ def placements(sess_arg, min_corners=12):
             with np.load(f, allow_pickle=False) as z:
                 ids = z["ids"].astype(int); px = z["px"].astype(float)
                 meth = str(z["method"]) if "method" in z.files else r["method"]
+                if base_method(meth) == "rect-markers":
+                    # this path never measured chessboard corners: its 88 'corners' are the design
+                    # grid pushed through a homography fitted to the MARKER corners. The markers are
+                    # the measurement (audit 2026-09-24, finding 3): use them, id 1000 + 4*marker + k.
+                    if "mk_ids" not in z.files or len(z["mk_ids"]) == 0:
+                        continue
+                    mk = z["mk_ids"].astype(int).reshape(-1); mpx = z["mk_px"].astype(float).reshape(-1, 4, 2)
+                    keep_m = np.array([m in bd.MARKER_MM for m in mk], bool)
+                    mk, mpx = mk[keep_m], mpx[keep_m]
+                    ids = (1000 + 4 * np.repeat(mk, 4) + np.tile(np.arange(4), len(mk))).astype(int)
+                    px = mpx.reshape(-1, 2)
             if len(ids) < min_corners:
                 continue
             px = qc_paths.stored_to_upright(px, session, cam)
@@ -192,9 +222,9 @@ def placements(sess_arg, min_corners=12):
             if len(ids) < min_corners:
                 continue
             obs_px = np.array([np.median(np.array(acc[i]), 0) for i in ids])
-            obs_mm = bd.OBJ_MM[ids]
+            obs_mm = obj_of(ids)
             base = [base_method(m) for m in meths if base_method(m) not in WEAK]
-            method = max(set(base), key=base.count)
+            method = max(sorted(set(base)), key=base.count)      # deterministic tie-break
             sigma = SIGMA.get(method, 1.5)
         man = any(m.startswith("manual-") for m in meths) or method == "operator-clicks"
         hr = 0.0 if weak else hom_rms(obs_mm, obs_px)

@@ -1,3 +1,5 @@
+> **Superseded by `CALIBRATION_REPORT_2026-09-24_rev2.md` (after the independent review; see `AUDIT_RESPONSE_2026-09-24.md`). Kept for the record.**
+
 # Paddock camera calibration - report for audit (2026-09-24)
 
 Six fixed cameras over an outdoor rat paddock were calibrated from one 800 x 600 mm ChArUco

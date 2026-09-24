@@ -1,0 +1,148 @@
+{
+ "written": "2026-09-24T14:50:46",
+ "git_commit": "283020e4d1cbafd3f4287d03e11078b6bf5cf51f",
+ "fit_file": "E:\\calibration\\qc\\camera_fit.npz",
+ "fit_sha256": "d1b29681e1a54101bf2b066139a7f8e9e93e00544f354fdf896a359f58b792e6",
+ "env": {},
+ "constants": {
+  "PLATE_Z": 6.0,
+  "CONE_Z": 50.0,
+  "CONE_SIGMA": 60.0,
+  "STATION_SIGMA": 100.0,
+  "plate_dof": "yaw,x,y,tilt_x,tilt_y; centre on z=PLATE_Z; tilt bounded",
+  "TILT_MAX_DEG": 6.0,
+  "loss": "soft_l1",
+  "f_scale": 4.0,
+  "HOM_REJECT": 4.0,
+  "CLUSTER_PX": 4.0
+ },
+ "lens": {
+  "pano_scale": [
+   2325.0,
+   2660.0
+  ],
+  "focal_override": {
+   "CH04": 2960.0
+  },
+  "intr": {
+   "CH01": [
+    2325.0,
+    3839.5,
+    2660.0,
+    1079.5,
+    0.0
+   ],
+   "CH02": [
+    2325.0,
+    3839.5,
+    2660.0,
+    1079.5,
+    0.0
+   ],
+   "CH03": [
+    2948.61451987757,
+    2177.161097119208,
+    1273.5599108274605,
+    -0.39275645326583264,
+    0.11093602004542966
+   ],
+   "CH04": [
+    2960.0,
+    2318.9818683618755,
+    1173.8091983601137,
+    -0.3725607800867328,
+    0.09131843328546256
+   ],
+   "CH05": [
+    2011.140727673133,
+    1207.2626282939418,
+    868.4026537491912,
+    -0.35926624574897426,
+    0.09375245028424523
+   ],
+   "CH06": [
+    1995.4865446144559,
+    1270.8222682943674,
+    888.3710072500301,
+    -0.33741724286414104,
+    0.08337857967249736
+   ]
+  }
+ },
+ "counts": {
+  "assembled": 135,
+  "bad_homography": 5,
+  "weak_clicks": 19,
+  "geometry_views": 111,
+  "bundle_views": 106,
+  "corners": 7708,
+  "cones": 108,
+  "boards": 64,
+  "dropped_views": [
+   [
+    "CH04",
+    "2026-09-19",
+    "T65",
+    "12:30:45",
+    "not flat (62 px)"
+   ],
+   [
+    "CH01",
+    "2026-09-18",
+    "V42",
+    "15:23:08",
+    "bundle 55 px"
+   ],
+   [
+    "CH02",
+    "2026-09-18",
+    "V13",
+    "15:05:23",
+    "bundle 35 px"
+   ],
+   [
+    "CH03",
+    "2026-09-19",
+    "F14",
+    "12:36:55",
+    "bundle 57 px"
+   ],
+   [
+    "CH04",
+    "2026-09-19",
+    "T62",
+    "12:29:39",
+    "bundle 33 px"
+   ]
+  ]
+ },
+ "solver": {
+  "status": 0,
+  "message": "The maximum number of function evaluations is exceeded.",
+  "nfev": 8000,
+  "cost": 104944.36765389008,
+  "optimality": 174.31272432609472,
+  "second_pass": true
+ },
+ "inputs": {
+  "session_2026-09-18_cone_labels_CH01.json": "83630dcb52760fdc7d0b0db30b6babe87cde43aed936311b5d9de799f3b4aff3",
+  "session_2026-09-18_cone_labels_CH02.json": "75faf1a2b6c60b172158c1347e87fad4e2ee93a7a343f67f56edcf5a27dadf70",
+  "session_2026-09-18_cone_labels_CH03.json": "16a9f9bda135e2dc2dfdf49bd4abfd626cd7c66a620b91acca4ebafc19331866",
+  "session_2026-09-18_cone_labels_CH04.json": "5f54b7b00f1af01b1e44529928d60fb37cd6bd21e9409012ed5df67658d903b0",
+  "session_2026-09-18_cone_labels_CH05.json": "c38078bdb7de96bd8b5c575c8197396af239cf4afa74843b695a6535817adbbe",
+  "session_2026-09-18_cone_labels_CH06.json": "19b6b1b252923f330594201882272e78ebfded01f492cd6de1dad74b9f7f4bc7",
+  "session_2026-09-18_labelled_frames.csv": "12dd45408fdbc26e0747736e01e46e1c57d1cefeb8b90544772f671e88ea62c1",
+  "session_2026-09-18_line_labels_CH01.json": "268f00e6907ae2ec9cb6bc051b10aa35071aeddda43318d6827a4f4b1f3f4493",
+  "session_2026-09-18_line_labels_CH02.json": "cb7482755b6f6a2d04d5cccb858c6e985e80a009bbe5fac783a9a5c7a3ed1018",
+  "session_2026-09-18_line_labels_CH03.json": "c55e09663cce3301d404cda59975b7cc7143a2f77a80e91d603b94731b3c3cdd",
+  "session_2026-09-18_line_labels_CH04.json": "8283094680c202ea8fc84207c026970c43988d4e2b3799bda15a0a86698b8fc0",
+  "session_2026-09-18_line_labels_CH05.json": "767cb51e501185bf04cae46c2af93e74e45c7e5b4c5bedeca3fdd222d02ef91c",
+  "session_2026-09-18_line_labels_CH06.json": "0b44e564da044af2860f77d845adf454b5011015f97e32f797f0d0651a167efd",
+  "session_2026-09-18_manual_cone_corner.json": "4dbe8ae2b7e70b2a87f7fb9974f5092943c31c69cef9ee40da4729e89a787b63",
+  "session_2026-09-18_manual_quads.json": "f69bc64abd20e3bf58196375ac6e19213cb7ef7ac95233e46287c729edef9159",
+  "session_2026-09-19_labelled_frames.csv": "cf7a409b47afebc1aa9fbfb4db7fdb30a0429daf2b03b5afe6a415e41a90f704",
+  "session_2026-09-19_manual_cone_corner.json": "594e27b8b27b0de03d84c1d0e2f355f705748c76c673dd3ffdd70e1588725dbe",
+  "session_2026-09-19_manual_quads.json": "16303c8caa92fcb06da47d0e7e2beff3e8e2846982c5606008e52cc14ffe7ae8"
+ },
+ "note": "the fit is this camera_fit.npz; frame_correction.json must carry this fit_sha256 to be applied"
+}

@@ -42,6 +42,7 @@ REPO = Path(__file__).resolve().parent
 PANO = ("CH01", "CH02")
 PLATE_Z = 6.0                       # printed plane sits on 6 mm of plate above the grass
 CONE_Z = 50.0                       # the hole the operator clicks is the top of a ~5 cm disc cone
+TILT_MAX = float(os.environ.get("FIT_TILT_MAX_DEG", 6.0))   # plate tilt bound, degrees: on grass, not a ramp
 CONE_SIGMA = float(os.environ.get("FIT_CONE_SIGMA", 60.0))   # the cone labels are coarse operator marks and the
                                     # operator has already said they need re-doing; they are
                                     # kept only to pick the right branch of the frame
@@ -143,7 +144,7 @@ P0 = fd.all_placements()
 P = [p for p in P0 if not p["bad"] and not p["weak"]]
 cams = sorted(set(p["cam"] for p in P))
 say("")
-say(f"  {len(P0)} placements assembled from the cached corners; {len(P0) - len(P)} rejected by the")
+say(f"  {len(P0)} placements assembled from the cached corners; {sum(1 for q in P0 if q['bad'])} rejected by the")
 say(f"  homography gate (their corners cannot be a flat board under ANY camera - wrong ids, not noise):")
 for p in sorted([q for q in P0 if q["bad"]], key=lambda q: -q["hom_rms"]):
     say(f"     {p['cam']} {p['station']:4s} {p['session']} {p['win']}  {len(p['ids']):3d} corners"
@@ -412,9 +413,10 @@ for u in POSE:
 
 # ---------------------------------------------------------------- stage 5: bundle adjustment
 say("")
-say("STAGE 5  BUNDLE ADJUSTMENT - camera poses, board poses and (for the ordinary lenses) focal")
-say("         length and distortion, against every corner pixel, the cone pixels, and the physical")
-say("         prior that a plate on grass is flat and 6 mm above the ground.")
+say("STAGE 5  BUNDLE ADJUSTMENT - camera poses and plate poses against every corner pixel and every")
+say("         cone label. Each plate's pattern centre is ON the ground plane z = 6 mm by parametrisation,")
+say("         not by a prior (a soft prior under a robust loss let plates sink half a metre); its tilt")
+say(f"         is a bounded variable (+-{TILT_MAX:.0f} deg): a plate on grass tilts, it does not float.")
 
 unit_list = [u for u in sorted(UNITS) if u in FIELD]
 board_list = sorted(BOARD)
@@ -459,15 +461,41 @@ CONES = [(uidx[u], Xf, uv, st) for u in unit_list for Xf, uv, st in CONE_OBS.get
 
 NU, NB = len(unit_list), len(board_list)
 OFF_B = 6 * NU
-OFF_I = OFF_B + 6 * NB
+OFF_I = OFF_B + 5 * NB               # plates: (yaw, x, y, tilt_x, tilt_y), centre ON the ground, tilt bounded
 x0 = np.zeros(OFF_I + 5 * len(free_f))
 for i, u in enumerate(unit_list):
     R, t = FIELD[u]                                  # X_cam = R_cf X_field + t_cf
     Rcf, tcf = R.T, -R.T @ t
     x0[6 * i:6 * i + 6] = np.concatenate([cv2.Rodrigues(Rcf)[0].ravel(), tcf * 1e-3])
+FLIP = np.diag([1.0, -1.0, -1.0])    # printed-pattern frame has z INTO the plate, so a face-up plate has R[2,2] < 0
+
+
+CTR_M = PAT_CTR * 1e-3               # the plate is parametrised about the centre of its printed pattern
+
+
+def board_RT(bp):
+    """Plates by parametrisation (audit 2026-09-24, finding 1): (yaw, x, y, tilt_x, tilt_y). The
+    pattern CENTRE sits at (x, y, PLATE_Z) exactly - no height freedom - and R = Rz(yaw) @
+    Rx(tilt_x) @ Ry(tilt_y) @ FLIP with both tilts bounded to +-TILT_MAX by the solver. Corners are
+    R @ (obj - centre) + (x, y, PLATE_Z), metres."""
+    th, tx, ty = bp[:, 0], bp[:, 3], bp[:, 4]
+    c, sn = np.cos(th), np.sin(th); cx, sx = np.cos(tx), np.sin(tx); cy, sy = np.cos(ty), np.sin(ty)
+    Rz = np.zeros((len(bp), 3, 3)); Rz[:, 0, 0] = c; Rz[:, 0, 1] = -sn; Rz[:, 1, 0] = sn; Rz[:, 1, 1] = c; Rz[:, 2, 2] = 1
+    Rx = np.zeros((len(bp), 3, 3)); Rx[:, 0, 0] = 1; Rx[:, 1, 1] = cx; Rx[:, 1, 2] = -sx; Rx[:, 2, 1] = sx; Rx[:, 2, 2] = cx
+    Ry = np.zeros((len(bp), 3, 3)); Ry[:, 0, 0] = cy; Ry[:, 0, 2] = sy; Ry[:, 1, 1] = 1; Ry[:, 2, 0] = -sy; Ry[:, 2, 2] = cy
+    R = np.einsum("nij,njk,nkl->nil", Rz, Rx, Ry) @ FLIP
+    t = np.stack([bp[:, 1], bp[:, 2], np.full(len(bp), PLATE_Z * 1e-3)], 1)
+    return R, t
+
+
 for i, k in enumerate(board_list):
     Rb, tb = BOARD[k]
-    x0[OFF_B + 6 * i:OFF_B + 6 * i + 6] = np.concatenate([cv2.Rodrigues(Rb)[0].ravel(), tb * 1e-3])
+    ctr = (Rb @ CTR_M * 1e3 + tb) * 1e-3                       # where the stage-4 pose put the pattern centre
+    x0[OFF_B + 5 * i:OFF_B + 5 * i + 5] = [np.arctan2(Rb[1, 0], Rb[0, 0]), ctr[0], ctr[1], 0.0, 0.0]
+LB = np.full(len(x0), -np.inf); UB = np.full(len(x0), np.inf)
+for i in range(NB):
+    LB[OFF_B + 5 * i + 3:OFF_B + 5 * i + 5] = -np.radians(TILT_MAX)
+    UB[OFF_B + 5 * i + 3:OFF_B + 5 * i + 5] = np.radians(TILT_MAX)
 for i, c in enumerate(free_f):
     x0[OFF_I + 5 * i:OFF_I + 5 * i + 5] = INTR[c]["intr"]
 
@@ -506,7 +534,7 @@ k_cam = np.array([cidx[UNITS[unit_list[c[0]]]["cam"]] for c in CONES], int)
 
 def unpack(x):
     cp = x[:OFF_B].reshape(NU, 6)
-    bp = x[OFF_B:OFF_I].reshape(NB, 6)
+    bp = x[OFF_B:OFF_I].reshape(NB, 5)
     ip = {c: INTR[c]["intr"] for c in cam_list}
     for i, c in enumerate(free_f):
         ip[c] = x[OFF_I + 5 * i:OFF_I + 5 * i + 5]
@@ -516,8 +544,8 @@ def unpack(x):
 def residuals(x, split=False):
     cp, bp, ip = unpack(x)
     Rc = Rotation.from_rotvec(cp[:, :3]).as_matrix()
-    Rb = Rotation.from_rotvec(bp[:, :3]).as_matrix()
-    Xf = np.einsum("nij,nj->ni", Rb[c_bi], c_obj) + bp[c_bi, 3:]
+    Rb, tb = board_RT(bp)
+    Xf = np.einsum("nij,nj->ni", Rb[c_bi], c_obj - CTR_M) + tb[c_bi]
     Xc = np.einsum("nij,nj->ni", Rc[c_ui], Xf) + cp[c_ui, 3:]
     uv = np.empty_like(c_obs)
     for c in cam_list:
@@ -535,10 +563,9 @@ def residuals(x, split=False):
         e_cone = (vk - k_obs) / CONE_SIGMA
     else:
         e_cone = np.zeros((0, 2))
-    plate = np.einsum("nij,kj->nki", Rb, PLATE4) + bp[:, None, 3:]
+    plate = np.einsum("nij,kj->nki", Rb, PLATE4 - CTR_M) + tb[:, None, :]
     e_st = (plate[np.arange(NB), b_corner, :2] - b_station) / (STATION_SIGMA * 1e-3)
-    e_tilt = np.degrees(np.arccos(np.clip(np.abs(Rb[:, 2, 2]), -1, 1))) / FLAT_SIGMA_DEG
-    e_z = (np.einsum("nij,j->ni", Rb, PAT_CTR * 1e-3)[:, 2] + bp[:, 5] - PLATE_Z * 1e-3) / (FLAT_SIGMA_Z * 1e-3)
+    e_tilt = np.zeros(0); e_z = np.zeros(0)          # centre on the ground by construction, tilt bounded
     if len(h_ui):
         Cz = np.array([-(Rc[i].T @ cp[i, 3:])[2] for i in h_ui])
         e_h = (Cz - h_val) / H_SIGMA
@@ -551,19 +578,15 @@ def residuals(x, split=False):
 
 
 def build_sparsity():
-    """Which parameter each residual row can possibly touch. Without this the 446-column jacobian
-    is rebuilt by 446 full evaluations per iteration instead of a handful."""
-    nr = 2 * len(c_obs) + 2 * len(k_obs) + 2 * NB + 2 * NB + len(h_ui) + 4 * len(free_f)
+    """Which parameter each residual row can possibly touch. Rows: corners, cones, station anchors
+    (2 per plate), height priors, intrinsic priors - the order of residuals()."""
+    nr = 2 * len(c_obs) + 2 * len(k_obs) + 2 * NB + len(h_ui) + 4 * len(free_f)
     S = np.zeros((nr, len(x0)), bool)
-    r_h = nr - len(h_ui) - 4 * len(free_f)
-    for j, i in enumerate(h_ui):
-        S[r_h + j, 6 * i:6 * i + 6] = True
-    for i, c in enumerate(free_f):
-        S[r_h + len(h_ui) + 4 * i:r_h + len(h_ui) + 4 * i + 4, OFF_I + 5 * i + 1:OFF_I + 5 * i + 5] = True
     rw = np.arange(2 * len(c_obs))
     for j in range(6):
         S[rw, 6 * np.repeat(c_ui, 2) + j] = True
-        S[rw, OFF_B + 6 * np.repeat(c_bi, 2) + j] = True
+    for j in range(5):
+        S[rw, OFF_B + 5 * np.repeat(c_bi, 2) + j] = True
     for i, c in enumerate(free_f):
         g = c_grp[c]
         S[np.repeat(g * 2, 2) + np.tile([0, 1], len(g)), OFF_I + 5 * i:OFF_I + 5 * i + 5] = True
@@ -577,20 +600,23 @@ def build_sparsity():
             S[np.repeat(r0 + g * 2, 2) + np.tile([0, 1], len(g)), OFF_I + 5 * i:OFF_I + 5 * i + 5] = True
     r0 += 2 * len(k_obs)
     for i in range(NB):
-        S[r0 + i, OFF_B + 6 * i:OFF_B + 6 * i + 3] = True
-        S[r0 + NB + i, OFF_B + 6 * i:OFF_B + 6 * i + 6] = True
-        S[r0 + 2 * NB + 2 * i: r0 + 2 * NB + 2 * i + 2, OFF_B + 6 * i:OFF_B + 6 * i + 6] = True
+        S[r0 + 2 * i:r0 + 2 * i + 2, OFF_B + 5 * i:OFF_B + 5 * i + 5] = True
+    r_h = r0 + 2 * NB
+    for j, i in enumerate(h_ui):
+        S[r_h + j, 6 * i:6 * i + 6] = True
+    for i, c in enumerate(free_f):
+        S[r_h + len(h_ui) + 4 * i:r_h + len(h_ui) + 4 * i + 4, OFF_I + 5 * i + 1:OFF_I + 5 * i + 5] = True
     return S
 
 
 S = build_sparsity()
 xs = np.empty_like(x0)                               # one trust-region step scale per kind
 xs[:OFF_B] = np.tile([0.01, 0.01, 0.01, 0.02, 0.02, 0.02], NU)          # rad, metres
-xs[OFF_B:OFF_I] = np.tile([0.01, 0.01, 0.01, 0.01, 0.01, 0.01], NB)
+xs[OFF_B:OFF_I] = np.tile([0.01, 0.01, 0.01, 0.01, 0.01], NB)   # rad, metres, metres, rad, rad
 for i in range(len(free_f)):
     xs[OFF_I + 5 * i:OFF_I + 5 * i + 5] = [5.0, 5.0, 5.0, 2e-3, 2e-3]   # px, px, px, k1, k2
 r = least_squares(residuals, x0, jac_sparsity=S, method="trf", loss="soft_l1", f_scale=4.0,
-                  x_scale=xs, xtol=1e-14, ftol=1e-14, gtol=1e-14, max_nfev=1500)
+                  x_scale=xs, bounds=(LB, UB), xtol=1e-14, ftol=1e-14, gtol=1e-14, max_nfev=8000)
 ec0 = residuals(r.x, split=True)[0]
 pix0 = np.linalg.norm(ec0 * c_sig[:, None], axis=1)
 bad_obs = []
@@ -613,16 +639,23 @@ if bad_obs:
     build_tables()
     S = build_sparsity()
     r = least_squares(residuals, r.x, jac_sparsity=S, method="trf", loss="soft_l1", f_scale=4.0,
-                      x_scale=xs, xtol=1e-14, ftol=1e-14, gtol=1e-14, max_nfev=1500)
-cp, bp, ip = unpack(r.x)
+                      x_scale=xs, bounds=(LB, UB), xtol=1e-14, ftol=1e-14, gtol=1e-14, max_nfev=8000)
+cp, bp3, ip = unpack(r.x)
+SOLVER = dict(status=int(r.status), message=str(r.message), nfev=int(r.nfev), cost=float(r.cost),
+              optimality=float(r.optimality), second_pass=bool(bad_obs))
+Rb_all, tb_all = board_RT(bp3)
+t_origin = tb_all - np.einsum("nij,j->ni", Rb_all, CTR_M)        # board-origin translation, so board_points() still applies
+bp = np.concatenate([np.array([cv2.Rodrigues(Rb_all[i])[0].ravel() for i in range(NB)]), t_origin], 1)
+TILTS = np.degrees(np.hypot(bp3[:, 3], bp3[:, 4]))
 ec, ek, et, ez, es = residuals(r.x, split=True)
 say("")
 say(f"  {len(x0)} parameters ({NU} camera poses, {NB} board poses, {len(free_f)} lens models)")
 say(f"  {len(c_obs)} corner observations, {len(k_obs)} cone labels")
 say(f"  weighted corner rms {np.sqrt((ec**2).sum(1).mean()):.2f} sigma; "
     f"cone rms {CONE_SIGMA*np.sqrt((ek**2).sum(1).mean()) if len(ek) else float('nan'):.0f} px; "
-    f"plate tilt rms {FLAT_SIGMA_DEG*np.sqrt((et**2).mean()):.2f} deg; "
-    f"plate height rms {FLAT_SIGMA_Z*np.sqrt((ez**2).mean()):.0f} mm")
+    f"plate centres on z = {PLATE_Z:.0f} mm by parametrisation; tilt bounded +-{TILT_MAX:.0f} deg: "
+    f"rms {np.sqrt((TILTS**2).mean()):.1f} deg, max {TILTS.max():.1f}, {int((TILTS > 0.98 * TILT_MAX).sum())} at the bound")
+say(f"  solver: status {SOLVER['status']} ({SOLVER['message']}), {SOLVER['nfev']} evaluations, cost {SOLVER['cost']:.1f}")
 say(f"  plate corner to its cone: median {1000*np.median(np.linalg.norm(es*STATION_SIGMA*1e-3, axis=1)):.0f} mm"
     f"   <- how well the placements reproduce the designed station grid")
 say(f"  operator cone LABEL to the same grid: median {CONE_SIGMA*np.median(np.linalg.norm(ek, axis=1)):.0f} px"
@@ -690,8 +723,8 @@ say("=" * 100)
 say("RESULT 3  DOES THE DESIGNED STATION GRID MATCH THE GROUND?")
 say("          Each fitted board is asked where its plate corners ended up. The corner nearest the")
 say("          design station is the one the operator put on the cone; the distance is how far the")
-say("          real placement sits from the drawing. This is a CHECK, not an input - the grid was")
-say("          never given to the fit.")
+say(f"          real placement sits from the drawing. The design station IS in the fit, as a soft anchor")
+say(f"          of {STATION_SIGMA:.0f} mm on that corner - so this is the achieved offset, not an independent check.")
 say("=" * 100)
 say("")
 say(f"  {'station':8s} {'session':9s} {'cams':22s} {'cone corner':14s} {'offset':>8s} {'tilt':>6s} {'h':>7s}")
@@ -728,7 +761,37 @@ np.savez(OUT / "camera_fit.npz",
          dropped_views=np.array(["|".join(d) for d in DROPPED]),
          note="X_cam = Rodrigues(cam_rvec) @ X_field + cam_tvec; ALL lengths mm, "
               "field origin pole A0, x along the long cord, y across, z up")
+import hashlib, subprocess, datetime
+
+
+def _sha(pth):
+    return hashlib.sha256(Path(pth).read_bytes()).hexdigest()
+
+
+try:
+    _commit = subprocess.check_output(["git", "-C", str(REPO), "rev-parse", "HEAD"]).decode().strip()
+except Exception:
+    _commit = "unknown"
+_inputs = sorted(str(f.relative_to(REPO)) for f in list(REPO.glob("session_*_labelled_frames.csv"))
+                 + list(REPO.glob("session_*_manual_*.json")) + list(REPO.glob("session_*_cone_labels_*.json"))
+                 + list(REPO.glob("session_*_line_labels_*.json")))
+MANIFEST = dict(
+    written=datetime.datetime.now().isoformat(timespec="seconds"), git_commit=_commit,
+    fit_file=str(OUT / "camera_fit.npz"), fit_sha256=_sha(OUT / "camera_fit.npz"),
+    env={k: v for k, v in os.environ.items() if k.startswith("FIT_")},
+    constants=dict(PLATE_Z=PLATE_Z, CONE_Z=CONE_Z, CONE_SIGMA=CONE_SIGMA, STATION_SIGMA=STATION_SIGMA,
+                   plate_dof="yaw,x,y,tilt_x,tilt_y; centre on z=PLATE_Z; tilt bounded", TILT_MAX_DEG=TILT_MAX,
+                   loss="soft_l1", f_scale=4.0, HOM_REJECT=fd.HOM_REJECT,
+                   CLUSTER_PX=fd.CLUSTER_PX),
+    lens=dict(pano_scale=fi.PANO_SCALE, focal_override=fi.FOCAL_OVERRIDE,
+              intr={c: [float(v) for v in ip[c]] for c in cam_list}),
+    counts=dict(assembled=len(P0), bad_homography=sum(1 for q in P0 if q["bad"]), weak_clicks=len(weak),
+                geometry_views=len(P), bundle_views=len(OBS), corners=int(len(c_obs)), cones=int(len(k_obs)),
+                boards=int(NB), dropped_views=[list(d) for d in DROPPED]),
+    solver=SOLVER, inputs={f: _sha(REPO / f) for f in _inputs},
+    note="the fit is this camera_fit.npz; frame_correction.json must carry this fit_sha256 to be applied")
+(OUT / "fit_manifest.json").write_text(json.dumps(MANIFEST, indent=1), encoding="utf-8")
 say("")
-say(f"  -> {OUT / 'camera_fit.npz'}")
+say(f"  -> {OUT / 'camera_fit.npz'}   manifest -> {OUT / 'fit_manifest.json'}")
 (OUT / "CALIBRATION_FIT.txt").write_text("\n".join(L) + "\n", encoding="utf-8")
 print("report ->", OUT / "CALIBRATION_FIT.txt")

@@ -422,3 +422,26 @@ CH04 is still 17 cm above its tape height and CH03 11 cm; the panos' scale was s
 cameras that agree to 1 %, but it is a two-parameter model of a canvas whose corners still need
 the ground warp. The tape heights themselves are not in the fit; they were used once, to pick
 these four numbers.
+
+## Independent review and revision 2 (2026-09-24, evening)
+
+`AUDIT_CALIBRATION_2026-09-24.md` (external review of the first report) found, correctly, that the
+plates were not pinned (soft prior under a robust loss: -339..+126 mm), that the agreement figure
+was a training statistic, that `rect-markers` views contributed predicted corners, that the
+mapping accepted unsupported pixels, and that provenance was missing. `AUDIT_RESPONSE_2026-09-24.md`
+answers each point; `CALIBRATION_REPORT_2026-09-24_rev2.md` is the acceptance document now.
+
+What changed in the code: plates are (yaw, x, y, tilt_x, tilt_y) with the centre ON z = 6 mm and
+tilt bounded +-6 deg by the solver (`board_RT`, `bounds=`); marker corners replace predicted
+corners on the `rect-markers` path (ids 1000 + 4*marker + k); `fit_manifest.json` with solver
+status, constants, overrides, dropped views and input hashes; `frame_correction.json` sha-bound to
+its fit and `paddock_map.load()` refuses a missing or stale one; `to_paddock` returns NaN (and a
+reason with `why=True`) outside the frame, off the ground, outside the verified support hull or
+when the inverse does not converge; `height_sensitivity` differentiates the actual mapping;
+`cv_landmarks.py` (leave-one-label-group-out for the warp) and `cv_folds_eval.py` (5 placement
+folds, bundle refitted per fold with `FIT_EXCLUDE`, warp degree chosen inside the fold).
+
+What the honest numbers are: held-out placements 76 mm median, 137 mm p90, 256 mm max (7/26
+within 50 mm, 18/26 within 100 mm); held-out label groups 65 mm median, 185 mm p90; taped heights
+-0.01 / +0.07 / +0.06 / +0.12 m; wall foot within 3 in of x = 0 / 480. Whole-field 50 mm is not
+claimed. The pano warp degree is 3 (chosen by the folds), not 4.

@@ -1,0 +1,25 @@
+================================================================================================
+PLACEMENT-LEVEL CROSS-VALIDATION OF THE WHOLE PIPELINE (5 folds, inner warp-degree selection)
+================================================================================================
+  fold 0: 13 placements held out; inner choice pano degree 3 (training median 65 mm); held-out corners median 125 mm, p90 269, n=168; held-out plate-corner-to-cone median 93 mm
+  fold 1: 13 placements held out; inner choice pano degree 3 (training median 73 mm); held-out corners median 39 mm, p90 69, n=151; held-out plate-corner-to-cone median 131 mm
+  fold 2: 13 placements held out; inner choice pano degree 3 (training median 82 mm); held-out corners median 58 mm, p90 90, n=267; held-out plate-corner-to-cone median 68 mm
+  fold 3: 13 placements held out; inner choice pano degree 4 (training median 69 mm); held-out corners median 86 mm, p90 136, n=497; held-out plate-corner-to-cone median 75 mm
+  fold 4: 12 placements held out; inner choice pano degree 3 (training median 73 mm); held-out corners median 87 mm, p90 163, n=359; held-out plate-corner-to-cone median 84 mm
+
+HELD-OUT, all folds pooled: 26 placements, 1442 shared corners
+  cross-camera disagreement per corner: median 76 mm, p90 160, max 286
+  per placement (median over its corners): median 76 mm, p90 137, max 256; 7/26 within 50 mm, 18/26 within 100 mm
+  plate corner to its cone (each camera's own reading): median 82 mm, p90 167
+  pano warp degree chosen per fold: [3, 3, 3, 4, 3]
+  for comparison, TRAINING placements of the same folds: per-placement median 77 mm
+
+  worst held-out placements:
+    T75   2026-09-18    256 mm
+    T74   2026-09-18    155 mm
+    T11   2026-09-19    146 mm
+    T54   2026-09-18    128 mm
+    T22   2026-09-18    121 mm
+    V62   2026-09-18    111 mm
+    F14   2026-09-19    104 mm
+    F23   2026-09-18    104 mm

@@ -78,18 +78,55 @@ class Camera:
         b = fm.bearings(self.model, self.intr, p)            # unit rays in camera coords
         return b @ self.R                                    # R.T @ b for each row
 
-    def to_paddock(self, uv, z_mm=0.0, space="upright", units="mm"):
+    def to_paddock(self, uv, z_mm=0.0, space="upright", units="mm", why=False):
         """pixel(s) -> the point on the horizontal plane z = z_mm that the pixel looks at.
 
-        Returns NaN where the ray points at or above that plane (the sky, the far wall)."""
-        d = self.rays(uv, space)
+        NaN where the answer is not supported: the pixel is outside the frame, the ray points at or
+        above the plane (sky, wall), the pixel looks outside the region where this camera's mapping
+        was verified (the convex hull of its calibration labels, `support` in frame_correction.json),
+        or the warp inverse did not converge. why=True also returns a status string per point:
+        'ok', 'outside frame', 'no ground', 'outside verified support'."""
+        p = np.asarray(uv, float).reshape(-1, 2)
+        pu = self.stored_to_upright(p) if space == "stored" else p
+        W, H = self.upright_size
+        status = np.array(["ok"] * len(pu), dtype=object)
+        inframe = (pu[:, 0] >= -0.5) & (pu[:, 0] < W - 0.5) & (pu[:, 1] >= -0.5) & (pu[:, 1] < H - 0.5)
+        d = self.rays(pu, "upright")
         with np.errstate(divide="ignore", invalid="ignore"):
             s = (z_mm - self.centre[2]) / d[:, 2]
         X = self.centre + s[:, None] * d
-        X[(s <= 0) | ~np.isfinite(s)] = np.nan
+        ground = (s > 0) & np.isfinite(s)
+        X[~ground] = np.nan
         xy = fit_to_physical(X[:, :2], self.correction)
+        supported = self.in_support(X[:, :2])
+        status[~supported] = "outside verified support"
+        status[~ground] = "no ground"
+        status[~inframe] = "outside frame"
+        xy[status != "ok"] = np.nan
         out = xy / (MM_PER_IN if units == "in" else 1.0)
-        return out[0] if np.ndim(uv) == 1 else out
+        if np.ndim(uv) == 1:
+            return (out[0], str(status[0])) if why else out[0]
+        return (out, status) if why else out
+
+    def in_support(self, xy_fit_mm):
+        """Is a FIT-frame ground point inside the polygon where this camera's mapping was verified?
+        Without a support polygon (no frame_correction.json) everything on the ground counts."""
+        sup = None if self.correction is None else self.correction.get("support")
+        p = np.asarray(xy_fit_mm, float).reshape(-1, 2)
+        ok = np.isfinite(p).all(1)
+        if sup is None or len(sup) < 3:
+            return ok
+        poly = np.asarray(sup, float) * MM_PER_IN
+        inside = np.zeros(len(p), bool)
+        q = p[ok]
+        n = len(poly); hit = np.zeros(len(q), bool)
+        for i in range(n):
+            a, b = poly[i], poly[(i + 1) % n]
+            cond = ((a[1] > q[:, 1]) != (b[1] > q[:, 1]))
+            xint = a[0] + (q[:, 1] - a[1]) * (b[0] - a[0]) / np.where(b[1] - a[1] == 0, 1e-12, b[1] - a[1])
+            hit ^= cond & (q[:, 0] < xint)
+        inside[ok] = hit
+        return inside
 
     def to_paddock_inv(self, xy, z_mm=0.0, space="upright", units="mm"):
         """paddock (x, y) at height z_mm -> pixel(s). The exact inverse of to_paddock."""
@@ -143,14 +180,17 @@ class Camera:
         return cv2.undistortPoints(p.reshape(-1, 1, 2), self.K(), self.dist(),
                                    P=self.K()).reshape(-1, 2)
 
-    def height_sensitivity(self, xy=None, units="mm"):
-        """mm of horizontal slide per mm of error in the assumed height, at a paddock point
-        (or at the middle of what this camera sees). This is 1 / tan(depression to that point)."""
-        c = self.centre
-        p = (np.asarray(xy, float) * (MM_PER_IN if units == "in" else 1.0)
-             if xy is not None else self.to_paddock(np.array(self.upright_size) / 2.0))
-        d = np.hypot(p[0] - c[0], p[1] - c[1])
-        return float(d / max(c[2], 1e-6))
+    def height_sensitivity(self, xy=None, units="mm", z_mm=0.0):
+        """mm of horizontal slide per mm of error in the assumed height, at a paddock point (or at
+        the middle of what this camera sees): the derivative of THIS mapping (rays, ground warp and
+        all) with respect to the height of the plane, by finite difference at that pixel. It is a
+        model derivative, not a verified height accuracy - nothing above the ground was measured."""
+        if xy is None:
+            uv = np.array(self.upright_size) / 2.0
+        else:
+            uv = self.to_paddock_inv(np.asarray(xy, float), z_mm=z_mm, units=units)
+        a = self.to_paddock(uv, z_mm=z_mm); b = self.to_paddock(uv, z_mm=z_mm + 10.0)
+        return float(np.linalg.norm(b - a) / 10.0)
 
     def __repr__(self):
         c = self.centre / MM_PER_IN
@@ -186,7 +226,7 @@ def physical_to_fit(xy_mm, corr):
     q = np.asarray(xy_mm, float) / MM_PER_IN
     p = q.copy()
     h = 0.05
-    for _ in range(12):
+    for _ in range(20):
         f = fit_to_physical(p * MM_PER_IN, corr) / MM_PER_IN - q
         if np.nanmax(np.abs(f)) < 1e-9:
             break
@@ -197,6 +237,9 @@ def physical_to_fit(xy_mm, corr):
         dx = (f[:, 0] * fy[:, 1] - f[:, 1] * fy[:, 0]) / det
         dy = (fx[:, 0] * f[:, 1] - fx[:, 1] * f[:, 0]) / det
         p[:, 0] -= dx; p[:, 1] -= dy
+    # not converged (outside the warp's monotone region) -> NaN, never a finite guess
+    f = fit_to_physical(p * MM_PER_IN, corr) / MM_PER_IN - q
+    p[np.abs(f).max(1) > 1e-6] = np.nan
     return p * MM_PER_IN
 
 
@@ -209,8 +252,18 @@ def load(fit=FIT, session=None, correct=True):
         raise SystemExit(f"{fit} has translations in metres - re-run fit_cameras.py")
     corr = {}
     cf = Path(fit).parent / "frame_correction.json"
-    if correct and cf.exists():
-        corr = json.loads(cf.read_text(encoding="utf-8")).get("cameras", {})
+    if correct:
+        if not cf.exists():
+            raise SystemExit(f"{cf} is missing: run frame_correction.py for this fit, or load(correct=False) "
+                             f"for the raw bundle frame (which is NOT tied to the lattice)")
+        cj = json.loads(cf.read_text(encoding="utf-8"))
+        import hashlib
+        want = cj.get("fit_sha256")
+        have = hashlib.sha256(Path(fit).read_bytes()).hexdigest()
+        if want != have:
+            raise SystemExit(f"{cf} was made for a different fit (sha {str(want)[:12]} vs {have[:12]}): "
+                             f"re-run frame_correction.py, or load(correct=False)")
+        corr = cj.get("cameras", {})
     sess = qc_paths.resolve(session)[0]
     out = {}
     for i, name in enumerate(z["units"]):
