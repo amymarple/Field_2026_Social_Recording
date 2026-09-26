@@ -446,7 +446,7 @@ within 50 mm, 18/26 within 100 mm); held-out label groups 65 mm median, 185 mm p
 -0.01 / +0.07 / +0.06 / +0.12 m; wall foot within 3 in of x = 0 / 480. Whole-field 50 mm is not
 claimed. The pano warp degree is 3 (chosen by the folds), not 4.
 
-## Taking the calibration to another machine (2026-09-24)
+## Taking the calibration to another machine (2026-09-24; portable drive 2026-09-25)
 
 The release fit is committed here and is self-contained: `camera_fit.npz` (poses, lens models,
 plate poses, dropped views and now the stored frame sizes), `frame_correction.json` (per-camera
@@ -456,13 +456,57 @@ machine with numpy, scipy and OpenCV:
 ```python
 import sys; sys.path.insert(0, r"<repo>\calibration_qc")
 from paddock_map import load
-cams = load()            # finds E:\calibration\qc\camera_fit.npz if this is the field PC, else the repo copy
+cams = load()            # the data root's qc\camera_fit.npz if a root is found, else the repo copy
 cams["CH01"].to_paddock((u, v), z_mm=0, units="in")
 ```
 `paddock_map.py`, `fit_models.py` and `qc_paths.py` are the only modules it imports; no video,
 no ffprobe, no E: drive is needed to USE the calibration.
 
-To RE-RUN the fit elsewhere you also need `E:\calibration\qc\corners\` (20 MB of cached corner
-detections), the label files (all in this repository) and, only for rendering frames or
-re-detecting, the session videos (`E:\calibration\session_*`, 50 GB). Copy `E:\calibration\qc`
-whole (it also holds the review GUIs and rendered frames); the videos are optional.
+### Where the scripts look for data and tools (`qc_paths.py`)
+
+Nothing else in this folder hard-codes a drive letter any more. `qc_paths.ROOT` is the first of
+these that holds a `qc\` folder: `$CALIB_ROOT`, the field PC's `E:\calibration`,
+`<drive this repo is on>:\calibration`, then every other drive letter. `qc_paths.FFMPEG` /
+`FFPROBE` are the first of: `$FFMPEG_DIR`, the field PC's pinned `E:\Reolink_record\bin`,
+`<ROOT>\bin`, `PATH`, the winget `Gyan.FFmpeg` install. Without any ffprobe, `frame_size()` reads the
+header with OpenCV instead. `qc_placements.py`'s old-poly station guess (`field_coords` from the
+analysis repo) is optional: it is skipped where that repo is absent.
+
+### The portable drive (2026-09-25)
+
+`E:\calibration` was copied whole to an external drive (`F:` on the laptop; the letter may differ
+elsewhere) and the repo cloned next to it, so the drive carries everything:
+
+```
+<drive>:\calibration\session_*\            the 12-stream captures (closed _to_ segments only)
+<drive>:\calibration\qc\                   corners\, 2026-09-19\, frames\, labels, the release fit
+<drive>:\calibration\bin\                  ffmpeg.exe + ffprobe.exe (Gyan.FFmpeg 9.0.2)
+<drive>:\Field_2026_Social_Recording\       this repo (origin = GitHub)
+```
+The `qc\camera_fit.npz` / `frame_correction.json` / `fit_manifest.json` on the drive are the committed
+release (the 14:50 pre-portable copies, identical numbers without `stored_size`, are kept beside them
+as `*.pre-portable`). On a new computer: install Python 3.10+ with `numpy scipy
+opencv-contrib-python matplotlib`, and run once
+`git config --global --add safe.directory <drive>:/Field_2026_Social_Recording` (the drive's file
+system records no owner, so git refuses it otherwise). The field-PC copy stays canonical: plugged
+into the field PC, the scripts still find `E:\calibration` first.
+
+To RE-RUN the fit you need `qc\corners\` (20 MB of cached corner detections) and the label files
+(all in this repository); only rendering frames or re-detecting needs the session videos (50 GB).
+
+### Reproduction on the laptop (2026-09-25)
+
+`fit_cameras.py --out F:\calibration\qc
+epro_2026-09-25` from the drive, Python 3.14 / numpy 2.4.4 /
+scipy 1.18 / OpenCV 4.13 (the release: OpenCV 5.0, scipy 1.17), 135 min. Stage 1 reproduces the lens
+to 1e-6. The bundle does not reproduce bit for bit - it stops at its evaluation budget (section 6.3 of
+the report) so the endpoint follows the start, and the start differs with the OpenCV version: the
+2026-09-19 T65 view in CH04 fails the flatness gate at 62 px on the field PC and passes here, to be
+dropped by the bundle at 42 px instead (the five dropped views are the same set). The difference is a
+near-rigid shift of the whole bundle frame, (-42, +4.5, 0) mm, with 1-5 mm per-camera scatter left
+after removing it; `frame_correction.py` absorbs that shift by construction. Through each fit's own
+frame correction the pixel -> paddock mapping differs by at most 1.1 mm on CH01/02/04/05/06 and
+2.2 mm median / 7.7 mm max on CH03, with the same support; paddock agreement, line check and the
+held-out label groups agree to the last digit or one. `compare_fits.py <release npz> <other npz>`
+runs this comparison for any pair of fits. `fit_manifest.json` now records the package versions.
+The 5 fold refits for `cv_folds_eval.py` were not repeated (5 x 135 min).

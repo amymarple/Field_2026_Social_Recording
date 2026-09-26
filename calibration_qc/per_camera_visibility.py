@@ -7,7 +7,8 @@ from pathlib import Path
 from datetime import datetime, time as dtime
 import numpy as np
 
-QC = Path(r"E:\calibration\qc")
+import sys; sys.path.insert(0, str(Path(__file__).resolve().parent)); import qc_paths  # noqa: E402
+QC = qc_paths.QC_ROOT
 TRAIN_X = [24, 96, 168, 240, 312, 384, 456]; TRAIN_Y = [12, 66, 120, 174, 228]
 VT_X = [60, 132, 204, 276, 348, 420]; VT_Y = [39, 93, 147, 201]
 OFF = np.array([14.2, 10.6])

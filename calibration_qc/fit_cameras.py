@@ -780,6 +780,8 @@ MANIFEST = dict(
     written=datetime.datetime.now().isoformat(timespec="seconds"), git_commit=_commit,
     fit_file=str(OUT / "camera_fit.npz"), fit_sha256=_sha(OUT / "camera_fit.npz"),
     env={k: v for k, v in os.environ.items() if k.startswith("FIT_")},
+    versions=dict(python=sys.version.split()[0], numpy=np.__version__, scipy=__import__("scipy").__version__,
+                  opencv=cv2.__version__),   # the bundle stops at its evaluation budget: the endpoint depends on these
     constants=dict(PLATE_Z=PLATE_Z, CONE_Z=CONE_Z, CONE_SIGMA=CONE_SIGMA, STATION_SIGMA=STATION_SIGMA,
                    plate_dof="yaw,x,y,tilt_x,tilt_y; centre on z=PLATE_Z; tilt bounded", TILT_MAX_DEG=TILT_MAX,
                    loss="soft_l1", f_scale=4.0, HOM_REJECT=fd.HOM_REJECT,

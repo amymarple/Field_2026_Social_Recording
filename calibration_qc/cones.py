@@ -9,8 +9,9 @@ from datetime import datetime
 import numpy as np, cv2
 from scipy.optimize import linear_sum_assignment
 
-QC = Path(r"E:\calibration\qc"); SESSION = Path(r"E:\calibration\session_2026-09-18_13-54-34")
-FFMPEG = r"E:\Reolink_record\bin\ffmpeg.exe"; FFPROBE = r"E:\Reolink_record\bin\ffprobe.exe"
+sys.path.insert(0, str(Path(__file__).resolve().parent)); import qc_paths  # noqa: E402
+QC = qc_paths.QC_ROOT; SESSION = qc_paths.DEFAULT_SESSION
+FFMPEG = qc_paths.FFMPEG; FFPROBE = qc_paths.FFPROBE
 cam, clock = sys.argv[1], sys.argv[2]
 TRAIN_X = [24, 96, 168, 240, 312, 384, 456]; TRAIN_Y = [12, 66, 120, 174, 228]
 VT_X = [60, 132, 204, 276, 348, 420]; VT_Y = [39, 93, 147, 201]

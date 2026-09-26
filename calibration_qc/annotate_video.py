@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 import numpy as np, cv2
 sys.path.insert(0, str(Path(__file__).resolve().parent)); import qc_paths  # noqa: E402
 
-FFMPEG = r"E:\Reolink_record\bin\ffmpeg.exe"
+FFMPEG = qc_paths.FFMPEG
 cam, labels_path = sys.argv[1], sys.argv[2]
 args, sess = qc_paths.pop_session(sys.argv[3:])
 SESSION, QC = qc_paths.resolve(sess)

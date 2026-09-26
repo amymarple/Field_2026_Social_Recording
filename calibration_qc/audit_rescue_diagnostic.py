@@ -11,9 +11,10 @@ HERE=Path(__file__).resolve().parent
 board=cv2.aruco.CharucoBoard((12,9),.060,.045,cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_5X5_100))
 env=dict(cv2=cv2,np=np,board=board,OBJ=board.getChessboardCorners()[:,:2])
 import board_detect as bd
+import qc_paths
 env['chessboard_detect']=bd.chessboard_detect
 source_hash=hashlib.sha256((HERE/'board_detect.py').read_bytes()).hexdigest()
-files=[HERE.parent/'calibration.png'] + list(Path(r'E:\calibration\qc\frames').glob('detect_test*crop.jpg'))
+files=[HERE.parent/'calibration.png'] + list((qc_paths.QC_ROOT / 'frames').glob('detect_test*crop.jpg'))
 rows=[]
 for path in files:
     gray=cv2.imread(str(path),cv2.IMREAD_GRAYSCALE)

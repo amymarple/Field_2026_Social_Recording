@@ -3,8 +3,9 @@
 Usage: python sweep_census.py CH03 2420 2510   (segment-relative seconds in the 15:00 segment)"""
 import sys, subprocess, numpy as np, cv2
 from pathlib import Path
-FFMPEG = r"E:\Reolink_record\bin\ffmpeg.exe"
-SESSION = Path(r"E:\calibration\session_2026-09-18_13-54-34")
+sys.path.insert(0, str(Path(__file__).resolve().parent)); import qc_paths  # noqa: E402
+FFMPEG = qc_paths.FFMPEG
+SESSION = qc_paths.DEFAULT_SESSION
 cam, t0, t1 = sys.argv[1], float(sys.argv[2]), float(sys.argv[3])
 seg = sorted(SESSION.glob(f"{cam}_*15-00-0*_to_*.mp4"))[0]
 w, h = 4512, 2512

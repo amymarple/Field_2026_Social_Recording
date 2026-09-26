@@ -5,10 +5,11 @@ from pathlib import Path
 from datetime import datetime, timedelta
 import numpy as np
 
-SESSION = Path(r"E:\calibration\session_2026-09-18_13-54-34")
-FFMPEG = r"E:\Reolink_record\bin\ffmpeg.exe"
-FFPROBE = r"E:\Reolink_record\bin\ffprobe.exe"
-OUT = Path(r"E:\calibration\qc\ir_timeline.csv")
+sys.path.insert(0, str(Path(__file__).resolve().parent)); import qc_paths  # noqa: E402
+SESSION = qc_paths.DEFAULT_SESSION
+FFMPEG = qc_paths.FFMPEG
+FFPROBE = qc_paths.FFPROBE
+OUT = qc_paths.QC_ROOT / "ir_timeline.csv"
 cams = sys.argv[1:] or ["CH01", "CH02", "CH03", "CH04", "CH05", "CH06", "CH07", "CH08"]
 STEP = 120
 

@@ -8,8 +8,9 @@ from pathlib import Path
 from datetime import datetime, time as dtime
 import numpy as np, cv2
 
-QC = Path(r"E:\calibration\qc"); SESSION = Path(r"E:\calibration\session_2026-09-18_13-54-34")
-FFMPEG = r"E:\Reolink_record\bin\ffmpeg.exe"
+import sys; sys.path.insert(0, str(Path(__file__).resolve().parent)); import qc_paths  # noqa: E402
+QC = qc_paths.QC_ROOT; SESSION = qc_paths.DEFAULT_SESSION
+FFMPEG = qc_paths.FFMPEG
 CAMS = ["CH01", "CH02", "CH03", "CH04", "CH05", "CH06"]
 SWEEPS = [(dtime(15, 40, 25), dtime(15, 41, 35)), (dtime(15, 41, 40), dtime(15, 45, 45))]
 TRAIN_X = [24, 96, 168, 240, 312, 384, 456]; TRAIN_Y = [12, 66, 120, 174, 228]

@@ -5,7 +5,8 @@ import csv
 from pathlib import Path
 from datetime import datetime, time as dtime
 
-QC = Path(r"E:\calibration\qc")
+import sys; sys.path.insert(0, str(Path(__file__).resolve().parent)); import qc_paths  # noqa: E402
+QC = qc_paths.QC_ROOT
 SWEEPS = [(dtime(15, 40, 25), dtime(15, 41, 35)), (dtime(15, 41, 40), dtime(15, 45, 45))]
 events = []
 for cam in ("CH01", "CH02"):

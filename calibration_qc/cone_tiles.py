@@ -6,8 +6,9 @@ from pathlib import Path
 from datetime import datetime
 import numpy as np, cv2
 
-QC = Path(r"E:\calibration\qc"); SESSION = Path(r"E:\calibration\session_2026-09-18_13-54-34")
-FFMPEG = r"E:\Reolink_record\bin\ffmpeg.exe"
+sys.path.insert(0, str(Path(__file__).resolve().parent)); import qc_paths  # noqa: E402
+QC = qc_paths.QC_ROOT; SESSION = qc_paths.DEFAULT_SESSION
+FFMPEG = qc_paths.FFMPEG
 cam, clock = sys.argv[1], sys.argv[2]
 t = datetime.strptime(clock, "%H:%M:%S")
 seg = off = None

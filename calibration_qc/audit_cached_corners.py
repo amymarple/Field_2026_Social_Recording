@@ -5,7 +5,8 @@ from pathlib import Path
 import re
 import numpy as np
 
-ROOT = Path(r'E:\calibration\qc\corners')
+import qc_paths
+ROOT = qc_paths.QC_ROOT / 'corners'
 OUT = Path(__file__).with_name('audit_2026-09-19_cache.json')
 
 def load_frame(path):

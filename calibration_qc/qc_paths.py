@@ -1,16 +1,69 @@
 # -*- coding: utf-8 -*-
 r"""Session / QC-folder resolution shared by the calibration_qc scripts.
 
-The 2026-09-18 session is the default and its QC outputs live flat in E:\calibration\qc (as produced
-on the day). Any other session gets its own QC subfolder E:\calibration\qc\<session date>\ holding
+The 2026-09-18 session is the default and its QC outputs live flat in <ROOT>\qc (as produced
+on the day). Any other session gets its own QC subfolder <ROOT>\qc\<session date>\ holding
 corners/, the annotated timelapses, timeline_gui.html, frames/. Every script accepts
 --session <dir | YYYY-MM-DD> (a date picks the latest session folder of that day)."""
 from pathlib import Path
 import numpy as _np
 
-ROOT = Path(r"E:\calibration")
+import os as _os, shutil as _shutil, string as _string
+
+
+def _find_root():
+    r"""The calibration data root. In order: $CALIB_ROOT, the field PC's E:\calibration, <drive of this
+    repo>:\calibration (the portable drive the repo travels on), then every other drive letter. A root
+    counts when it holds a qc\ folder; when none does, the field-PC path is returned unchanged."""
+    cands = []
+    env = _os.environ.get("CALIB_ROOT")
+    if env:
+        cands.append(Path(env))
+    cands.append(Path(r"E:\calibration"))
+    drive = Path(__file__).resolve().drive
+    if drive:
+        cands.append(Path(drive + "\\") / "calibration")
+    for c in cands:
+        if (c / "qc").is_dir():
+            return c
+    for letter in _string.ascii_uppercase:
+        c = Path(f"{letter}:\\calibration")
+        if c not in cands and (c / "qc").is_dir():
+            return c
+    return cands[0]
+
+
+ROOT = _find_root()
 QC_ROOT = ROOT / "qc"
 DEFAULT_SESSION = ROOT / "session_2026-09-18_13-54-34"
+
+
+def _find_tool(name):
+    r"""ffmpeg / ffprobe. In order: $FFMPEG_DIR, the field PC's pinned E:\Reolink_record\bin, <ROOT>\bin
+    (the copy on the portable drive), PATH, the winget Gyan.FFmpeg install. Falls back to the field-PC
+    path so an error message names a real location."""
+    exe = f"{name}.exe"
+    cands = []
+    env = _os.environ.get("FFMPEG_DIR")
+    if env:
+        cands.append(Path(env) / exe)
+    cands += [Path(r"E:\Reolink_record\bin") / exe, ROOT / "bin" / exe]
+    for c in cands:
+        if c.exists():
+            return str(c)
+    w = _shutil.which(name)
+    if w:
+        return w
+    la = _os.environ.get("LOCALAPPDATA")
+    if la:
+        hits = sorted(Path(la).glob("Microsoft/WinGet/Packages/Gyan.FFmpeg*/ffmpeg-*/bin/" + exe))
+        if hits:
+            return str(hits[-1])
+    return str(Path(r"E:\Reolink_record\bin") / exe)
+
+
+FFMPEG = _find_tool("ffmpeg")
+FFPROBE = _find_tool("ffprobe")
 
 
 def pop_session(args):
@@ -58,7 +111,6 @@ def cone_labels(qc, cam):
 # declares the pixel space of its own coordinates in "frame_size_upright". Everything here converts
 # to the camera's REAL frame, read from the video once and cached.
 import json as _json, subprocess as _sp                                   # noqa: E402
-FFPROBE = r"E:\Reolink_record\bin\ffprobe.exe"
 _SIZE = {}
 
 def frame_size(session, cam):
@@ -68,9 +120,17 @@ def frame_size(session, cam):
         segs = sorted(Path(session).glob(f"{cam}_*_to_*.mp4"))
         if not segs:
             raise SystemExit(f"no closed {cam} segment in {session}")
-        out = _sp.check_output([FFPROBE, "-v", "error", "-select_streams", "v:0", "-show_entries",
-                                "stream=width,height", "-of", "csv=p=0", str(segs[0])]).decode()
-        _SIZE[key] = tuple(int(v) for v in out.strip().split(",")[:2])
+        if Path(FFPROBE).exists():
+            out = _sp.check_output([FFPROBE, "-v", "error", "-select_streams", "v:0", "-show_entries",
+                                    "stream=width,height", "-of", "csv=p=0", str(segs[0])]).decode()
+            _SIZE[key] = tuple(int(v) for v in out.strip().split(",")[:2])
+        else:                                   # no ffprobe on this machine: OpenCV reads the header
+            import cv2
+            cap = cv2.VideoCapture(str(segs[0]))
+            _SIZE[key] = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+            cap.release()
+            if not all(_SIZE[key]):
+                raise SystemExit(f"cannot read the frame size of {segs[0]} (no ffprobe, OpenCV failed)")
     return _SIZE[key]
 
 def is_rotated(session, cam):

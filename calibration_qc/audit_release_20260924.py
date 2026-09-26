@@ -9,7 +9,7 @@ import paddock_map as pm
 import fit_models as fm
 
 HERE = Path(__file__).resolve().parent
-FIT = Path(r'E:\calibration\qc\camera_fit.npz')
+FIT = pm.FIT
 cv2.setNumThreads(1)
 z = np.load(FIT, allow_pickle=False)
 bp = z['board_pose']

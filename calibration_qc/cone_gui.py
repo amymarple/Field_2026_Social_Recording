@@ -11,7 +11,7 @@ from pathlib import Path
 from datetime import datetime
 import numpy as np, cv2
 sys.path.insert(0, str(Path(__file__).resolve().parent)); import qc_paths  # noqa: E402
-FFMPEG = r"E:/Reolink_record/bin/ffmpeg.exe"; FFPROBE = r"E:/Reolink_record/bin/ffprobe.exe"
+FFMPEG = qc_paths.FFMPEG; FFPROBE = qc_paths.FFPROBE
 args, sess = qc_paths.pop_session(sys.argv[1:])
 SESSION, QC = qc_paths.resolve(sess)
 cam, clock = args[0], args[1]

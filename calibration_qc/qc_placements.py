@@ -13,11 +13,14 @@ import numpy as np
 import cv2
 
 sys.path.insert(0, r"C:\Users\Cornell\Documents\GitHub\Field_2026_Social\preprocessing\computer_vision")
-import field_coords as fc  # noqa: E402
+try:
+    import field_coords as fc  # noqa: E402  (old poly station guess; analysis repo, field PC only)
+except ImportError:
+    fc = None
 sys.path.insert(0, str(Path(__file__).resolve().parent)); import qc_paths  # noqa: E402
 
-FFMPEG = r"E:\Reolink_record\bin\ffmpeg.exe"
-FFPROBE = r"E:\Reolink_record\bin\ffprobe.exe"
+FFMPEG = qc_paths.FFMPEG
+FFPROBE = qc_paths.FFPROBE
 CONFIGS = Path(r"C:\Users\Cornell\Documents\GitHub\Field_2026_Social\preprocessing\computer_vision\configs")
 
 cam = sys.argv[1]
@@ -57,7 +60,7 @@ frame_wh = [None, None]   # set from the first probed segment; the old calib may
 
 def px_to_station(px):
     """pixel (x,y) -> (field inch x, y, best station, dist in, 2nd station, dist2)."""
-    if calib is None:
+    if calib is None or fc is None:
         return None
     px = np.array([px], float)
     if calib_size and frame_wh[0] and (calib_size[0] != frame_wh[0] or calib_size[1] != frame_wh[1]):

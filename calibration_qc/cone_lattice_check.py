@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 import numpy as np, cv2
 sys.path.insert(0, str(Path(__file__).resolve().parent)); import qc_paths  # noqa: E402
 
-FFMPEG = r"E:\Reolink_record\bin\ffmpeg.exe"; FFPROBE = r"E:\Reolink_record\bin\ffprobe.exe"
+FFMPEG = qc_paths.FFMPEG; FFPROBE = qc_paths.FFPROBE
 cam = sys.argv[1]
 rest = sys.argv[2:]
 clock = rest.pop(0) if rest and re.match(r"\d\d:\d\d:\d\d$", rest[0]) else None

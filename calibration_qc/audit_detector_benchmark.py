@@ -8,7 +8,8 @@ import numpy as np
 
 cv2.setNumThreads(1)
 HERE = Path(__file__).resolve().parent
-SOURCE = Path(r'E:\calibration\qc\frames')
+import qc_paths
+SOURCE = qc_paths.QC_ROOT / 'frames'
 BOARD = cv2.aruco.CharucoBoard((12,9), .060, .045,
     cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_5X5_100))
 

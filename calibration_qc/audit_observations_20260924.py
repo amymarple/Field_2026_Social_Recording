@@ -10,7 +10,7 @@ import fit_data as fd
 import paddock_map as pm
 
 cv2.setNumThreads(1)
-ROOT=Path(r'E:\calibration')
+ROOT=qc_paths.ROOT
 SESS={'2026-09-18':'session_2026-09-18_13-54-34','2026-09-19':'session_2026-09-19_12-23-53'}
 def resolve_readonly(arg=None):
     date='2026-09-18' if arg is None else str(arg)

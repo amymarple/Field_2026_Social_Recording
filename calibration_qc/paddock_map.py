@@ -33,7 +33,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import fit_models as fm                                                   # noqa: E402
 
 # the release fit: the field PC's copy if present, else the copy committed next to this file
-FIT = Path(r"E:\calibration\qc\camera_fit.npz")
+import qc_paths                                                          # noqa: E402
+FIT = qc_paths.QC_ROOT / "camera_fit.npz"
 if not FIT.exists():
     FIT = Path(__file__).resolve().parent / "camera_fit.npz"
 MM_PER_IN = 25.4

@@ -8,7 +8,8 @@ from pathlib import Path
 from datetime import datetime, time as dtime, timedelta
 import numpy as np
 
-QC = Path(r"E:\calibration\qc")
+sys.path.insert(0, str(Path(__file__).resolve().parent)); import qc_paths  # noqa: E402
+QC = qc_paths.QC_ROOT
 cam, labels_path = sys.argv[1], sys.argv[2]
 SWEEPS = [(dtime(15, 40, 25), dtime(15, 41, 35)), (dtime(15, 41, 40), dtime(15, 45, 45))]
 lab = json.load(open(labels_path, encoding="utf-8"))

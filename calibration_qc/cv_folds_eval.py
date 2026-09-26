@@ -21,7 +21,8 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import fit_data as fd, paddock_map as pm, frame_correction as fc, board_detect as bd   # noqa: E402
 
-ROOT = Path(r"E:\calibration\qc\cv")
+import qc_paths  # noqa: E402
+ROOT = qc_paths.QC_ROOT / "cv"
 folds = json.loads((ROOT / "folds.json").read_text(encoding="utf-8"))
 P_all = [p for p in fd.all_placements() if not p["bad"] and not p["weak"]]
 L = []

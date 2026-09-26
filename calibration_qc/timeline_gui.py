@@ -22,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent)); import qc_paths  # noq
 args, sess = qc_paths.pop_session(sys.argv[1:])
 SESSION, QC = qc_paths.resolve(sess); DATE = qc_paths.session_date(SESSION)
 BOARDS = "--boards" in args               # use the annotate_video.py --boards renders (board outlines + station labels) -> timeline_gui_boards.html
-FFPROBE = r"E:\Reolink_record\bin\ffprobe.exe"
+FFPROBE = qc_paths.FFPROBE
 VIDEOS = {}
 for cam in ("CH01", "CH02"):
     vids = sorted(QC.glob(f"annotated_{cam}_*_timelapse{'_boards' if BOARDS else ''}.mp4"), key=lambda p: p.stat().st_mtime)
