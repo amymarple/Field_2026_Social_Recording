@@ -1,0 +1,417 @@
+<title>Handoff Cone Sheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+:root {
+  --ground:#F5F6F2; --paper:#FFFFFF; --ink:#1C231F; --muted:#59645E; --rule:#D5DBD3;
+  --grass:#E8EEE3; --cone:#D2581A; --cone-soft:#FCE6D8; --cord:#2C6798; --cord-soft:#DCE8F2;
+  --display:"Barlow Semi Condensed", "Arial Narrow", Arial, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono:"IBM Plex Mono", Consolas, "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ground:#101412; --paper:#171C19; --ink:#E3E8E2; --muted:#9AA59D; --rule:#2B332E;
+    --grass:#16201A; --cone:#F0873F; --cone-soft:#3B2417; --cord:#6FA7D8; --cord-soft:#1B2A37;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ground:#101412; --paper:#171C19; --ink:#E3E8E2; --muted:#9AA59D; --rule:#2B332E;
+  --grass:#16201A; --cone:#F0873F; --cone-soft:#3B2417; --cord:#6FA7D8; --cord-soft:#1B2A37;
+}
+body { background:var(--ground); color:var(--ink); font-family:var(--body); font-size:16px; line-height:1.5;
+  padding-inline:16px; padding-block:24px 56px; }
+.wrap { max-width:960px; margin:0 auto; display:flex; flex-direction:column; gap:28px; }
+h1, h2 { font-family:var(--display); font-weight:700; line-height:1.1; text-wrap:balance; margin:0; }
+h1 { font-size:clamp(30px, 5vw, 42px); letter-spacing:.2px; }
+h2 { font-size:23px; display:flex; gap:10px; align-items:baseline; }
+h2 .step { font-family:var(--mono); font-size:14px; font-weight:500; color:var(--cone); border:1.5px solid var(--cone);
+  border-radius:4px; padding:0 6px; }
+p { margin:0; max-width:68ch; }
+.eyebrow { font-family:var(--display); font-weight:600; text-transform:uppercase; letter-spacing:1.4px; font-size:13px; color:var(--muted); }
+header { display:flex; flex-direction:column; gap:10px; }
+section { display:flex; flex-direction:column; gap:12px; }
+.muted { color:var(--muted); }
+.facts { display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:10px 22px; padding:14px 16px;
+  background:var(--paper); border:1px solid var(--rule); border-radius:6px; }
+.facts div { display:flex; flex-direction:column; }
+.facts b { font-family:var(--display); font-size:20px; font-weight:600; }
+.facts span { font-size:14px; color:var(--muted); }
+.map { overflow-x:auto; background:var(--paper); border:1px solid var(--rule); border-radius:6px; padding:10px; }
+.map svg { display:block; width:100%; min-width:760px; height:auto; }
+.pad { fill:var(--grass); stroke:var(--ink); stroke-width:1.6; }
+.cord { stroke:var(--ink); stroke-width:.8; opacity:.55; }
+.tick { stroke:var(--ink); stroke-width:1.4; }
+.newcord { stroke:var(--cord); stroke-width:1.3; stroke-dasharray:6 4; fill:none; }
+.newcord2 { stroke:var(--cord); stroke-width:1; stroke-dasharray:2 4; fill:none; }
+.cone { fill:var(--cone); stroke:var(--paper); stroke-width:1; }
+.cone.ring { fill:var(--paper); stroke:var(--cone); stroke-width:2; }
+.cone.firstm { stroke:var(--ink); stroke-width:1.4; }
+.cone.ring.firstm { stroke:var(--cone); stroke-width:2.6; }
+.lab { font-family:var(--mono); font-size:7.5px; fill:var(--ink); }
+.axis, .cordlab { font-family:var(--mono); font-size:8.5px; fill:var(--muted); }
+.cordlab { fill:var(--cord); }
+.wall { font-family:var(--display); font-size:10px; font-weight:600; letter-spacing:1px; fill:var(--muted); text-transform:uppercase; }
+.legend { display:flex; flex-wrap:wrap; gap:8px 20px; font-size:14px; color:var(--muted); }
+.legend span { display:inline-flex; align-items:center; gap:6px; }
+.legend svg { width:22px; height:14px; }
+.tbl { overflow-x:auto; }
+table { border-collapse:collapse; width:100%; background:var(--paper); font-size:14.5px; }
+th, td { border:1px solid var(--rule); padding:7px 9px; vertical-align:top; text-align:left; }
+thead th { font-family:var(--display); font-weight:600; font-size:14px; letter-spacing:.6px; text-transform:uppercase; color:var(--muted); background:var(--ground); }
+tbody th { font-family:var(--display); font-weight:600; font-size:17px; white-space:nowrap; }
+.xv { display:block; font-family:var(--mono); font-size:12px; font-weight:400; color:var(--muted); }
+.pos { display:flex; align-items:center; gap:7px; cursor:pointer; }
+.pos input { width:18px; height:18px; accent-color:var(--cone); margin:0; }
+.pos input:focus-visible { outline:2px solid var(--cord); outline-offset:2px; }
+.id { font-family:var(--mono); font-weight:500; }
+.first { font-family:var(--display); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.8px;
+  color:var(--cone); background:var(--cone-soft); border-radius:3px; padding:0 5px; }
+.sub { font-family:var(--mono); font-size:12.5px; color:var(--muted); margin-top:2px; }
+.cams { display:flex; flex-wrap:wrap; gap:3px; margin-top:4px; }
+.cam { font-family:var(--mono); font-size:11.5px; border:1px solid var(--rule); border-radius:3px; padding:0 4px; color:var(--ink); }
+.num { font-family:var(--mono); font-variant-numeric:tabular-nums; white-space:nowrap; }
+td:has(input:checked) { background:var(--cone-soft); }
+ol, ul { margin:0; padding-left:22px; max-width:70ch; display:flex; flex-direction:column; gap:6px; }
+.rec { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:10px 18px; }
+.rec label { display:flex; flex-direction:column; gap:4px; font-size:14px; color:var(--muted); }
+.rec input, .rec textarea { font-family:var(--mono); font-size:15px; padding:6px 8px; border:1px solid var(--rule); border-radius:4px;
+  background:var(--paper); color:var(--ink); }
+.rec input:focus-visible, .rec textarea:focus-visible { outline:2px solid var(--cord); outline-offset:1px; }
+.note { font-size:14.5px; color:var(--muted); max-width:72ch; }
+.callout { background:var(--paper); border:1px solid var(--rule); border-left:3px solid var(--cone); border-radius:4px; padding:10px 14px; }
+.optional { border-left-color:var(--cord); }
+footer { font-size:13.5px; color:var(--muted); border-top:1px solid var(--rule); padding-top:14px; display:flex; flex-direction:column; gap:8px; }
+code { font-family:var(--mono); font-size:.9em; }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Field 2026 · camera calibration supplement · written 2026-09-26</div>
+  <h1>Handoff cone sheet</h1>
+  <p>Cones only, no board. Each cone below sits where two or more cameras see the ground, so after labelling,
+  every camera is pinned to the same physical points where a rat passes from one camera to the next. The
+  positions come from the released calibration: which cameras see each point, and where each camera's mapped
+  area is thinnest today.</p>
+  <div class="facts">
+    <div><b>52 positions</b><span>28 on the existing T cords, 18 between them, 6 corner and edge cones</span></div>
+    <div><b>20 marked first</b><span>the largest gain for the handoffs; place these first if time runs short</span></div>
+    <div><b>Tape measure only</b><span>every position is a half-way point between ticks, or a short distance from one</span></div>
+    <div><b>Cameras untouched</b><span>do not lean on poles or shelters; everyone out of view while recording</span></div>
+  </div>
+</header>
+
+<section>
+  <div class="map"><svg viewBox="-44 -26 572 300" role="img" aria-label="Paddock map: T cords, new cone positions, optional new cords">
+<rect class="pad" x="0" y="0" width="480" height="240"/>
+<line class="newcord" x1="0" y1="201" x2="480" y2="201"/>
+<text class="cordlab" x="484" y="204">Y39</text>
+<line class="newcord" x1="0" y1="39" x2="480" y2="39"/>
+<text class="cordlab" x="484" y="42">Y201</text>
+<line class="newcord2" x1="60" y1="0" x2="60" y2="240"/>
+<text class="cordlab" x="60" y="-6" text-anchor="middle">X60</text>
+<line class="newcord2" x1="420" y1="0" x2="420" y2="240"/>
+<text class="cordlab" x="420" y="-6" text-anchor="middle">X420</text>
+<line class="cord" x1="24" y1="0" x2="24" y2="240"/>
+<text class="axis" x="24" y="254" text-anchor="middle">T1 · 24</text>
+<line class="tick" x1="20" y1="228" x2="28" y2="228"/>
+<line class="tick" x1="20" y1="174" x2="28" y2="174"/>
+<line class="tick" x1="20" y1="120" x2="28" y2="120"/>
+<line class="tick" x1="20" y1="66" x2="28" y2="66"/>
+<line class="tick" x1="20" y1="12" x2="28" y2="12"/>
+<line class="cord" x1="96" y1="0" x2="96" y2="240"/>
+<text class="axis" x="96" y="254" text-anchor="middle">T2 · 96</text>
+<line class="tick" x1="92" y1="228" x2="100" y2="228"/>
+<line class="tick" x1="92" y1="174" x2="100" y2="174"/>
+<line class="tick" x1="92" y1="120" x2="100" y2="120"/>
+<line class="tick" x1="92" y1="66" x2="100" y2="66"/>
+<line class="tick" x1="92" y1="12" x2="100" y2="12"/>
+<line class="cord" x1="168" y1="0" x2="168" y2="240"/>
+<text class="axis" x="168" y="254" text-anchor="middle">T3 · 168</text>
+<line class="tick" x1="164" y1="228" x2="172" y2="228"/>
+<line class="tick" x1="164" y1="174" x2="172" y2="174"/>
+<line class="tick" x1="164" y1="120" x2="172" y2="120"/>
+<line class="tick" x1="164" y1="66" x2="172" y2="66"/>
+<line class="tick" x1="164" y1="12" x2="172" y2="12"/>
+<line class="cord" x1="240" y1="0" x2="240" y2="240"/>
+<text class="axis" x="240" y="254" text-anchor="middle">T4 · 240</text>
+<line class="tick" x1="236" y1="228" x2="244" y2="228"/>
+<line class="tick" x1="236" y1="174" x2="244" y2="174"/>
+<line class="tick" x1="236" y1="120" x2="244" y2="120"/>
+<line class="tick" x1="236" y1="66" x2="244" y2="66"/>
+<line class="tick" x1="236" y1="12" x2="244" y2="12"/>
+<line class="cord" x1="312" y1="0" x2="312" y2="240"/>
+<text class="axis" x="312" y="254" text-anchor="middle">T5 · 312</text>
+<line class="tick" x1="308" y1="228" x2="316" y2="228"/>
+<line class="tick" x1="308" y1="174" x2="316" y2="174"/>
+<line class="tick" x1="308" y1="120" x2="316" y2="120"/>
+<line class="tick" x1="308" y1="66" x2="316" y2="66"/>
+<line class="tick" x1="308" y1="12" x2="316" y2="12"/>
+<line class="cord" x1="384" y1="0" x2="384" y2="240"/>
+<text class="axis" x="384" y="254" text-anchor="middle">T6 · 384</text>
+<line class="tick" x1="380" y1="228" x2="388" y2="228"/>
+<line class="tick" x1="380" y1="174" x2="388" y2="174"/>
+<line class="tick" x1="380" y1="120" x2="388" y2="120"/>
+<line class="tick" x1="380" y1="66" x2="388" y2="66"/>
+<line class="tick" x1="380" y1="12" x2="388" y2="12"/>
+<line class="cord" x1="456" y1="0" x2="456" y2="240"/>
+<text class="axis" x="456" y="254" text-anchor="middle">T7 · 456</text>
+<line class="tick" x1="452" y1="228" x2="460" y2="228"/>
+<line class="tick" x1="452" y1="174" x2="460" y2="174"/>
+<line class="tick" x1="452" y1="120" x2="460" y2="120"/>
+<line class="tick" x1="452" y1="66" x2="460" y2="66"/>
+<line class="tick" x1="452" y1="12" x2="460" y2="12"/>
+<circle class="cone firstm ring" cx="132" cy="120" r="4"/>
+<text class="lab" x="138" y="122.6">V22M</text>
+<circle class="cone firstm ring" cx="60" cy="120" r="4"/>
+<text class="lab" x="66" y="122.6">F12M</text>
+<circle class="cone firstm ring" cx="132" cy="66" r="4"/>
+<text class="lab" x="138" y="68.6">F23M</text>
+<circle class="cone firstm ring" cx="60" cy="66" r="4"/>
+<text class="lab" x="66" y="68.6">V13M</text>
+<circle class="cone firstm" cx="384" cy="93" r="4.2"/>
+<text class="lab" x="390" y="95.6">T63M</text>
+<circle class="cone firstm" cx="384" cy="201" r="4.2"/>
+<text class="lab" x="390" y="196">T61M</text>
+<circle class="cone firstm" cx="384" cy="147" r="4.2"/>
+<text class="lab" x="390" y="149.6">T62M</text>
+<circle class="cone firstm" cx="96" cy="147" r="4.2"/>
+<text class="lab" x="102" y="149.6">T22M</text>
+<circle class="cone firstm ring" cx="276" cy="174" r="4"/>
+<text class="lab" x="282" y="176.6">F41M</text>
+<circle class="cone firstm" cx="96" cy="93" r="4.2"/>
+<text class="lab" x="102" y="95.6">T23M</text>
+<circle class="cone firstm" cx="96" cy="39" r="4.2"/>
+<text class="lab" x="102" y="34">T24M</text>
+<circle class="cone firstm ring" cx="348" cy="66" r="4"/>
+<text class="lab" x="354" y="68.6">V53M</text>
+<circle class="cone firstm ring" cx="204" cy="120" r="4"/>
+<text class="lab" x="210" y="122.6">F32M</text>
+<circle class="cone firstm ring" cx="132" cy="174" r="4"/>
+<text class="lab" x="138" y="176.6">F21M</text>
+<circle class="cone" cx="168" cy="93" r="4.2"/>
+<text class="lab" x="174" y="95.6">T33M</text>
+<circle class="cone" cx="240" cy="201" r="4.2"/>
+<text class="lab" x="246" y="196">T41M</text>
+<circle class="cone ring" cx="276" cy="120" r="4"/>
+<text class="lab" x="282" y="122.6">V42M</text>
+<circle class="cone ring" cx="348" cy="120" r="4"/>
+<text class="lab" x="354" y="122.6">F52M</text>
+<circle class="cone ring" cx="348" cy="174" r="4"/>
+<text class="lab" x="354" y="176.6">V51M</text>
+<circle class="cone ring" cx="204" cy="174" r="4"/>
+<text class="lab" x="210" y="176.6">V31M</text>
+<circle class="cone ring" cx="420" cy="174" r="4"/>
+<text class="lab" x="426" y="176.6">F61M</text>
+<circle class="cone ring" cx="60" cy="174" r="4"/>
+<text class="lab" x="66" y="176.6">V11M</text>
+<circle class="cone firstm" cx="456" cy="93" r="4.2"/>
+<text class="lab" x="462" y="95.6">T73M</text>
+<circle class="cone firstm" cx="456" cy="147" r="4.2"/>
+<text class="lab" x="462" y="149.6">T72M</text>
+<circle class="cone firstm" cx="456" cy="201" r="4.2"/>
+<text class="lab" x="462" y="196">T71M</text>
+<circle class="cone" cx="240" cy="147" r="4.2"/>
+<text class="lab" x="246" y="149.6">T42M</text>
+<circle class="cone" cx="24" cy="93" r="4.2"/>
+<text class="lab" x="30" y="95.6">T13M</text>
+<circle class="cone" cx="312" cy="147" r="4.2"/>
+<text class="lab" x="318" y="149.6">T52M</text>
+<circle class="cone ring" cx="420" cy="120" r="4"/>
+<text class="lab" x="426" y="122.6">V62M</text>
+<circle class="cone firstm" cx="456" cy="39" r="4.2"/>
+<text class="lab" x="462" y="34">T74M</text>
+<circle class="cone" cx="24" cy="39" r="4.2"/>
+<text class="lab" x="30" y="34">T14M</text>
+<circle class="cone" cx="24" cy="147" r="4.2"/>
+<text class="lab" x="30" y="149.6">T12M</text>
+<circle class="cone" cx="312" cy="93" r="4.2"/>
+<text class="lab" x="318" y="95.6">T53M</text>
+<circle class="cone ring" cx="420" cy="66" r="4"/>
+<text class="lab" x="426" y="68.6">F63M</text>
+<circle class="cone" cx="24" cy="201" r="4.2"/>
+<text class="lab" x="30" y="196">T11M</text>
+<circle class="cone" cx="96" cy="201" r="4.2"/>
+<text class="lab" x="102" y="196">T21M</text>
+<circle class="cone" cx="168" cy="201" r="4.2"/>
+<text class="lab" x="174" y="196">T31M</text>
+<circle class="cone" cx="168" cy="147" r="4.2"/>
+<text class="lab" x="174" y="149.6">T32M</text>
+<circle class="cone" cx="168" cy="39" r="4.2"/>
+<text class="lab" x="174" y="34">T34M</text>
+<circle class="cone" cx="240" cy="93" r="4.2"/>
+<text class="lab" x="246" y="95.6">T43M</text>
+<circle class="cone" cx="240" cy="39" r="4.2"/>
+<text class="lab" x="246" y="34">T44M</text>
+<circle class="cone" cx="312" cy="201" r="4.2"/>
+<text class="lab" x="318" y="196">T51M</text>
+<circle class="cone" cx="312" cy="39" r="4.2"/>
+<text class="lab" x="318" y="34">T54M</text>
+<circle class="cone" cx="384" cy="39" r="4.2"/>
+<text class="lab" x="390" y="34">T64M</text>
+<circle class="cone ring" cx="204" cy="66" r="4"/>
+<text class="lab" x="210" y="68.6">V33M</text>
+<circle class="cone ring" cx="276" cy="66" r="4"/>
+<text class="lab" x="282" y="68.6">F43M</text>
+<rect class="cone sq" x="8" y="224" width="8" height="8"/>
+<text class="lab" x="19" y="230.6" text-anchor="start">C1</text>
+<rect class="cone sq" x="8" y="8" width="8" height="8"/>
+<text class="lab" x="19" y="14.6" text-anchor="start">C2</text>
+<rect class="cone sq firstm" x="464" y="224" width="8" height="8"/>
+<text class="lab" x="461" y="230.6" text-anchor="end">C3</text>
+<rect class="cone sq firstm" x="464" y="8" width="8" height="8"/>
+<text class="lab" x="461" y="14.6" text-anchor="end">C4</text>
+<rect class="cone sq" x="380" y="215" width="8" height="8"/>
+<text class="lab" x="391" y="221.6" text-anchor="start">E1</text>
+<rect class="cone sq" x="92" y="47" width="8" height="8"/>
+<text class="lab" x="103" y="53.6" text-anchor="start">E2</text>
+<text class="wall" x="240" y="-12" text-anchor="middle">y = 240 wall</text>
+<text class="wall" x="240" y="270" text-anchor="middle">y = 0 wall</text>
+<text class="wall" x="-10" y="120" text-anchor="middle" transform="rotate(-90 -10 120)">x = 0 wall</text>
+<text class="wall" x="498" y="120" text-anchor="middle" transform="rotate(90 498 120)">x = 480 wall</text>
+</svg></div>
+  <div class="legend">
+    <span><svg viewBox="0 0 22 14"><circle cx="11" cy="7" r="4.5" fill="var(--cone)"/></svg>on an existing T cord</span>
+    <span><svg viewBox="0 0 22 14"><circle cx="11" cy="7" r="4" fill="var(--paper)" stroke="var(--cone)" stroke-width="2"/></svg>between cords, measured tick to tick</span>
+    <span><svg viewBox="0 0 22 14"><rect x="7" y="3" width="8" height="8" fill="var(--cone)"/></svg>corner / edge cone</span>
+    <span><svg viewBox="0 0 22 14"><circle cx="11" cy="7" r="4.5" fill="var(--cone)" stroke="var(--ink)" stroke-width="1.6"/></svg>dark outline = first</span>
+    <span><svg viewBox="0 0 22 14"><line x1="1" y1="7" x2="21" y2="7" stroke="var(--cord)" stroke-width="2" stroke-dasharray="5 3"/></svg>optional new cord</span>
+    <span><svg viewBox="0 0 22 14"><line x1="7" y1="7" x2="15" y2="7" stroke="var(--ink)" stroke-width="2"/></svg>existing tick (y 12, 66, 120, 174, 228)</span>
+  </div>
+  <p class="note">All numbers are inches in the paddock frame: x along the 40 ft length from the x = 0 end wall,
+  y across the 20 ft width from the y = 0 side wall. Camera chips under each position are the cameras that
+  should see it according to the fit (CH01/CH02 panoramas, CH03/CH04 end cameras, CH05/CH06 shelter cameras);
+  a house or pole can still hide one, which does no harm.</p>
+</section>
+
+<section>
+  <h2><span class="step">0</span>Check the cords before measuring</h2>
+  <p>The cameras have not moved; the old cones have. Every position below is measured from the T-cord ticks,
+  so the cords are now the only reference. Before placing anything, walk each of the seven T cords: taut, both
+  ends on their original stakes, ticks still readable. If a cord has slipped, pull it back onto its stakes.
+  If a stake itself has moved, note which one and do not re-measure it from the wall; tell Claude instead.
+  The old cone positions are not lost: they were labelled from the 2026-09-18 footage.</p>
+</section>
+
+<section>
+  <h2><span class="step">1</span>Cones on the T cords (28)</h2>
+  <p>On each of the seven T cords, put a cone 27 in above each of the first four ticks (toward the y = 240 wall),
+  so it sits half-way between two ticks. Measure the 27 in from the tick with the tape; do not eyeball it. The
+  last tick (y 228) gets no cone. IDs are the lower station plus M (T11M sits between T11 and T12).</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Cord</th><th>y 12 &rarr; 39</th><th>y 66 &rarr; 93</th><th>y 120 &rarr; 147</th><th>y 174 &rarr; 201</th></tr></thead>
+    <tbody><tr><th scope="row">T1<span class="xv">x 24</span></th><td><label class="pos" for="ck-T11M"><input type="checkbox" id="ck-T11M" data-k="T11M"><span class="id">T11M</span></label><div class="sub">tick T11 + 27 in</div><div class="cams"><span class="cam">02</span><span class="cam">03</span></div></td><td><label class="pos" for="ck-T12M"><input type="checkbox" id="ck-T12M" data-k="T12M"><span class="id">T12M</span></label><div class="sub">tick T12 + 27 in</div><div class="cams"><span class="cam">01</span><span class="cam">02</span><span class="cam">03</span></div></td><td><label class="pos" for="ck-T13M"><input type="checkbox" id="ck-T13M" data-k="T13M"><span class="id">T13M</span></label><div class="sub">tick T13 + 27 in</div><div class="cams"><span class="cam">01</span><span class="cam">02</span><span class="cam">03</span></div></td><td><label class="pos" for="ck-T14M"><input type="checkbox" id="ck-T14M" data-k="T14M"><span class="id">T14M</span></label><div class="sub">tick T14 + 27 in</div><div class="cams"><span class="cam">01</span><span class="cam">02</span><span class="cam">03</span></div></td></tr><tr><th scope="row">T2<span class="xv">x 96</span></th><td><label class="pos" for="ck-T21M"><input type="checkbox" id="ck-T21M" data-k="T21M"><span class="id">T21M</span></label><div class="sub">tick T21 + 27 in</div><div class="cams"><span class="cam">02</span></div></td><td><label class="pos" for="ck-T22M"><input type="checkbox" id="ck-T22M" data-k="T22M"><span class="id">T22M</span><span class="first" title="place first">first</span></label><div class="sub">tick T22 + 27 in</div><div class="cams"><span class="cam">01</span><span class="cam">02</span></div></td><td><label class="pos" for="ck-T23M"><input type="checkbox" id="ck-T23M" data-k="T23M"><span class="id">T23M</span><span class="first" title="place first">first</span></label><div class="sub">tick T23 + 27 in</div><div class="cams"><span class="cam">01</span><span class="cam">02</span></div></td><td><label class="pos" for="ck-T24M"><input type="checkbox" id="ck-T24M" data-k="T24M"><span class="id">T24M</span><span class="first" title="place first">first</span></label><div class="sub">tick T24 + 27 in</div><div class="cams"><span class="cam">01</span><span class="cam">03</span></div></td></tr><tr><th scope="row">T3<span class="xv">x 168</span></th><td><label class="pos" for="ck-T31M"><input type="checkbox" id="ck-T31M" data-k="T31M"><span class="id">T31M</span></label><div class="sub">tick T31 + 27 in</div><div class="cams"><span class="cam">02</span></div></td><td><label class="pos" for="ck-T32M"><input type="checkbox" id="ck-T32M" data-k="T32M"><span class="id">T32M</span></label><div class="sub">tick T32 + 27 in</div><div class="cams"><span class="cam">02</span><span class="cam">05</span></div></td><td><label class="pos" for="ck-T33M"><input type="checkbox" id="ck-T33M" data-k="T33M"><span class="id">T33M</span></label><div class="sub">tick T33 + 27 in</div><div class="cams"><span class="cam">01</span><span class="cam">02</span><span class="cam">05</span></div></td><td><label class="pos" for="ck-T34M"><input type="checkbox" id="ck-T34M" data-k="T34M"><span class="id">T34M</span></label><div class="sub">tick T34 + 27 in</div><div class="cams"><span class="cam">01</span></div></td></tr><tr><th scope="row">T4<span class="xv">x 240</span></th><td><label class="pos" for="ck-T41M"><input type="checkbox" id="ck-T41M" data-k="T41M"><span class="id">T41M</span></label><div class="sub">tick T41 + 27 in</div><div class="cams"><span class="cam">02</span></div></td><td><label class="pos" for="ck-T42M"><input type="checkbox" id="ck-T42M" data-k="T42M"><span class="id">T42M</span></label><div class="sub">tick T42 + 27 in</div><div class="cams"><span class="cam">02</span></div></td><td><label class="pos" for="ck-T43M"><input type="checkbox" id="ck-T43M" data-k="T43M"><span class="id">T43M</span></label><div class="sub">tick T43 + 27 in</div><div class="cams"><span class="cam">01</span></div></td><td><label class="pos" for="ck-T44M"><input type="checkbox" id="ck-T44M" data-k="T44M"><span class="id">T44M</span></label><div class="sub">tick T44 + 27 in</div><div class="cams"><span class="cam">01</span></div></td></tr><tr><th scope="row">T5<span class="xv">x 312</span></th><td><label class="pos" for="ck-T51M"><input type="checkbox" id="ck-T51M" data-k="T51M"><span class="id">T51M</span></label><div class="sub">tick T51 + 27 in</div><div class="cams"><span class="cam">02</span></div></td><td><label class="pos" for="ck-T52M"><input type="checkbox" id="ck-T52M" data-k="T52M"><span class="id">T52M</span></label><div class="sub">tick T52 + 27 in</div><div class="cams"><span class="cam">02</span><span class="cam">06</span></div></td><td><label class="pos" for="ck-T53M"><input type="checkbox" id="ck-T53M" data-k="T53M"><span class="id">T53M</span></label><div class="sub">tick T53 + 27 in</div><div class="cams"><span class="cam">01</span><span class="cam">06</span></div></td><td><label class="pos" for="ck-T54M"><input type="checkbox" id="ck-T54M" data-k="T54M"><span class="id">T54M</span></label><div class="sub">tick T54 + 27 in</div><div class="cams"><span class="cam">01</span></div></td></tr><tr><th scope="row">T6<span class="xv">x 384</span></th><td><label class="pos" for="ck-T61M"><input type="checkbox" id="ck-T61M" data-k="T61M"><span class="id">T61M</span><span class="first" title="place first">first</span></label><div class="sub">tick T61 + 27 in</div><div class="cams"><span class="cam">02</span><span class="cam">04</span><span class="cam">06</span></div></td><td><label class="pos" for="ck-T62M"><input type="checkbox" id="ck-T62M" data-k="T62M"><span class="id">T62M</span><span class="first" title="place first">first</span></label><div class="sub">tick T62 + 27 in</div><div class="cams"><span class="cam">01</span><span class="cam">02</span></div></td><td><label class="pos" for="ck-T63M"><input type="checkbox" id="ck-T63M" data-k="T63M"><span class="id">T63M</span><span class="first" title="place first">first</span></label><div class="sub">tick T63 + 27 in</div><div class="cams"><span class="cam">01</span><span class="cam">02</span></div></td><td><label class="pos" for="ck-T64M"><input type="checkbox" id="ck-T64M" data-k="T64M"><span class="id">T64M</span></label><div class="sub">tick T64 + 27 in</div><div class="cams"><span class="cam">01</span></div></td></tr><tr><th scope="row">T7<span class="xv">x 456</span></th><td><label class="pos" for="ck-T71M"><input type="checkbox" id="ck-T71M" data-k="T71M"><span class="id">T71M</span><span class="first" title="place first">first</span></label><div class="sub">tick T71 + 27 in</div><div class="cams"><span class="cam">01</span><span class="cam">02</span><span class="cam">04</span></div></td><td><label class="pos" for="ck-T72M"><input type="checkbox" id="ck-T72M" data-k="T72M"><span class="id">T72M</span><span class="first" title="place first">first</span></label><div class="sub">tick T72 + 27 in</div><div class="cams"><span class="cam">01</span><span class="cam">02</span><span class="cam">04</span></div></td><td><label class="pos" for="ck-T73M"><input type="checkbox" id="ck-T73M" data-k="T73M"><span class="id">T73M</span><span class="first" title="place first">first</span></label><div class="sub">tick T73 + 27 in</div><div class="cams"><span class="cam">01</span><span class="cam">02</span><span class="cam">04</span></div></td><td><label class="pos" for="ck-T74M"><input type="checkbox" id="ck-T74M" data-k="T74M"><span class="id">T74M</span><span class="first" title="place first">first</span></label><div class="sub">tick T74 + 27 in</div><div class="cams"><span class="cam">01</span><span class="cam">04</span></div></td></tr></tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2><span class="step">2</span>Place the cones between the cords (18)</h2>
+  <p>These have no cord of their own. Stretch the tape between the two ticks at the same y on the neighbouring
+  T cords (72 in apart) and put the cone at 36 in, half-way. Keep the tape straight and taut; the two ticks
+  fix both the distance and the direction.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Column</th><th>y 66</th><th>y 120</th><th>y 174</th></tr></thead>
+    <tbody><tr><th scope="row">V/F1<span class="xv">x 60</span></th><td><label class="pos" for="ck-V11M"><input type="checkbox" id="ck-V11M" data-k="V11M"><span class="id">V11M</span></label><div class="sub">halfway T12&ndash;T22</div><div class="cams"><span class="cam">01</span><span class="cam">02</span><span class="cam">03</span></div></td><td><label class="pos" for="ck-F12M"><input type="checkbox" id="ck-F12M" data-k="F12M"><span class="id">F12M</span><span class="first" title="place first">first</span></label><div class="sub">halfway T13&ndash;T23</div><div class="cams"><span class="cam">01</span><span class="cam">02</span><span class="cam">03</span></div></td><td><label class="pos" for="ck-V13M"><input type="checkbox" id="ck-V13M" data-k="V13M"><span class="id">V13M</span><span class="first" title="place first">first</span></label><div class="sub">halfway T14&ndash;T24</div><div class="cams"><span class="cam">01</span><span class="cam">02</span><span class="cam">03</span></div></td></tr><tr><th scope="row">V/F2<span class="xv">x 132</span></th><td><label class="pos" for="ck-F21M"><input type="checkbox" id="ck-F21M" data-k="F21M"><span class="id">F21M</span><span class="first" title="place first">first</span></label><div class="sub">halfway T22&ndash;T32</div><div class="cams"><span class="cam">02</span><span class="cam">05</span></div></td><td><label class="pos" for="ck-V22M"><input type="checkbox" id="ck-V22M" data-k="V22M"><span class="id">V22M</span><span class="first" title="place first">first</span></label><div class="sub">halfway T23&ndash;T33</div><div class="cams"><span class="cam">01</span><span class="cam">02</span><span class="cam">05</span></div></td><td><label class="pos" for="ck-F23M"><input type="checkbox" id="ck-F23M" data-k="F23M"><span class="id">F23M</span><span class="first" title="place first">first</span></label><div class="sub">halfway T24&ndash;T34</div><div class="cams"><span class="cam">01</span><span class="cam">05</span></div></td></tr><tr><th scope="row">V/F3<span class="xv">x 204</span></th><td><label class="pos" for="ck-V31M"><input type="checkbox" id="ck-V31M" data-k="V31M"><span class="id">V31M</span></label><div class="sub">halfway T32&ndash;T42</div><div class="cams"><span class="cam">02</span><span class="cam">05</span></div></td><td><label class="pos" for="ck-F32M"><input type="checkbox" id="ck-F32M" data-k="F32M"><span class="id">F32M</span><span class="first" title="place first">first</span></label><div class="sub">halfway T33&ndash;T43</div><div class="cams"><span class="cam">01</span><span class="cam">02</span></div></td><td><label class="pos" for="ck-V33M"><input type="checkbox" id="ck-V33M" data-k="V33M"><span class="id">V33M</span></label><div class="sub">halfway T34&ndash;T44</div><div class="cams"><span class="cam">01</span></div></td></tr><tr><th scope="row">V/F4<span class="xv">x 276</span></th><td><label class="pos" for="ck-F41M"><input type="checkbox" id="ck-F41M" data-k="F41M"><span class="id">F41M</span><span class="first" title="place first">first</span></label><div class="sub">halfway T42&ndash;T52</div><div class="cams"><span class="cam">02</span><span class="cam">06</span></div></td><td><label class="pos" for="ck-V42M"><input type="checkbox" id="ck-V42M" data-k="V42M"><span class="id">V42M</span></label><div class="sub">halfway T43&ndash;T53</div><div class="cams"><span class="cam">01</span><span class="cam">02</span></div></td><td><label class="pos" for="ck-F43M"><input type="checkbox" id="ck-F43M" data-k="F43M"><span class="id">F43M</span></label><div class="sub">halfway T44&ndash;T54</div><div class="cams"><span class="cam">01</span></div></td></tr><tr><th scope="row">V/F5<span class="xv">x 348</span></th><td><label class="pos" for="ck-V51M"><input type="checkbox" id="ck-V51M" data-k="V51M"><span class="id">V51M</span></label><div class="sub">halfway T52&ndash;T62</div><div class="cams"><span class="cam">02</span><span class="cam">06</span></div></td><td><label class="pos" for="ck-F52M"><input type="checkbox" id="ck-F52M" data-k="F52M"><span class="id">F52M</span></label><div class="sub">halfway T53&ndash;T63</div><div class="cams"><span class="cam">01</span><span class="cam">02</span><span class="cam">06</span></div></td><td><label class="pos" for="ck-V53M"><input type="checkbox" id="ck-V53M" data-k="V53M"><span class="id">V53M</span><span class="first" title="place first">first</span></label><div class="sub">halfway T54&ndash;T64</div><div class="cams"><span class="cam">01</span><span class="cam">06</span></div></td></tr><tr><th scope="row">V/F6<span class="xv">x 420</span></th><td><label class="pos" for="ck-F61M"><input type="checkbox" id="ck-F61M" data-k="F61M"><span class="id">F61M</span></label><div class="sub">halfway T62&ndash;T72</div><div class="cams"><span class="cam">01</span><span class="cam">02</span><span class="cam">04</span></div></td><td><label class="pos" for="ck-V62M"><input type="checkbox" id="ck-V62M" data-k="V62M"><span class="id">V62M</span></label><div class="sub">halfway T63&ndash;T73</div><div class="cams"><span class="cam">01</span><span class="cam">02</span><span class="cam">04</span></div></td><td><label class="pos" for="ck-F63M"><input type="checkbox" id="ck-F63M" data-k="F63M"><span class="id">F63M</span></label><div class="sub">halfway T64&ndash;T74</div><div class="cams"><span class="cam">01</span><span class="cam">04</span></div></td></tr></tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2><span class="step">3</span>Corner and edge cones (6)</h2>
+  <p>The four corners are the only ground no camera can map today. E1 and E2 widen the area CH04 and CH05
+  can map. If a rounded corner leaves no flat ground at the spot, skip that cone and note it.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>ID</th><th>x, y</th><th>How to place</th><th>Seen by</th></tr></thead>
+    <tbody><tr><td><label class="pos" for="ck-C1"><input type="checkbox" id="ck-C1" data-k="C1"><span class="id">C1</span></label></td><td class="num">12, 12</td><td>From tick T11 (x 24, y 12), 12 in toward the x = 0 wall along y = 12</td><td class="cams"><span class="cam">02</span><span class="cam">03</span></td></tr><tr><td><label class="pos" for="ck-C2"><input type="checkbox" id="ck-C2" data-k="C2"><span class="id">C2</span></label></td><td class="num">12, 228</td><td>From tick T15 (x 24, y 228), 12 in toward the x = 0 wall along y = 228</td><td class="cams"><span class="cam">01</span><span class="cam">02</span><span class="cam">03</span></td></tr><tr><td><label class="pos" for="ck-C3"><input type="checkbox" id="ck-C3" data-k="C3"><span class="id">C3</span><span class="first">first</span></label></td><td class="num">468, 12</td><td>From tick T71 (x 456, y 12), 12 in toward the x = 480 wall along y = 12</td><td class="cams"><span class="cam">02</span><span class="cam">04</span></td></tr><tr><td><label class="pos" for="ck-C4"><input type="checkbox" id="ck-C4" data-k="C4"><span class="id">C4</span><span class="first">first</span></label></td><td class="num">468, 228</td><td>From tick T75 (x 456, y 228), 12 in toward the x = 480 wall along y = 228</td><td class="cams"><span class="cam">01</span><span class="cam">04</span></td></tr><tr><td><label class="pos" for="ck-E1"><input type="checkbox" id="ck-E1" data-k="E1"><span class="id">E1</span></label></td><td class="num">384, 21</td><td>On cord T6 (x 384), 9 in from tick T61 toward the y = 240 wall</td><td class="cams"><span class="cam">02</span><span class="cam">04</span></td></tr><tr><td><label class="pos" for="ck-E2"><input type="checkbox" id="ck-E2" data-k="E2"><span class="id">E2</span></label></td><td class="num">96, 189</td><td>On cord T2 (x 96), 15 in from tick T24 toward the y = 240 wall</td><td class="cams"><span class="cam">01</span><span class="cam">03</span><span class="cam">05</span></td></tr></tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2><span class="step">4</span>Record the new cone set</h2>
+  <p>Everyone out of every camera view for 60 s, in daylight (colour, not IR). Check the NVR live view that no
+  one is in frame, then write the PC clock time.</p>
+  <div class="rec">
+    <label for="t-step4">Step 4, new cone set: PC time<input id="t-step4" type="text" placeholder="HH:MM:SS – HH:MM:SS" data-k="t-step4"></label>
+    <label for="t-skipped">Cones skipped or moved off position (ID and why)<input id="t-skipped" type="text" placeholder="e.g. C2 no flat ground" data-k="t-skipped"></label>
+  </div>
+</section>
+
+<section>
+  <h2>The ground is not flat, and that is fine</h2>
+  <p>The model puts every camera onto one flat plane. Where the real ground is higher or lower by h, an oblique
+  camera (CH01&ndash;CH04) reads the point about 0.9&thinsp;h too far from or too close to itself; a shelter camera
+  (CH05, CH06) only about 0.1&thinsp;h. Two cameras looking from opposite sides are pushed in opposite directions,
+  so a 5 cm bump can put them up to about 9 cm apart. Part of today's 6&ndash;7 cm median disagreement at the
+  handoffs is probably this, not the calibration.</p>
+  <p>The cones stand on the real ground, grass and all, so every labelled cone carries its own local height. The
+  ground correction is fitted to those cones, which puts every camera on the right spot at each cone whatever the
+  bump; between cones it interpolates. That is why the cones are dense (27&ndash;36 in apart), and no height has to
+  be measured for it to work. Where two cameras see the same cone, their two rays also give the height of the ground
+  there, so the new set yields a coarse terrain map for free. Nothing about the ground is measured in the field.</p>
+</section>
+
+<section class="callout optional">
+  <h2><span class="step">5</span>Optional: new cords</h2>
+  <p>Cords are traced along their whole length in every camera, so a cord gives many more points than a cone.
+  The two long cords matter most: every camera today has cords only across the paddock (they fix x), and only the
+  side walls fix y. Do this after step 4 is recorded.</p>
+  <ol>
+    <li><b>Y39 and Y201</b> (along the length, x = 0 wall to x = 480 wall). Lift the seven cones on that line
+    first; their positions are already on video. Tie the cord so it crosses every T cord exactly at the 39 in
+    (or 201 in) mark: 27 in above tick 12, or 27 in above tick 174. Keep it taut and on the ground.</li>
+    <li><b>X60 and X420</b> (across, lower value): 36 in inside cords T1 and T7, wall to wall, through the
+    V/F1 and V/F6 cone positions.</li>
+    <li>Everyone out of view 60 s again and write the time.</li>
+  </ol>
+  <div class="rec">
+    <label for="t-step5">Step 5, cords: which ones, PC time<input id="t-step5" type="text" placeholder="Y39 Y201 · HH:MM:SS – HH:MM:SS" data-k="t-step5"></label>
+  </div>
+</section>
+
+<section>
+  <h2>What this changes</h2>
+  <p>Share of the paddock by how many cameras can map a rat's back there, and the mapped share for the four
+  small cameras. A camera maps only inside the area its own labels surround, so cones at the edge of its view
+  widen it. Areas mapped by two or more cameras are where the tracks can be cross-checked and blended at a
+  handoff instead of switched.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>After</th><th>0 cameras</th><th>1 camera</th><th>2+ cameras</th><th>CH03</th><th>CH04</th><th>CH05</th><th>CH06</th></tr></thead>
+    <tbody><tr><th scope="row">Today</th><td class="num">1.2%</td><td class="num">47.3%</td><td class="num">51.5%</td><td class="num">11.9%</td><td class="num">11.7%</td><td class="num">8.9%</td><td class="num">6.2%</td></tr><tr><th scope="row">+ 28 cones on the T cords (step 1)</th><td class="num">0.2%</td><td class="num">41.5%</td><td class="num">58.3%</td><td class="num">16.9%</td><td class="num">16.4%</td><td class="num">10.5%</td><td class="num">8.4%</td></tr><tr><th scope="row">+ 18 V/F mid-points, 4 corners (steps 2&ndash;3)</th><td class="num">0.1%</td><td class="num">39.1%</td><td class="num">60.9%</td><td class="num">17.1%</td><td class="num">16.5%</td><td class="num">10.8%</td><td class="num">10.9%</td></tr><tr><th scope="row">+ long cords Y39, Y201 (step 5)</th><td class="num">0.1%</td><td class="num">37.6%</td><td class="num">62.3%</td><td class="num">17.8%</td><td class="num">16.9%</td><td class="num">10.8%</td><td class="num">11.5%</td></tr><tr><th scope="row">+ cross cords X60, X420 (step 5)</th><td class="num">0.1%</td><td class="num">37.1%</td><td class="num">62.8%</td><td class="num">17.9%</td><td class="num">17.2%</td><td class="num">10.8%</td><td class="num">11.5%</td></tr></tbody>
+  </table></div>
+  <p class="note">What the four small cameras can see at all: CH03 18.0 %, CH04 17.5 %, CH05 12.6 %, CH06 12.8 %
+  of the paddock. More coverage does not by itself mean smaller jumps: the new cones first measure how far apart
+  two cameras put the same point, then the ground correction is refitted with them. The worst place today is the
+  x = 480 end (around T74 and T75 two cameras put the same board corner 15&ndash;23 cm apart; CH01 against CH04 is the worst pair overall), which is why the T7 cones and C3, C4 are marked first.</p>
+</section>
+
+<footer>
+  <div><b>After the field</b> (desk work, no cameras touched): label the cones in all six cameras with
+  <code>cone_gui.py</code> on the step 4 frame, trace any new cords with <code>line_gui.py</code>, then refit only
+  the ground correction (<code>frame_correction.py</code>) and rerun the three checks. The board bundle does not
+  change. Eight station cones that were visible on 2026-09-18 but never labelled can still be labelled from that footage (CH01 F23, T63, V13; CH02 T23, T41, T42, T63; CH06 T64). Code to add first: the new cone IDs in <code>fit_data.LATTICE</code>, Y cords in
+  <code>line_gui.py</code> and <code>frame_correction.py</code>, and a guard so the extra cord points do not switch
+  CH03/CH04 from an affine to a degree-3 correction by accident.</div>
+  <div>Source: coverage analysis of the 2026-09-24 release fit (<code>camera_fit.npz</code>, sha 6e4b54e9…), reproduced
+  bit-for-bit on the lab PC 2026-09-26. Visibility threshold: a cone at least 12 px per 10 cm in the image.</div>
+</footer>
+</div>
+
+<script>
+(function () {
+  var KEY = "handoff-cone-sheet-v1", state = {};
+  try { state = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { state = {}; }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  document.querySelectorAll("[data-k]").forEach(function (el) {
+    var k = el.getAttribute("data-k");
+    if (el.type === "checkbox") {
+      if (state[k]) el.checked = true;
+      el.addEventListener("change", function () { state[k] = el.checked; save(); });
+    } else {
+      if (state[k]) el.value = state[k];
+      el.addEventListener("input", function () { state[k] = el.value; save(); });
+    }
+  });
+})();
+</script>

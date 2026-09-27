@@ -496,9 +496,7 @@ To RE-RUN the fit you need `qc\corners\` (20 MB of cached corner detections) and
 
 ### Reproduction on the laptop (2026-09-25)
 
-`fit_cameras.py --out F:\calibration\qc
-epro_2026-09-25` from the drive, Python 3.14 / numpy 2.4.4 /
-scipy 1.18 / OpenCV 4.13 (the release: OpenCV 5.0, scipy 1.17), 135 min. Stage 1 reproduces the lens
+`fit_cameras.py --out F:\calibration\qc\repro_2026-09-25` from the drive, Python 3.14 / numpy 2.4.4 / scipy 1.18 / OpenCV 4.13 (the release: OpenCV 5.0, scipy 1.17), 135 min. Stage 1 reproduces the lens
 to 1e-6. The bundle does not reproduce bit for bit - it stops at its evaluation budget (section 6.3 of
 the report) so the endpoint follows the start, and the start differs with the OpenCV version: the
 2026-09-19 T65 view in CH04 fails the flatness gate at 62 px on the field PC and passes here, to be
@@ -510,3 +508,16 @@ frame correction the pixel -> paddock mapping differs by at most 1.1 mm on CH01/
 held-out label groups agree to the last digit or one. `compare_fits.py <release npz> <other npz>`
 runs this comparison for any pair of fits. `fit_manifest.json` now records the package versions.
 The 5 fold refits for `cv_folds_eval.py` were not repeated (5 x 135 min).
+
+### Reproduction on the lab PC (2026-09-26)
+
+Lab PC DESKTOP-HUA1FJN, the drive mounted as `G:`, `fit_cameras.py --out G:\calibration\qc\repro_2026-09-26_labpc`
+in the `cv` conda env: Python 3.11 / numpy 2.4.4 / scipy 1.17.1 / OpenCV 5.0.0 - the release's library
+versions - 24 min (12-core i9-10920X). With the same versions the fit reproduces the release: the same five
+dropped views (T65 in CH04 fails the flatness gate at 62 px, as on the field PC), camera centres within
+0.1 mm, lens within 1.4e-6, the same 8000-evaluation stop at a cost of 104944.42 vs 104944.37; the pixel -> paddock
+mapping through each fit's own frame correction agrees to 0.0 mm on all six cameras with identical support,
+and PADDOCK_AGREEMENT / LINE_CHECK / CV_LANDMARKS are identical to the last digit. The only differences are
+in the last digits of 16 of the 200 numbers in CALIBRATION_FIT.txt (largest: CH04 reprojection rms 13.73 vs
+13.66 px, CH04 height 2.234 vs 2.236 m; `compare_vs_release.txt` in that folder). So the
+laptop's 42 mm frame shift came from the OpenCV 4.13 start, not from the drive or the data.
