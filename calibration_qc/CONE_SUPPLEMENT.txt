@@ -1,0 +1,78 @@
+CONE SUPPLEMENT - where extra cones help the camera handoffs
+fit G:\calibration\qc\camera_fit.npz  sha256 6e4b54e9264a3675
+
+shared-cone coverage of each two-camera overlap (within 30 in), today -> after the 46 mid-points:
+  CH01-CH02   84% ->  99%
+  CH01-CH03   82% ->  98%
+  CH01-CH04   97% -> 100%
+  CH01-CH05   66% ->  95%
+  CH01-CH06   86% ->  93%
+  CH02-CH03   96% ->  99%
+  CH02-CH04   92% ->  99%
+  CH02-CH05   89% ->  96%
+  CH02-CH06   86% ->  97%
+  CH04-CH06    0% -> 100%
+
+mid-points in greedy order (gain = overlap cells newly covered; cameras with px per 10 cm):
+  V22M   (132,120) gain  282.5  CH01[43], CH02[41], CH05[89]
+  F12M   ( 60,120) gain  272.5  CH01[21], CH02[20], CH03[93]
+  F23M   (132,174) gain  235.0  CH01[42], CH05[64, outside support]
+  V13M   ( 60,174) gain  215.0  CH01[23], CH02[21], CH03[78]
+  T63M   (384,147) gain  160.5  CH01[29], CH02[31]
+  T61M   (384, 39) gain  160.5  CH02[32], CH04[58, outside support], CH06[42, outside support]
+  T62M   (384, 93) gain  104.0  CH01[30], CH02[32]
+  T22M   ( 96, 93) gain  104.0  CH01[29], CH02[29]
+  F41M   (276, 66) gain   97.0  CH02[56], CH06[53, outside support]
+  T23M   ( 96,147) gain   87.0  CH01[30], CH02[29]
+  T24M   ( 96,201) gain   78.0  CH01[32], CH03[74, outside support]
+  V53M   (348,174) gain   72.0  CH01[41], CH06[64, outside support]
+  F32M   (204,120) gain   71.0  CH01[88], CH02[84]
+  F21M   (132, 66) gain   70.5  CH02[40], CH05[54, outside support]
+  T33M   (168,147) gain   66.0  CH01[60], CH02[66], CH05[80]
+  T41M   (240, 39) gain   60.5  CH02[42]
+  V42M   (276,120) gain   57.5  CH01[88], CH02[90]
+  F52M   (348,120) gain   56.0  CH01[43], CH02[45], CH06[86]
+  V51M   (348, 66) gain   40.5  CH02[43], CH06[57]
+  V31M   (204, 66) gain   39.5  CH02[56], CH05[53, outside support]
+  F61M   (420, 66) gain   34.0  CH01[22], CH02[24], CH04[76]
+  V11M   ( 60, 66) gain   29.0  CH01[20], CH02[22], CH03[84]
+  T73M   (456,147) gain   22.5  CH01[16], CH02[16], CH04[67]
+  T72M   (456, 93) gain   22.5  CH01[15], CH02[18], CH04[63]
+  T71M   (456, 39) gain   22.5  CH01[18], CH02[20], CH04[53]
+  T42M   (240, 93) gain   19.0  CH02[75]
+  T13M   ( 24,147) gain   16.5  CH01[17], CH02[15], CH03[61]
+  T52M   (312, 93) gain   13.5  CH02[60], CH06[74]
+  V62M   (420,120) gain   11.0  CH01[21], CH02[22], CH04[94]
+  T74M   (456,201) gain   10.0  CH01[18], CH04[60]
+  T14M   ( 24,201) gain    9.0  CH01[19], CH02[16], CH03[52]
+  T12M   ( 24, 93) gain    9.0  CH01[15], CH02[16], CH03[65]
+  T53M   (312,147) gain    4.5  CH01[59], CH06[81]
+  F63M   (420,174) gain    4.5  CH01[22], CH04[87]
+  T11M   ( 24, 39) gain    4.0  CH02[18], CH03[60]
+  T21M   ( 96, 39) gain    0.0  CH02[30]
+  T31M   (168, 39) gain    0.0  CH02[43]
+  T32M   (168, 93) gain    0.0  CH02[57], CH05[76]
+  T34M   (168,201) gain    0.0  CH01[44]
+  T43M   (240,147) gain    0.0  CH01[76]
+  T44M   (240,201) gain    0.0  CH01[43]
+  T51M   (312, 39) gain    0.0  CH02[42]
+  T54M   (312,201) gain    0.0  CH01[44]
+  T64M   (384,201) gain    0.0  CH01[31]
+  V33M   (204,174) gain    0.0  CH01[57]
+  F43M   (276,174) gain    0.0  CH01[57]
+
+scenarios (paddock share mapped at z = 60 mm by 0 / 1 / 2+ cameras; per camera mapped / seen):
+  today                             1.2% 47.3% 51.5%   CH01 67.7%/69.1%  CH02 69.0%/69.7%  CH03 11.9%/18.0%  CH04 11.7%/17.5%  CH05  8.9%/12.6%  CH06  6.2%/12.8%
+  +28 T-cord mid-points             0.2% 41.5% 58.3%   CH01 68.5%/69.1%  CH02 69.6%/69.7%  CH03 16.9%/18.0%  CH04 16.4%/17.5%  CH05 10.5%/12.6%  CH06  8.4%/12.8%
+  +18 V/F mid-points +4 corners     0.1% 39.1% 60.9%   CH01 68.5%/69.1%  CH02 69.7%/69.7%  CH03 17.1%/18.0%  CH04 16.5%/17.5%  CH05 10.8%/12.6%  CH06 10.9%/12.8%
+  +cords Y39, Y201                  0.1% 37.6% 62.3%   CH01 68.5%/69.1%  CH02 69.7%/69.7%  CH03 17.8%/18.0%  CH04 16.9%/17.5%  CH05 10.8%/12.6%  CH06 11.5%/12.8%
+  +cords X60, X420                  0.1% 37.1% 62.8%   CH01 68.5%/69.1%  CH02 69.7%/69.7%  CH03 17.9%/18.0%  CH04 17.2%/17.5%  CH05 10.8%/12.6%  CH06 11.5%/12.8%
+
+edge cones on the T cords beyond scenario 3:
+  CH03: maps 17.1%; no pick
+  CH04: maps 17.0%; (384,21) +0.5% also seen by ['CH02']
+  CH05: maps 12.0%; (96,189) +1.1% also seen by ['CH01', 'CH03']
+  CH06: maps 12.0%; (384,177) +1.2% also seen by ['CH01']
+
+corner and edge cones: C1 (12,12) ['CH02', 'CH03']; C2 (12,228) ['CH01', 'CH02', 'CH03']; C3 (468,12) ['CH02', 'CH04']; C4 (468,228) ['CH01', 'CH04']; E1 (384,21) ['CH02', 'CH04']; E2 (96,189) ['CH01', 'CH03', 'CH05']
+visible on 2026-09-18 but never labelled: CH01 F23, T63, V13; CH02 T23, T41, T42, T63; CH06 T64

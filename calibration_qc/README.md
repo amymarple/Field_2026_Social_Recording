@@ -389,6 +389,8 @@ segment agree to 1-4 in. `paddock_map.load()` applies the warp (inverse by Newto
 ## Downstream validation (2026-09-24)
 
 `downstream_validation.py`: an ensemble of legitimate calibrations (warp variants + bootstrap) pushed through 10 cm bins - handoff continuity, bin flip rate, occupancy and simulated place-field robustness, error vector field, distance-to-feature. Results and reading in section 9 of `CALIBRATION_REPORT_2026-09-24.md`; the numbers in `DOWNSTREAM_VALIDATION.txt`.
+**Superseded (2026-09-26):** that output predates the release fit, and the ensemble varies only the ground warp
+on one bundle; it is not a place-field validation of the release. See `AUDIT_PLACE_FIELD_READINESS_2026-09-26.md`.
 
 ## The taped heights fix the lens scales (2026-09-24, evening)
 
@@ -521,3 +523,20 @@ and PADDOCK_AGREEMENT / LINE_CHECK / CV_LANDMARKS are identical to the last digi
 in the last digits of 16 of the 200 numbers in CALIBRATION_FIT.txt (largest: CH04 reprojection rms 13.73 vs
 13.66 px, CH04 height 2.234 vs 2.236 m; `compare_vs_release.txt` in that folder). So the
 laptop's 42 mm frame shift came from the OpenCV 4.13 start, not from the drive or the data.
+
+## Cone supplement and place-field readiness (2026-09-26)
+
+* `cone_supplement.py`: which paddock points each camera sees and can map (inside its verified support), the
+  46 mid-point cones of the 2026-09-19 plan ordered by the shared coverage they add to every two-camera
+  overlap, scenarios with corner cones and optional new cords, edge cones for CH03-CH06, and the station
+  cones visible on 2026-09-18 but never labelled -> `qc\cone_supplement\` (JSON, text, map).
+  `cone_sheet.py --out <html>` writes the field sheet from that JSON; the committed sheet is
+  `CALIB_CONE_SHEET_2026-09-26.html` in the repository root (52 cones, tape from the T-cord ticks only).
+* `fold_stability.py`: how far a point at rat height moves between the release and the five placement-fold
+  calibrations (whole pipeline, fold ground corrections refitted with the release settings) ->
+  `qc\cv\FOLD_STABILITY.txt`. Panos: 1-3 mm median, 21 mm max; CH03 53 mm median, 203 mm max; the degree-4
+  pano warp instead of degree 3 moves CH01 by 49 mm median.
+* `AUDIT_PLACE_FIELD_READINESS_2026-09-26.md`: what can be said about mapping every camera onto one paddock
+  map for place fields, what the old downstream validation does not show, the error sources outside the
+  calibration numbers (tracked-point height, ground between labels, camera time offsets, the lattice), and
+  what would validate it.
