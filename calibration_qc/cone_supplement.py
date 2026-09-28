@@ -13,7 +13,10 @@ Then:
      length, X60, X420 across) do to each camera's mapped area and to how many cameras map each point
      at the height of a rat's back;
   3. edge cones on the existing T cords that widen CH03-CH06's mapped area beyond scenario 2;
-  4. station cones visible on 2026-09-18 but never labelled.
+  4. station cones visible on 2026-09-18 but never labelled;
+  5. a ball sweep for a ball moved as a stand-in rat (handoff disagreement at a known height everywhere,
+     and the delay between camera streams): lanes along and across the paddock, a lap along the walls;
+     how much of every two-camera overlap it passes and how often it crosses each camera's edge.
 This is geometry only: a house or pole can still hide a cone, and more coverage does not by itself
 mean smaller disagreement between cameras - the new cones first measure that, then the ground
 correction is refitted with them.
@@ -44,6 +47,11 @@ MID_VF_Y = [66, 120, 174]               # the V/F columns, half-way between two 
 CORNERS = {"C1": (12, 12), "C2": (12, 228), "C3": (468, 12), "C4": (468, 228)}   # 12 in outside the end ticks
 EDGE = {"E1": (384, 21), "E2": (96, 189)}   # the edge picks of step 3 on 2026-09-26 (CH04, CH05), fixed for the sheet
 NEW_CORDS = [("y", 39), ("y", 201), ("x", 60), ("x", 420)]
+Z_BALL = 110.0          # mm, centre of a ball ~22 cm across (the route choice barely depends on it)
+SWEEP_Y = [12, 39, 66, 93, 120, 147, 174, 201, 228]   # lanes along the length: every tick row and half-way between
+SWEEP_X = [24, 60, 96, 132, 168, 204, 240, 276, 312, 348, 384, 420, 456]   # lanes across: every T cord and half-way
+WALL_GAP = 8.0          # in: the wall lap keeps the ball centre this far from the wall foot (~20 cm)
+R_SWEEP = 14.0          # in: a cell counts as swept within this distance of a lane (about half a lane spacing)
 
 cams = pm.load()
 names = sorted(cams)
@@ -158,15 +166,16 @@ SCEN = [("today", [], []),
         ("+18 V/F mid-points +4 corners", mids + list(CORNERS.values()), []),
         ("+cords Y39, Y201", mids + list(CORNERS.values()), NEW_CORDS[:2]),
         ("+cords X60, X420", mids + list(CORNERS.values()), NEW_CORDS)]
-scen, scen_maps = [], {}
+scen, scen_maps, hulls = [], {}, {}
 for sname, pts, cords in SCEN:
-    nmap = np.zeros(len(G), int); per = {}
+    nmap = np.zeros(len(G), int); per = {}; hulls[sname] = {}
     for c in names:
         new = [p for p in pts if seen(cams[c], p)[0]]
         for axis, val in cords:
             q = cord_points(axis, val); new += [tuple(p) for p in q[seen(cams[c], q, z=0.0)]]
         P = np.vstack([hull0[c]] + ([np.asarray(new, float)] if new else []))
         hull = inflate(P[ConvexHull(P).vertices]) if new else hull0[c]
+        hulls[sname][c] = hull
         m = see[c] & MPath(hull).contains_points(G)
         per[c] = dict(new_points=len(new), mapped=float(m.mean()), seen=float(see[c].mean()))
         nmap += m.astype(int)
@@ -214,6 +223,35 @@ for c in names:
     if miss:
         unlabelled[c] = miss
 
+# ---------------------------------------------------------------- 5. ball sweep over the whole paddock
+# A ball of known size moved as a stand-in rat. Every frame in which two cameras map it gives the handoff
+# disagreement at a known height at that spot; the lag that aligns two cameras' tracks is the delay between the
+# streams. The error field is wanted everywhere a rat can go, so the ball covers the paddock in lanes (a person
+# wandering at random over-samples the middle and misses the corners and walls), then a lap along the walls,
+# then free wandering. Camera edges are those of the calibration refitted with the cones.
+BALL_HULLS = hulls[SCEN[2][0]]
+seeb = {c: cams[c].sees(G, z_mm=Z_BALL, units="in", margin=10) & MPath(BALL_HULLS[c]).contains_points(G) for c in names}
+bpairs = [(a, b) for a, b in itertools.combinations(names, 2) if (seeb[a] & seeb[b]).sum() > 20]
+lanes = [("y", float(y)) for y in SWEEP_Y] + [("x", float(x)) for x in SWEEP_X]
+W = WALL_GAP
+dist = np.full(len(G), np.inf)
+for axis, v in lanes + [("y", W), ("y", 240 - W), ("x", W), ("x", 480 - W)]:     # lanes, then the wall lap
+    dist = np.minimum(dist, np.abs(G[:, 1] - v) if axis == "y" else np.abs(G[:, 0] - v))
+near = dist <= R_SWEEP
+ball_pairs = {f"{a}-{b}": float((seeb[a] & seeb[b] & near).sum() / (seeb[a] & seeb[b]).sum()) for a, b in bpairs}
+ball_cams = {c: float((seeb[c] & near).sum() / max(seeb[c].sum(), 1)) for c in names}
+edge_x = {c: 0 for c in names}            # how often the lanes cross each camera's edge
+for axis, v in lanes:
+    t = np.arange(6.0, (480 if axis == "y" else 240) - 6.0 + 1e-9, 1.0)
+    P = np.stack([t, np.full_like(t, v)], 1) if axis == "y" else np.stack([np.full_like(t, v), t], 1)
+    for c in names:
+        on = seen(cams[c], P, z=Z_BALL) & MPath(BALL_HULLS[c]).contains_points(P)
+        edge_x[c] += int(np.abs(np.diff(on.astype(int))).sum())
+path_in = (len(SWEEP_Y) * (480 - 2 * W) + len(SWEEP_X) * (240 - 2 * W) + 2 * (2 * (480 - 2 * W) + 2 * (240 - 2 * W)))
+ball = dict(z_mm=Z_BALL, lanes_y=SWEEP_Y, lanes_x=SWEEP_X, wall_gap_in=W, r_sweep_in=R_SWEEP,
+            path_m=round(path_in * 0.0254, 1), pair_coverage=ball_pairs, camera_coverage=ball_cams,
+            edge_crossings=edge_x, max_gap_in=float(dist.max()))
+
 # ---------------------------------------------------------------- write
 OUT.mkdir(parents=True, exist_ok=True)
 res = dict(fit=str(pm.FIT), fit_sha256=hashlib.sha256(Path(pm.FIT).read_bytes()).hexdigest(),
@@ -222,7 +260,8 @@ res = dict(fit=str(pm.FIT), fit_sha256=hashlib.sha256(Path(pm.FIT).read_bytes())
            positions={k: dict(**report[k], gain=round(gain.get(k, 0.0), 1)) for k in cands},
            order=[k for k, _ in order], no_gain=[k for k in cands if k not in gain],
            pairs_shared_cone_coverage={p: dict(before=pair_before[p], after=pair_after[p]) for p in pair_before},
-           scenarios=scen, edge=edge, extras=extras, unlabelled=unlabelled)
+           scenarios=scen, edge=edge, extras=extras, unlabelled=unlabelled,
+           ball=ball)
 (OUT / "cone_supplement.json").write_text(json.dumps(res, indent=1), encoding="utf-8")
 
 L = ["CONE SUPPLEMENT - where extra cones help the camera handoffs", f"fit {pm.FIT}  sha256 {res['fit_sha256'][:16]}", ""]
@@ -242,6 +281,10 @@ for c, e in edge.items():
     L.append(f"  {c}: maps {e['mapped_after']:.1%}; " + ("; ".join(
         f"({p['x']:.0f},{p['y']:.0f}) +{p['gain']:.1%} also seen by {p['also_seen_by']}" for p in e["picks"]) or "no pick"))
 L.append("\ncorner and edge cones: " + "; ".join(f"{k} ({v['x']},{v['y']}) {sorted(v['cams'])}" for k, v in extras.items()))
+L.append(f"\nball sweep: {len(SWEEP_Y)} lanes along + {len(SWEEP_X)} across + a wall lap each way = "
+         f"{ball['path_m']} m; every cell within {ball['max_gap_in']:.0f} in of the path")
+L.append("  share of each overlap within %.0f in: " % R_SWEEP + "  ".join(f"{p} {v:.0%}" for p, v in ball_pairs.items()))
+L.append("  lane crossings of each camera's edge: " + "  ".join(f"{c} {n}" for c, n in edge_x.items()))
 L.append("visible on 2026-09-18 but never labelled: " + "; ".join(f"{c} {', '.join(v)}" for c, v in unlabelled.items()))
 (OUT / "CONE_SUPPLEMENT.txt").write_text("\n".join(L) + "\n", encoding="utf-8")
 print("\n".join(L))

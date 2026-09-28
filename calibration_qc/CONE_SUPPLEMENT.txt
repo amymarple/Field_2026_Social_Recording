@@ -68,11 +68,15 @@ scenarios (paddock share mapped at z = 60 mm by 0 / 1 / 2+ cameras; per camera m
   +cords Y39, Y201                  0.1% 37.6% 62.3%   CH01 68.5%/69.1%  CH02 69.7%/69.7%  CH03 17.8%/18.0%  CH04 16.9%/17.5%  CH05 10.8%/12.6%  CH06 11.5%/12.8%
   +cords X60, X420                  0.1% 37.1% 62.8%   CH01 68.5%/69.1%  CH02 69.7%/69.7%  CH03 17.9%/18.0%  CH04 17.2%/17.5%  CH05 10.8%/12.6%  CH06 11.5%/12.8%
 
-edge cones on the T cords beyond scenario 3:
+edge cones on the T cords beyond the mid-points and corners:
   CH03: maps 17.1%; no pick
   CH04: maps 17.0%; (384,21) +0.5% also seen by ['CH02']
   CH05: maps 12.0%; (96,189) +1.1% also seen by ['CH01', 'CH03']
   CH06: maps 12.0%; (384,177) +1.2% also seen by ['CH01']
 
 corner and edge cones: C1 (12,12) ['CH02', 'CH03']; C2 (12,228) ['CH01', 'CH02', 'CH03']; C3 (468,12) ['CH02', 'CH04']; C4 (468,228) ['CH01', 'CH04']; E1 (384,21) ['CH02', 'CH04']; E2 (96,189) ['CH01', 'CH03', 'CH05']
+
+ball sweep: 9 lanes along + 13 across + a wall lap each way = 249.9 m; every cell within 14 in of the path
+  share of each overlap within 14 in: CH01-CH02 100%  CH01-CH03 100%  CH01-CH04 100%  CH01-CH05 100%  CH01-CH06 100%  CH02-CH03 100%  CH02-CH04 100%  CH02-CH05 100%  CH02-CH06 100%  CH04-CH06 100%
+  lane crossings of each camera's edge: CH01 18  CH02 20  CH03 12  CH04 13  CH05 18  CH06 20
 visible on 2026-09-18 but never labelled: CH01 F23, T63, V13; CH02 T23, T41, T42, T63; CH06 T64

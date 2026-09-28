@@ -52,6 +52,13 @@ UNLAB_TXT = "; ".join(f"{c} {', '.join(v)}" for c, v in UNLAB.items())
 SMALL = plan["scenarios"][0]["per_cam"]
 SEEN_TXT = ", ".join(f"{c} {SMALL[c]['seen'] * 100:.1f} %" for c in ("CH03", "CH04", "CH05", "CH06"))
 SHA = plan["fit_sha256"][:8]
+BALL = plan["ball"]
+SWEEP_MIN = round(BALL["path_m"] / 0.4 / 60)   # minutes of walking at 0.4 m/s, without stops and turns
+COV_LO = round(min(BALL["pair_coverage"].values()) * 100)
+GAP_CM = round(BALL["max_gap_in"] * 2.54)
+EDGE_LO, EDGE_HI = min(BALL["edge_crossings"].values()), max(BALL["edge_crossings"].values())
+LANES_Y = ", ".join(str(v) for v in BALL["lanes_y"])
+N_Y, N_X = len(BALL["lanes_y"]), len(BALL["lanes_x"])
 
 
 def chips(cams):
@@ -89,6 +96,25 @@ for k, v in EXTRA.items():
     rows3.append(f'<tr><td><label class="pos" for="ck-{k}"><input type="checkbox" id="ck-{k}" data-k="{k}">'
                  f'<span class="id">{k}</span>{first}</label></td><td class="num">{v["x"]}, {v["y"]}</td>'
                  f'<td>{escape(v["how"])}</td><td class="cams">{chips(v["cams"])}</td></tr>')
+
+
+# ---- step 6: the ball sweep, in blocks
+BLOCKS = [
+    ("A", f"Along the length, {N_Y} lanes at y {LANES_Y}: every tick row and half-way between two rows. "
+          "Snake: at the end wall step 27 in over to the next lane and come back. On the five tick rows, "
+          "hold the ball still for 3 s on every tick."),
+    ("B", f"Across, {N_X} lanes: along every T cord and half-way between two cords (36 in over). "
+          "Snake again, wall to wall."),
+    ("C", "Along the walls: one lap each way, the ball about 20 cm from the wall foot, into every corner."),
+    ("D", "Free, 5 minutes: wander anywhere, change direction often, into the corners, around the "
+          "shelters and along the walls."),
+]
+rows6 = []
+for k, text in BLOCKS:
+    rows6.append(f'<tr><td><label class="pos" for="ck-ball-{k}"><input type="checkbox" id="ck-ball-{k}" data-k="ck-ball-{k}">'
+                 f'<span class="id">{k}</span></label></td><td>{text}</td>'
+                 f'<td><input class="t" id="b-{k}-start" type="text" placeholder="start HH:MM:SS" data-k="b-{k}-start" aria-label="{k} start, PC time"></td>'
+                 f'<td><input class="t" id="b-{k}-end" type="text" placeholder="end HH:MM:SS" data-k="b-{k}-end" aria-label="{k} end, PC time"></td></tr>')
 
 # ---- map (paddock inches; y up)
 def Y(y):
@@ -143,7 +169,7 @@ html = f"""<title>Handoff Cone Sheet</title>
 <style>
 :root {{
   --ground:#F5F6F2; --paper:#FFFFFF; --ink:#1C231F; --muted:#59645E; --rule:#D5DBD3;
-  --grass:#E8EEE3; --cone:#D2581A; --cone-soft:#FCE6D8; --cord:#2C6798; --cord-soft:#DCE8F2;
+  --grass:#E8EEE3; --cone:#D2581A; --cone-soft:#FCE6D8; --cord:#2C6798; --cord-soft:#DCE8F2; --ball:#6A4BA6;
   --display:"Barlow Semi Condensed", "Arial Narrow", Arial, sans-serif;
   --body:"Source Sans 3", "Segoe UI", Helvetica, Arial, sans-serif;
   --mono:"IBM Plex Mono", Consolas, "Courier New", monospace;
@@ -152,13 +178,13 @@ html = f"""<title>Handoff Cone Sheet</title>
   :root:not([data-theme="light"]) {{
     color-scheme: dark;
     --ground:#101412; --paper:#171C19; --ink:#E3E8E2; --muted:#9AA59D; --rule:#2B332E;
-    --grass:#16201A; --cone:#F0873F; --cone-soft:#3B2417; --cord:#6FA7D8; --cord-soft:#1B2A37;
+    --grass:#16201A; --cone:#F0873F; --cone-soft:#3B2417; --cord:#6FA7D8; --cord-soft:#1B2A37; --ball:#B49CE8;
   }}
 }}
 :root[data-theme="dark"] {{
   color-scheme: dark;
   --ground:#101412; --paper:#171C19; --ink:#E3E8E2; --muted:#9AA59D; --rule:#2B332E;
-  --grass:#16201A; --cone:#F0873F; --cone-soft:#3B2417; --cord:#6FA7D8; --cord-soft:#1B2A37;
+  --grass:#16201A; --cone:#F0873F; --cone-soft:#3B2417; --cord:#6FA7D8; --cord-soft:#1B2A37; --ball:#B49CE8;
 }}
 body {{ background:var(--ground); color:var(--ink); font-family:var(--body); font-size:16px; line-height:1.5;
   padding-inline:16px; padding-block:24px 56px; }}
@@ -185,6 +211,9 @@ section {{ display:flex; flex-direction:column; gap:12px; }}
 .tick {{ stroke:var(--ink); stroke-width:1.4; }}
 .newcord {{ stroke:var(--cord); stroke-width:1.3; stroke-dasharray:6 4; fill:none; }}
 .newcord2 {{ stroke:var(--cord); stroke-width:1; stroke-dasharray:2 4; fill:none; }}
+input.t {{ font-family:var(--mono); font-size:13px; width:9.5em; padding:4px 6px; border:1px solid var(--rule); border-radius:4px;
+  background:var(--paper); color:var(--ink); }}
+input.t:focus-visible {{ outline:2px solid var(--cord); outline-offset:1px; }}
 .cone {{ fill:var(--cone); stroke:var(--paper); stroke-width:1; }}
 .cone.ring {{ fill:var(--paper); stroke:var(--cone); stroke-width:2; }}
 .cone.firstm {{ stroke:var(--ink); stroke-width:1.4; }}
@@ -237,7 +266,7 @@ code {{ font-family:var(--mono); font-size:.9em; }}
   <div class="facts">
     <div><b>52 positions</b><span>28 on the existing T cords, 18 between them, 6 corner and edge cones</span></div>
     <div><b>{N_FIRST} marked first</b><span>the largest gain for the handoffs; place these first if time runs short</span></div>
-    <div><b>Tape measure only</b><span>every position is a half-way point between ticks, or a short distance from one</span></div>
+    <div><b>Tape and one ball</b><span>every cone is half-way between ticks or a short distance from one; the ball sweeps the paddock in lanes</span></div>
     <div><b>Cameras untouched</b><span>do not lean on poles or shelters; everyone out of view while recording</span></div>
   </div>
 </header>
@@ -256,6 +285,26 @@ code {{ font-family:var(--mono); font-size:.9em; }}
   y across the 20 ft width from the y = 0 side wall. Camera chips under each position are the cameras that
   should see it according to the fit (CH01/CH02 panoramas, CH03/CH04 end cameras, CH05/CH06 shelter cameras);
   a house or pole can still hide one, which does no harm.</p>
+</section>
+
+<section class="callout">
+  <h2>Before going out</h2>
+  <ol>
+    <li><b>Weather:</b> dry, bright overcast, little wind. In sun, work within two to three hours of midday
+    (short shadows, no glare). Not in rain, and not with drops or mist on any camera dome: wait until they
+    have dried. Do not wipe a dome; that can move the camera.</li>
+    <li><b>Start the calibration recorder</b> on the field PC, in a cmd window in the repository folder:
+    <code>powershell -NoProfile -ExecutionPolicy Bypass -File calibration_record.ps1</code>. It records all
+    12 streams into a new <code>E:\calibration\session_&lt;date&gt;_&lt;time&gt;</code> folder, alongside the
+    production recorders, and stops with Ctrl+C. Check that every stream is growing.</li>
+    <li><b>NVR live view:</b> all six ground cameras in colour, none switched to black-and-white IR.</li>
+    <li><b>Clocks:</b> every time on this sheet is PC time. Look at the PC clock and your phone at the same
+    moment and write the difference, then add it to what your phone shows in the field.</li>
+  </ol>
+  <div class="rec">
+    <label for="t-clock">Phone minus PC (seconds, with sign)<input id="t-clock" type="text" placeholder="+12" data-k="t-clock"></label>
+    <label for="t-rec">Recorder started: PC time, session folder<input id="t-rec" type="text" placeholder="09:58:10 · session_2026-09-29_09-58-10" data-k="t-rec"></label>
+  </div>
 </section>
 
 <section>
@@ -342,6 +391,49 @@ code {{ font-family:var(--mono); font-size:.9em; }}
 </section>
 
 <section>
+  <h2><span class="step">6</span>Sweep a ball over the whole paddock</h2>
+  <p>A ball of known size, moved slowly, stands in for a rat. In every frame where two cameras see it, the difference
+  between their two readings is the handoff jump at a known height at that spot, and the time shift that lines up
+  their two tracks is the delay between those two camera streams. Swept over the whole paddock, it gives that jump
+  everywhere a rat can go, which is what the place-field analysis needs. The cones cannot measure either.
+  About 25 minutes ({SWEEP_MIN} of them walking), after step 4 (and 5) is recorded.</p>
+  <ul>
+    <li><b>The ball:</b> one plain colour that stands out on grass (orange, yellow or red; not white with black
+    panels, not green), 15&ndash;25 cm across. Measure its circumference with the tape.</li>
+    <li><b>Clear the way:</b> pick the cones up first; their positions are already on video.</li>
+    <li><b>Move it</b> with a stick or on a 1&ndash;2 m string, so you stay a step away from it, at a slow, steady
+    walk (about half your normal pace).</li>
+    <li>Write the PC time at the start and end of each block.</li>
+  </ul>
+  <div class="tbl"><table>
+    <thead><tr><th>Block</th><th>What</th><th>Start</th><th>End</th></tr></thead>
+    <tbody>{"".join(rows6)}</tbody>
+  </table></div>
+  <div class="rec">
+    <label for="t-ball">Ball: colour and circumference<input id="t-ball" type="text" placeholder="orange, 69 cm" data-k="t-ball"></label>
+  </div>
+  <p class="note">Why lanes and not only wandering: a person walking at random covers the middle many times and the
+  corners and walls, where rats spend much of their time, hardly at all. The lanes put every point of the paddock
+  within {GAP_CM} cm of the ball's path, pass through {COV_LO} % of every two-camera overlap and cross each camera's
+  edge {EDGE_LO}&ndash;{EDGE_HI} times. Neighbouring lanes run in opposite directions and the free part adds every other
+  direction; that spread of directions is what separates a camera delay (the ball always a little behind in that
+  camera, whichever way it moves) from a position error (the same offset whichever way it moves).</p>
+</section>
+
+<section class="callout">
+  <h2>After</h2>
+  <ol>
+    <li><b>Stop the recorder</b> with Ctrl+C in its window. It closes every segment itself (the file names get
+    <code>_to_HH-MM-SS</code>).</li>
+    <li><b>Copy the new session folder</b> from <code>E:\calibration</code> to the <code>calibration</code> folder on the
+    portable drive. If the ultrasound mics or the neurologger dongle are still in use, ask before a long copy
+    over USB.</li>
+    <li><b>Send Claude</b> the times and notes from this page (they are stored only in this browser), the clock
+    difference, and the ball's colour and circumference.</li>
+  </ol>
+</section>
+
+<section>
   <h2>What this changes</h2>
   <p>Share of the paddock by how many cameras can map a rat's back there, and the mapped share for the four
   small cameras. A camera maps only inside the area its own labels surround, so cones at the edge of its view
@@ -365,7 +457,7 @@ code {{ font-family:var(--mono); font-size:.9em; }}
   <code>line_gui.py</code> and <code>frame_correction.py</code>, and a guard so the extra cord points do not switch
   CH03/CH04 from an affine to a degree-3 correction by accident.</div>
   <div>Source: coverage analysis of the 2026-09-24 release fit (<code>camera_fit.npz</code>, sha {SHA}…), reproduced
-  on the lab PC 2026-09-26 with the same mapping to within 0.1 mm. Positions and numbers: <code>calibration_qc/cone_supplement.py</code>, sheet: <code>cone_sheet.py</code>. Visibility threshold: a cone at least 12 px per 10 cm in the image.</div>
+  on the lab PC 2026-09-26 with the same mapping to within 0.1 mm. Positions and numbers: <code>calibration_qc/cone_supplement.py</code>, sheet: <code>cone_sheet.py</code>. The ball detector and the handoff / delay analysis are still to be written. Visibility threshold: a cone at least 12 px per 10 cm in the image.</div>
 </footer>
 </div>
 
