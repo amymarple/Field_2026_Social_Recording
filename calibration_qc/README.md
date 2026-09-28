@@ -540,3 +540,26 @@ laptop's 42 mm frame shift came from the OpenCV 4.13 start, not from the drive o
   map for place fields, what the old downstream validation does not show, the error sources outside the
   calibration numbers (tracked-point height, ground between labels, camera time offsets, the lattice), and
   what would validate it.
+
+## Plate tilt bound 10 deg instead of 6: no gain, the release keeps 6 (2026-09-28)
+
+24 of the 64 plates sat at the +-6 deg tilt bound in the release, and the operator confirmed plates tilt on
+grass, so the whole pipeline was rerun with `FIT_TILT_MAX_DEG=10` into `<root>\qc\variants\tilt10\` (the
+release in the repo untouched): the bundle, its ground correction, PADDOCK_AGREEMENT / LINE_CHECK /
+CV_LANDMARKS, and the five placement folds (same `folds.json`) scored by `cv_folds_eval.py --cv <dir>`.
+
+| | release (6 deg) | 10 deg |
+|---|---|---|
+| plates at the bound | 24 | 6 |
+| tilt rms / max | 5.2 / 8.5 deg | 6.0 / 11.8 deg |
+| weighted corner rms | 7.05 sigma | 7.01 sigma |
+| training agreement, every shared corner | 71 / 153 / 248 mm | 72 / 152 / 252 mm |
+| held-out per placement median / p90 / max | 76 / 137 / 256 mm | 77 / 140 / 269 mm |
+| held-out within 50 / 100 mm | 7 / 18 of 26 | 6 / 18 of 26 |
+
+Mapping through each fit's own frame correction (`compare_vs_release.txt` in that folder): within 1.5 mm on
+CH01, CH02, CH03, CH05, CH06 and 4 mm median / 16 mm max on CH04; the bundle frame moves up to 28 mm and the
+frame correction takes it back out. The per-fold held-out medians move by 0-5 mm. Freeing the tilt lets the
+plates absorb a little more of the image residual without predicting unseen placements any better; a
+10 deg tilt of the 800 mm plate is a 139 mm rise of one edge, which grass does not produce, so the extra
+freedom is fitting model error, not ground. The 6 deg bound stays.

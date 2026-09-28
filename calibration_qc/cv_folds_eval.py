@@ -11,8 +11,9 @@ the bundle was refitted with every camera's view of the fold's placements held o
 Every placement is therefore scored by a calibration that never saw it. Numbers here are the
 honest expectation for a new plate put down anywhere the cameras were calibrated.
 
-Usage: python cv_folds_eval.py
-Output: E:\calibration\qc\cv\CV_FOLDS.txt
+Usage: python cv_folds_eval.py [--cv <dir>]   (default <calibration root>\qc\cv; a variant keeps its own
+       folds.json + fold<i>\camera_fit.npz under its own dir)
+Output: <cv dir>\CV_FOLDS.txt
 """
 import sys, json, itertools
 from pathlib import Path
@@ -22,7 +23,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import fit_data as fd, paddock_map as pm, frame_correction as fc, board_detect as bd   # noqa: E402
 
 import qc_paths  # noqa: E402
-ROOT = qc_paths.QC_ROOT / "cv"
+args = sys.argv[1:]
+ROOT = Path(args[args.index("--cv") + 1]) if "--cv" in args else qc_paths.QC_ROOT / "cv"
 folds = json.loads((ROOT / "folds.json").read_text(encoding="utf-8"))
 P_all = [p for p in fd.all_placements() if not p["bad"] and not p["weak"]]
 L = []
