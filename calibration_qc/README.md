@@ -613,21 +613,28 @@ in `qc\2026-09-30\` under the names the tools read. Result: `session_2026-09-30_
 
 * Cones against the position of their ID, through the release at z = 50 mm: 94 in support, median 104 mm,
   p90 217 mm, max 296 mm. This is an upper bound on the calibration error, not a measure of it: several
-  cones are put at the same wrong place by every camera that sees them (T32M at y 101-103 in by CH01, CH02
-  and CH05, design 93; T72M at y 84-85 by CH01 and CH02, design 93), so those cones do not stand where their
-  ID says - moved by the ball sweep, which ran among them before the label frame, or placed off the 27 in.
+  cones are put at the same off-design place by every camera that sees them (T32M at y 101-103 in by CH01,
+  CH02 and CH05, design 93; T72M at y 84-85 by CH01 and CH02, design 93). The operator checked the cones after
+  the ball sweep: they were in place. So the gap is the layout itself (ticks, cords, cones on grass) or a bias the
+  cameras share through the 2026-09-18 lattice they were all tied to; the labels cannot tell which.
 * The same cone in two cameras (the handoff, independent of where the cone really is): 49 pairs, median
   84 mm, p90 167 mm; CH01-CH02 65 / 104, CH01-CH04 160 / 223 (the known worst pair), CH02-CH05 26 / 38.
   In line with the held-out placements of the release (76 / 137 mm).
-* Camera stability from the cones that were not moved is inconclusive: the 2026-09-18 cones on T15..T75 and
-  column V/F4 shifted 10-67 px in every direction (CH01 median 33 px), i.e. the cones moved, not (only) the
-  cameras. Image registration on static structure (`camera_drift.py`, not committed) shows CH05 and CH06
+* Camera stability cannot come from the cones: between 2026-09-18 and 2026-09-30 it rained and the grass grew,
+  so a cone that was never touched still sits differently (the T15..T75 and column V/F4 labels shifted 10-67 px
+  in every direction, CH01 median 33 px; operator). Image registration on static structure (`camera_drift.py`, not committed) shows CH05 and CH06
   unmoved (0.13 / 0.15 px over 88 / 121 matches); for CH01-CH04 the light changed too much between the two
   days for automatic matching. The operator will label poles, shelters and walls in both sessions instead.
 * Cords: Y39 maps to within 1-6 cm of y = 39 on average (CH02 -2.3, CH04 -1.4, CH03 +6.1 cm); Y201 maps
-  6-18 cm toward y = 240 in all four cameras that see it (CH04 +6, CH03 +11, CH05 +15, CH01 +18 cm). Either
-  the cord lies that far off its design line or the release's y is off near y = 200; which one needs the
-  operator's account of how Y201 was tied.
+  6-18 cm toward y = 240 in all four cameras that see it (CH04 +6, CH03 +11, CH05 +15, CH01 +18 cm). The
+  operator measured Y201 at 201 in; a cord on grass is not a rigid straight line (it sags, bends round tufts),
+  so part of that is the cord.
+
+What this means for using them: the layout is known to roughly 5-20 cm, not to the tape's millimetres. A cone
+or cord seen by two cameras is a tie point whatever its true position - both cameras must put it in the same
+place - and that is what the handoffs need. So in a refit the supplement cones enter as positions estimated
+jointly from every camera that sees them, held to their design position only by a prior of that size, and the
+cords as lines with the same allowance; the old stations keep their role as the frame.
 
 `ball_gui.py` fits a tilted ellipse when 5 or more edge points are marked and lets the operator set one by
 hand (centre, long-axis and short-axis handles): on a 180 deg arc of a 40 x 25 px ellipse a circle fit puts the
