@@ -273,6 +273,21 @@ Two Python trees of different vintage:
     `fit_intrinsics.py` (`FOCAL_OVERRIDE`, `PANO_SCALE`, set once from the taped heights) and the
     bundle never refits the lens on coplanar placements. `qc_placements` detector params are
     deliberately not OpenCV defaults.
+- **Camera stability between the calibration and the recordings is worked on in the analysis repo**
+  (`D:\Documents\GitHub\Field2026_Social_analysis` on the lab PC), not here: `cv/cv_field/camera_review.py`
+  (per-day frames and flipbooks against the 09-18 reference), `cv/cv_field/landmark_gui.py` + `landmark_guides.py`
+  (the operator labels RIGID landmarks - pole edges `POLE_<row><col>_L/_R`, wall TOP edges, the two water towers,
+  the boxes on the poles, the PC box; houses only as validation, and HOUSE_1 (roof 4) was moved on 09-18), label
+  exports committed to `cv/configs/landmarks/<cohort>/`, pages and runs under `D:\Field2026_analysis_out\<cohort>\`
+  (`cv_field_landmarks\`, `cv_field_camera_review_*`, `cv_field_camera_events_*`). Plan and findings: that repo's
+  `implementation_plan/2026-09-28-cohort3-camera-stability.md` and `change_log/2026-09-28-cohort3-camera-stability.md`
+  (automatic registration was tried and rejected - grass, rain and the IR/colour switch dominate; every camera shows
+  small day-to-day shifts, so a per-day correction is planned). `landmark_gui.py` reads 09-18 frames from
+  `F:\calibration\session_2026-09-18_13-54-34` and every other date from `F:\3rd_rat\<date>\<CH>`, so other
+  calibration sessions (09-19, 09-30) need a session option there first. Its guides import
+  `calibration_qc/paddock_map.py` from the sibling clone `D:\Documents\GitHub\Field_2026_Social_Recording` (kept
+  current with `git pull --ff-only`): a new release reaches the analysis side only after a push here and a pull
+  there. Cones are no stability test across sessions: rain and grass growth change how a cone sits.
 - Human ledger, in this repo on purpose: `README_camera_calibration.md` (epoch registry and
   physical-event log — whoever touches a camera, wall, pole or shelter fills it in),
   `calibration_record.ps1` + `gen_calib_record_sheet.py` (printable stakeout/record sheet in inches),

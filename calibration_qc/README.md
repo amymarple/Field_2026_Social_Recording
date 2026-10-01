@@ -624,7 +624,13 @@ in `qc\2026-09-30\` under the names the tools read. Result: `session_2026-09-30_
   so a cone that was never touched still sits differently (the T15..T75 and column V/F4 labels shifted 10-67 px
   in every direction, CH01 median 33 px; operator). Image registration on static structure (`camera_drift.py`, not committed) shows CH05 and CH06
   unmoved (0.13 / 0.15 px over 88 / 121 matches); for CH01-CH04 the light changed too much between the two
-  days for automatic matching. The operator will label poles, shelters and walls in both sessions instead.
+  days for automatic matching. Stability is judged instead from RIGID landmarks the operator labels - pole
+  edges, wall tops, water towers, the boxes on the poles, the PC box - with the analysis repo's
+  `cv/cv_field/landmark_gui.py` (`D:\Documents\GitHub\Field2026_Social_analysis`; pages in
+  `D:\Field2026_analysis_out\2026c\cv_field_landmarks\`, exports in that repo's `cv/configs/landmarks/2026c/`;
+  09-18 reference frames CH01 13:57:30, CH02 15:22:30, CH03 15:45:00, CH04 14:32:30). The same structures labelled
+  on a 2026-09-30 frame answer whether a camera moved between the sessions; that tool reads other dates only from
+  `F:\3rd_rat`, so it needs a session option for 09-30 first.
 * Cords: Y39 maps to within 1-6 cm of y = 39 on average (CH02 -2.3, CH04 -1.4, CH03 +6.1 cm); Y201 maps
   6-18 cm toward y = 240 in all four cameras that see it (CH04 +6, CH03 +11, CH05 +15, CH01 +18 cm). The
   operator measured Y201 at 201 in; a cord on grass is not a rigid straight line (it sags, bends round tufts),
