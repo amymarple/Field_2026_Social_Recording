@@ -1,0 +1,62 @@
+CHECK OF THE RELEASE AGAINST THE 2026-09-30 CONE SUPPLEMENT (held out: none of these labels was in the fit)
+release G:\calibration\qc\camera_fit.npz; labels G:\calibration\qc\2026-09-30
+
+1. CONES: mapped position (z = 50 mm) vs the position of the labelled ID, mm
+   camera   n in support   median    p90    max     outside support (extrapolated)
+   CH01      43           118    232    275     -
+   CH02      28           101    192    296     -
+   CH03       8            90    169    241     F14M 248, T24M 68, T21M 222
+   CH04       8            75     94     94     V64M 176, T61M 176
+   CH05       3            85    186    211     V31M 62, F21M 32, F23M 73
+   CH06       4           128    179    191     V53M 53, F41M 11, T63M 85, T61M 88
+   all         94           104    217    296
+   largest (in support) and flagged:
+     CH02 T42M  at ( 236.1, 104.0) in, design (240,93), off  296 mm  
+     CH01 T15   at (  32.0, 220.8) in, design (24,228), off  275 mm  
+     CH01 T32M  at ( 169.9, 103.0) in, design (168,93), off  259 mm  
+     CH02 T72M  at ( 460.0,  84.2) in, design (456,93), off  245 mm  
+     CH01 V44   at ( 284.8, 205.0) in, design (276,201), off  245 mm  
+     CH03 T15   at (  24.5, 237.5) in, design (24,228), off  241 mm  
+     CH01 T74M  at ( 458.4, 210.1) in, design (456,201), off  239 mm  
+     CH01 T64M  at ( 382.3, 210.0) in, design (384,201), off  232 mm  
+     CH01 T72M  at ( 461.0,  85.5) in, design (456,93), off  230 mm  
+     CH02 T32M  at ( 171.4, 100.9) in, design (168,93), off  219 mm  
+     CH01 T12M  at (  32.2,  94.4) in, design (24,93), off  211 mm  
+     CH05 T32M  at ( 171.1, 100.7) in, design (168,93), off  211 mm  
+     CH01 T53M  at ( 314.3, 154.6) in, design (312,147), off  202 mm  
+     CH06 F52M  at ( 355.5, 119.3) in, design (348,120), off  191 mm  
+     CH01 T54M  at ( 317.3, 206.2) in, design (312,201), off  189 mm  
+
+2. HANDOFF: the same cone labelled in two cameras, distance between the two mapped positions, mm
+   CH01-CH02  n  15  median    65  p90   104  max   117 (T14M)
+   CH01-CH03  n   7  median   125  p90   274  max   466 (T15)
+   CH01-CH04  n   7  median   160  p90   223  max   247 (T75)
+   CH01-CH05  n   2  median    77  p90    87  max    89 (T33M)
+   CH01-CH06  n   2  median    82  p90    83  max    83 (T52M)
+   CH02-CH03  n   7  median    80  p90   120  max   152 (F12M)
+   CH02-CH04  n   5  median   100  p90   184  max   198 (T73M)
+   CH02-CH05  n   2  median    26  p90    38  max    42 (T33M)
+   CH02-CH06  n   2  median    65  p90    94  max   101 (T52M)
+   all pairs  n  49  median    84  p90   167  max   466
+
+3. STABILITY: cones on the same station in both sessions, label shift 2026-09-18 -> 2026-09-30 (px, upright)
+   CH01: n 9  mean shift (-2.3, -17.1) px  |shift| median 33.4 px  max 67.1 px
+        F43 (-8,-67)  T15 (-22,+49)  T25 (+17,+20)  T35 (-4,-17)  T45 (+18,-15)  T55 (-33,-41)  T65 (-1,-19)  T75 (+14,-31)  V44 (-2,-33)
+   CH02: n 1  mean shift (-6.0, +8.0) px  |shift| median 10.0 px  max 10.0 px
+        V42 (-6,+8)
+   CH03: n 1  mean shift (+9.4, +9.4) px  |shift| median 13.3 px  max 13.3 px
+        T15 (+9,+9)
+   CH04: n 1  mean shift (+2.4, -25.9) px  |shift| median 26.0 px  max 26.0 px
+        T75 (+2,-26)
+   CH05: no cone labelled on the same station in both sessions
+   CH06: no cone labelled on the same station in both sessions
+
+4. CORDS: traced points of the new cords mapped at z = 0, offset from the design y, mm (+ = toward y 240)
+   CH01 Y201: 26/27 pts in support, x     4..  475 in  offset mean  +182  |offset| median  171  max  320
+   CH02 Y39: 22/23 pts in support, x    -2..  463 in  offset mean   -23  |offset| median   36  max  105
+   CH03 Y39:  5/ 8 pts in support, x     5..   56 in  offset mean   +61  |offset| median   61  max   99
+   CH03 Y201:  6/13 pts in support, x     8..   64 in  offset mean  +110  |offset| median  107  max  121
+   CH04 Y39:  6/12 pts in support, x   415..  468 in  offset mean   -14  |offset| median   27  max   48
+   CH04 Y201:  8/13 pts in support, x   426..  474 in  offset mean   +60  |offset| median   76  max  104
+   CH05 Y201:  2/ 2 pts in support, x   183..  206 in  offset mean  +153  |offset| median  153  max  158
+   CH06 Y39: all 4 points outside the verified support

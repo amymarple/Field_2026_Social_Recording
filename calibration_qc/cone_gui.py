@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Build a single-file HTML GUI for labelling cones: click a cone in the pano (or click empty grass
 to add a missed cone), then click its station on the field map or type the ID. Export = JSON.
-Usage: python cone_gui.py CHxx HH:MM:SS [--session <dir|date>]   -> <qc>/cone_gui_CHxx.html
+Usage: python cone_gui.py CHxx HH:MM:SS [--session <dir|date>] [--supplement]   -> <qc>/cone_gui_CHxx.html
 Any camera: the panos are shown upright (rotated), the ordinary lenses as stored. The candidate
 points come from cones_CHxx.csv when the cone detector has been run for that camera; otherwise the
 page starts empty and every cone is added by clicking it. Coordinates are exported in the full
@@ -41,6 +41,23 @@ VT_X = [60, 132, 204, 276, 348, 420]; VT_Y = [39, 93, 147, 201]
 stations = [dict(id=f"T{li}{si}", x=x, y=y, set="T") for li, x in enumerate(TRAIN_X, 1) for si, y in enumerate(TRAIN_Y, 1)]
 stations += [dict(id=f"{'V' if (i + j) % 2 == 0 else 'F'}{i}{j}", x=x, y=y, set="V" if (i + j) % 2 == 0 else "F")
              for i, x in enumerate(VT_X, 1) for j, y in enumerate(VT_Y, 1)]
+# --supplement: the 2026-09-30 cone supplement (CALIB_CONE_SHEET_2026-09-26.html). Cones moved 27 in toward y = 240,
+# to the mid-point above their station (ID = that station + M): four per T cord, T?1M..T?4M (the y = 228 cones had
+# no tick above them and stayed on T15..T75) and four per V/F column (its y = 201 cone went to y = 228, the old
+# T?5 row; the sheet had planned three). Column V/F4 (x = 276) was only partly moved (F41M and V42M are where
+# they should be, the rest is uncertain; operator, 2026-10-01), so both its old stations F41, V42, F43, V44 and
+# its mid-points are offered and the operator picks per cone. Plus corner cones C1-C4 and edge cones E1, E2.
+# The cones that did not move are drawn and labelled as usual: labelled again, they tie this session to
+# 2026-09-18. The other old stations stay as small grey dots without labels, in case a cone was left on one.
+UNMOVED = {f"T{i}5" for i in range(1, 8)} | {"F41", "V42", "F43", "V44"}
+if "--supplement" in args:
+    for s in stations:
+        s["old"] = s["id"] not in UNMOVED
+    stations += [dict(id=f"T{i}{j}M", x=x, y=y, set="M") for i, x in enumerate(TRAIN_X, 1) for j, y in enumerate([39, 93, 147, 201], 1)]
+    stations += [dict(id=f"{'V' if (i + j) % 2 == 0 else 'F'}{i}{j}M", x=x, y=y, set="M")
+                 for i, x in enumerate(VT_X, 1) for j, y in enumerate([66, 120, 174, 228], 1)]
+    stations += [dict(id=k, x=x, y=y, set="X") for k, (x, y) in
+                 {"C1": (12, 12), "C2": (12, 228), "C3": (468, 12), "C4": (468, 228), "E1": (384, 21), "E2": (96, 189)}.items()]
 html = r"""<!doctype html><html><head><meta charset="utf-8"><title>Cone labelling __CAM__</title>
 <style>
  body{margin:0;font-family:Arial,sans-serif;font-size:14px;display:flex;flex-direction:column;height:100vh}
@@ -52,7 +69,7 @@ html = r"""<!doctype html><html><head><meta charset="utf-8"><title>Cone labellin
  #stage img{display:block}
  #ov{position:absolute;left:0;top:0}
  #side{width:520px;padding:8px;overflow:auto;border-left:2px solid #444;background:#f4f4f4}
- .pt{cursor:pointer} .lab{font:bold 22px Arial;paint-order:stroke;stroke:#000;stroke-width:5px;fill:#ff0;pointer-events:none}
+ .pt{cursor:pointer} .lab{font:bold 15px Arial;paint-order:stroke;stroke:#000;stroke-width:4px;fill:#ff0;pointer-events:none}
  .sel{stroke:#0f0!important;stroke-width:5px!important}
  #map circle{cursor:pointer} #map text{font:11px Arial;pointer-events:none}
  textarea{width:100%;height:120px;font:12px monospace}
@@ -62,7 +79,7 @@ html = r"""<!doctype html><html><head><meta charset="utf-8"><title>Cone labellin
  <label>ID <input id="idbox" placeholder="T34"></label>
  <button onclick="setNone()">not a cone (NONE)</button>
  <button onclick="delSel()">delete point</button>
- <span>zoom <button onclick="zoom(0.5)">50%</button><button onclick="zoom(0.75)">75%</button><button onclick="zoom(1)">100%</button><button onclick="zoom(1.5)">150%</button></span>
+ <span>zoom <button onclick="zoom(0.5)">50%</button><button onclick="zoom(0.75)">75%</button><button onclick="zoom(1)">100%</button><button onclick="zoom(1.5)">150%</button><button onclick="zoom(2)">200%</button><button onclick="zoom(3)">300%</button></span>
  <button onclick="exportJSON()" style="background:#3c3;font-weight:bold">Export JSON</button>
  <span id="stat"></span></div>
 <div id="main">
@@ -83,8 +100,9 @@ function draw(){
   ov.setAttribute('width',IMGW);ov.setAttribute('height',IMGH);
   let h='';
   for(const p of pts){const x=p.x*S,y=p.y*S;const col=p.station==='NONE'?'#f00':(p.station?'#0c0':'#fff');
-    h+=`<circle class="pt${p===sel?' sel':''}" cx="${x}" cy="${y}" r="16" fill="none" stroke="${col}" stroke-width="3" data-i="${p.idx}"></circle>`;
-    h+=`<text class="lab" x="${x+18}" y="${y-8}">${p.idx}${p.station?' '+p.station:''}</text>`;}
+    h+=`<circle class="pt${p===sel?' sel':''}" cx="${x}" cy="${y}" r="9" fill="rgba(0,0,0,0.01)" stroke="${col}" stroke-width="1.5" data-i="${p.idx}"></circle>`;
+    h+=`<path d="M${x-5} ${y}H${x+5}M${x} ${y-5}V${y+5}" stroke="${col}" stroke-width="1" pointer-events="none"/>`;
+    h+=`<text class="lab" x="${x+11}" y="${y-6}">${p.idx}${p.station?' '+p.station:''}</text>`;}
   ov.innerHTML=h;
   for(const c of ov.querySelectorAll('circle')) c.onclick=e=>{e.stopPropagation();select(pts.find(q=>q.idx==c.dataset.i));};
   drawMap();document.getElementById('stat').textContent=pts.filter(p=>p.station&&p.station!=='NONE').length+' labelled / '+pts.length+' points';
@@ -92,7 +110,9 @@ function draw(){
 function drawMap(){const m=document.getElementById('map');let h=`<rect x="0" y="0" width="480" height="240" fill="#fff" stroke="#000"/>`;
   const used={};for(const p of pts) if(p.station&&p.station!=='NONE') used[p.station]=p.idx;
   for(const s of stations){const x=s.x,y=240-s.y;const a=used[s.id]!==undefined;
-    h+=`<circle cx="${x}" cy="${y}" r="7" fill="${a?'#8e8':'#ddd'}" stroke="${s.set==='T'?'#000':(s.set==='V'?'#06c':'#c00')}" data-s="${s.id}"><title>${s.id}${a?' = cone '+used[s.id]:''}</title></circle>`;
+    if(s.old&&!a){h+=`<circle cx="${x}" cy="${y}" r="3" fill="#bbb" stroke="none" data-s="${s.id}"><title>${s.id} (old station)</title></circle>`;continue;}
+    const sc={T:'#000',V:'#06c',F:'#c00',M:'#e60',X:'#80f'}[s.set]||'#000';
+    h+=`<circle cx="${x}" cy="${y}" r="7" fill="${a?'#8e8':'#ddd'}" stroke="${sc}" stroke-width="${s.set==='M'||s.set==='X'?2:1}" data-s="${s.id}"><title>${s.id}${a?' = cone '+used[s.id]:''}</title></circle>`;
     h+=`<text x="${x}" y="${y-9}" text-anchor="middle">${s.id}</text>`;}
   m.innerHTML=h;for(const c of m.querySelectorAll('circle')) c.onclick=()=>assign(c.dataset.s);}
 function select(p){sel=p;document.getElementById('selinfo').textContent=p?('#'+p.idx+(p.station?' = '+p.station:'')):'none';document.getElementById('idbox').value=p&&p.station!=='NONE'?p.station:'';draw();document.getElementById('idbox').focus();}
@@ -107,10 +127,14 @@ document.getElementById('idbox').addEventListener('keydown',e=>{if(e.key==='Ente
 function exportJSON(){const data={camera:CAM,clock:"__CLOCK__",frame_size_upright:[__IMGW__/S,__IMGH__/S],points:pts};
   const txt=JSON.stringify(data,null,1);document.getElementById('out').value=txt;
   const a=document.createElement('a');a.href='data:application/json;charset=utf-8,'+encodeURIComponent(txt);a.download='cone_labels_'+CAM+'.json';a.click();}
+const KEY='cone_labels___SESSIONNAME___'+CAM+'___CLOCK__';
+const _draw=draw;draw=function(){_draw();try{localStorage.setItem(KEY,JSON.stringify(pts));}catch(e){}};
+try{const s=localStorage.getItem(KEY);if(s){pts=JSON.parse(s);nextIdx=Math.max(0,...pts.map(p=>p.idx))+1;}}catch(e){}
 zoom(0.5);draw();
 </script></body></html>"""
 html = (html.replace("__CAM__", cam).replace("__CLOCK__", clock).replace("__B64__", b64)
         .replace("__SCALE__", repr(scale)).replace("__IMGW__", str(small.shape[1])).replace("__IMGH__", str(small.shape[0]))
-        .replace("__POINTS__", json.dumps(points)).replace("__STATIONS__", json.dumps(stations)))
+        .replace("__POINTS__", json.dumps(points)).replace("__STATIONS__", json.dumps(stations))
+        .replace("__SESSIONNAME__", SESSION.name))
 out = QC / f"cone_gui_{cam}.html"; out.write_text(html, encoding="utf-8")
 print(f"{cam}: {len(points)} points -> {out} ({out.stat().st_size // 1024} KB)")

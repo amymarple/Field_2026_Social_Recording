@@ -563,3 +563,72 @@ frame correction takes it back out. The per-fold held-out medians move by 0-5 mm
 plates absorb a little more of the image residual without predicting unseen placements any better; a
 10 deg tilt of the 800 mm plate is a 139 mm rise of one edge, which grass does not produce, so the extra
 freedom is fitting model error, not ground. The 6 deg bound stays.
+
+## Session 2026-09-30 (`session_2026-09-30_15-49-39`, 15:49:46-16:35:26, 12 streams, 18.2 GB)
+
+The return trip of `CALIB_CONE_SHEET_2026-09-26.html`, recorded on the field PC with `calibration_record.ps1`.
+The session folder lives on the lab PC's `F:\calibration` (the Field_video_backup drive), not on the portable
+drive: pass it explicitly, `--session F:\calibration\session_2026-09-30_15-49-39`; its QC goes to
+`<root>\qc\2026-09-30\`. Cameras not moved since 2026-09-18 (operator). Sunny with hard shadows, not the
+overcast the sheet asked for.
+
+What was actually laid out (operator, 2026-10-01; differs from the sheet):
+
+* T cords: the cones on ticks y 12 / 66 / 120 / 174 moved 27 in toward y = 240, to T?1M..T?4M (y 39 / 93 /
+  147 / 201). The y = 228 cones had no tick above them and stayed on T15..T75.
+* V/F columns: all FOUR cones moved 27 in, to y 66 / 120 / 174 / 228 (the sheet planned three and a spare);
+  the fourth row is F14M, V24M, F34M, V44M, F54M, V64M on the old T?5 line.
+* Column V/F4 (x = 276) was only partly moved: F41M and V42M are where they should be, the other two are
+  uncertain (operator). The labelling page offers both its old stations and its mid-points; the label decides.
+* Long cords Y39 and Y201 laid along the length (blue in the frames). Corner and edge cones as labelled.
+* So T15..T75 never moved (plus any V/F4 cone labelled on its old station): the same physical points as on
+  2026-09-18. Labelled in both sessions they test whether a camera moved: CH01 has seven of them labelled on
+  09-18, CH02, CH03 and CH04 one each (T15, T15, T75), CH05 and CH06 none (F43 / V44 add to CH01, F41 / V42
+  would add to CH02, if they turn out unmoved).
+* Field clear of people at the end of the recording; the label frame is 16:35:10.
+
+Ball sweep 16:22:40-16:31:20 (CH02 file offset 22:40-31:20): a white volleyball with red and blue panels,
+pushed with a stick, among the cones (they were not picked up), people in view. Too patterned for a colour
+detector, so it is marked by hand: `ball_gui.py --session ... --window 16:22:40-16:31:20 --step 2` extracts
+every camera at full resolution every 2 s (261 times x 6 cameras, 6.6 GB under `qc\2026-09-30\ball\`) and
+writes `ball_gui.html`: the operator marks the visible edge (3+ clicks, circle fit), a diameter (2) or the
+centre (1), or says "not in view" / "hidden"; export `ball_labels.json`.
+
+Timing: segment names resolve their start to 1 s (CH03/CH04's 16:00 segment is named 16-00-01, the others
+16-00-00) and the files carry no absolute time, so the streams' relative offsets are unknown to ~1 s until the
+ball tracks measure them.
+
+Labelling pages built at 16:35:10 with `--supplement` (new in `cone_gui.py` and `line_gui.py`):
+`qc\2026-09-30\cone_gui_CHxx.html` shows the mid-points (orange), C1-C4 / E1-E2 (purple), the unmoved cones
+with their station IDs (and both choices for column V/F4) and every other old station as a grey dot; it now autosaves in the browser, draws a
+small circle with a cross at the clicked point (click the centre of the hole on top of the cone, 50 mm above
+the ground) and zooms to 300 %. `qc\2026-09-30\line_gui_CHxx.html` offers Y39 and Y201 (and X60 / X420) with
+guides from the release fit. Before these labels can enter a fit, `fit_data.LATTICE` needs the new IDs.
+
+### First look at the 2026-09-30 labels (`check_supplement.py`, held out: none of them is in the release fit)
+
+The operator's cone and cord labels (16:35:10) are in the repository as `session_2026-09-30_cone_labels_CHxx.json`
+and `session_2026-09-30_line_labels_CHxx.json` (106 cones in six cameras, cords Y39 / Y201 in four each), and
+in `qc\2026-09-30\` under the names the tools read. Result: `session_2026-09-30_supplement_check.txt`.
+
+* Cones against the position of their ID, through the release at z = 50 mm: 94 in support, median 104 mm,
+  p90 217 mm, max 296 mm. This is an upper bound on the calibration error, not a measure of it: several
+  cones are put at the same wrong place by every camera that sees them (T32M at y 101-103 in by CH01, CH02
+  and CH05, design 93; T72M at y 84-85 by CH01 and CH02, design 93), so those cones do not stand where their
+  ID says - moved by the ball sweep, which ran among them before the label frame, or placed off the 27 in.
+* The same cone in two cameras (the handoff, independent of where the cone really is): 49 pairs, median
+  84 mm, p90 167 mm; CH01-CH02 65 / 104, CH01-CH04 160 / 223 (the known worst pair), CH02-CH05 26 / 38.
+  In line with the held-out placements of the release (76 / 137 mm).
+* Camera stability from the cones that were not moved is inconclusive: the 2026-09-18 cones on T15..T75 and
+  column V/F4 shifted 10-67 px in every direction (CH01 median 33 px), i.e. the cones moved, not (only) the
+  cameras. Image registration on static structure (`camera_drift.py`, not committed) shows CH05 and CH06
+  unmoved (0.13 / 0.15 px over 88 / 121 matches); for CH01-CH04 the light changed too much between the two
+  days for automatic matching. The operator will label poles, shelters and walls in both sessions instead.
+* Cords: Y39 maps to within 1-6 cm of y = 39 on average (CH02 -2.3, CH04 -1.4, CH03 +6.1 cm); Y201 maps
+  6-18 cm toward y = 240 in all four cameras that see it (CH04 +6, CH03 +11, CH05 +15, CH01 +18 cm). Either
+  the cord lies that far off its design line or the release's y is off near y = 200; which one needs the
+  operator's account of how Y201 was tied.
+
+`ball_gui.py` fits a tilted ellipse when 5 or more edge points are marked and lets the operator set one by
+hand (centre, long-axis and short-axis handles): on a 180 deg arc of a 40 x 25 px ellipse a circle fit puts the
+centre 8-16 px off, the ellipse fit within 1 px (synthetic test).

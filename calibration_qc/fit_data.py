@@ -31,6 +31,13 @@ LATTICE = {f"T{li}{si}": (x, y) for li, x in enumerate(TRAIN_X, 1) for si, y in 
 LATTICE.update({f"{'V' if (i + j) % 2 == 0 else 'F'}{i}{j}": (x, y)
                 for i, x in enumerate(VT_X, 1) for j, y in enumerate(VT_Y, 1)})
 STATION_MM = {k: (v[0] * MM_PER_IN, v[1] * MM_PER_IN) for k, v in LATTICE.items()}
+# The 2026-09-30 cone supplement (CALIB_CONE_SHEET_2026-09-26.html; README "Session 2026-09-30"): cones moved
+# 27 in toward y = 240, to the mid-point above their station (ID = station + M), corner cones C1-C4 and edge
+# cones E1, E2. Kept apart from LATTICE, the stations the release was fitted with, until a fit uses them.
+SUPPLEMENT = {f"T{li}{si}M": (x, y + 27) for li, x in enumerate(TRAIN_X, 1) for si, y in enumerate(TRAIN_Y[:4], 1)}
+SUPPLEMENT.update({f"{'V' if (i + j) % 2 == 0 else 'F'}{i}{j}M": (x, y + 27)
+                   for i, x in enumerate(VT_X, 1) for j, y in enumerate(VT_Y, 1)})
+SUPPLEMENT.update({"C1": (12, 12), "C2": (12, 228), "C3": (468, 12), "C4": (468, 228), "E1": (384, 21), "E2": (96, 189)})
 
 # measurement sigma in pixels, by how the corner was obtained
 SIGMA = {"charuco": 0.7, "rect-charuco": 0.9, "chessboard": 0.8, "rect-chess": 1.0,

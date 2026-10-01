@@ -13,7 +13,7 @@ that boards at a few stations cannot give, and dense material for the frame corr
 foot is the same physical curve in every camera: where two cameras' traces of it disagree, so
 does their calibration, in a place no board was ever put.
 
-Usage: python line_gui.py CHxx HH:MM:SS [--session <dir|date>] [--half]
+Usage: python line_gui.py CHxx HH:MM:SS [--session <dir|date>] [--half] [--supplement]
        -> <qc>\line_gui_CHxx.html ; Export -> line_labels_CHxx.json (full-res UPRIGHT px)
 The frame is embedded at full resolution (a cord is one pixel wide); --half embeds it at half.
 """
@@ -40,6 +40,13 @@ XS = sorted(TRAIN_X + VT_X); YS = sorted(TRAIN_Y + VT_Y)
 # A rounded corner may go with either neighbour. WALL (unsplit) is kept for points already made.
 WALLS = ["WALL_X0", "WALL_X480", "WALL_Y0", "WALL_Y240", "WALL"]
 LINES = [f"X{x}" for x in TRAIN_X] + WALLS
+# --supplement (the 2026-09-30 cone supplement, CALIB_CONE_SHEET_2026-09-26.html step 5): the cords laid
+# that day along the length at y = 39 and y = 201 in (through the T-cord mid-points), and the optional
+# cross cords at x = 60 and x = 420. Offered whether or not each was laid; label only what is there.
+SUPP = "--supplement" in args
+NEW_X, NEW_Y = ([60, 420], [39, 201]) if SUPP else ([], [])
+if SUPP:
+    LINES = [f"X{x}" for x in TRAIN_X] + [f"Y{y}" for y in NEW_Y] + [f"X{x}" for x in NEW_X] + WALLS
 
 t = datetime.strptime(clock, "%H:%M:%S"); seg = off = None
 for s in sorted(SESSION.glob(f"{cam}_*_to_*.mp4")):
@@ -64,11 +71,12 @@ guides = {}
 try:
     import paddock_map as pm
     c = pm.load()[cam]
-    for x0 in TRAIN_X:
-        pts = np.array([[x0, y] for y in np.arange(0, 240.1, 2.0)])
+    lines_xy = [(f"X{x0}", np.array([[x0, y] for y in np.arange(0, 240.1, 2.0)])) for x0 in TRAIN_X + NEW_X]
+    lines_xy += [(f"Y{y0}", np.array([[x, y0] for x in np.arange(0, 480.1, 2.0)])) for y0 in NEW_Y]
+    for name, pts in lines_xy:
         uv = c.to_paddock_inv(pts, z_mm=0.0, units="in"); vis = c.sees(pts, units="in", margin=-100)
         seg_pts = [[round(float(u), 1), round(float(v), 1)] for (u, v), ok_ in zip(uv, vis) if ok_ and np.isfinite(u) and np.isfinite(v)]
-        if len(seg_pts) > 1: guides[f"X{x0}"] = seg_pts
+        if len(seg_pts) > 1: guides[name] = seg_pts
 except Exception as e:                                                   # no fit yet: no guides
     print(f"[line_gui] no guides ({e})")
 
