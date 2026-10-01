@@ -1,0 +1,18 @@
+LANDMARK DRIFT  session_2026-09-18_13-54-34 -> session_2026-09-30_15-49-39  (rigid landmarks from D:\Documents\GitHub\Field2026_Social_analysis\cv\configs\landmarks\2026c; same colour mode on both sides)
+
+CH01: template = 2026-09-18 15:20:00 colour frame, 12000 edge px within 10 px of 20 rigid landmarks
+   control 2026-09-18 15:47:00: shift ( +0.01, -0.55) px  rot +0.011 deg  scale 1.0000  edge distance 0.90 -> 0.80 px  ground effect median   1 mm, max   6 mm
+   B       2026-09-30 16:35:10: shift ( +7.15, -0.41) px  rot -0.032 deg  scale 1.0000  edge distance 1.30 -> 1.02 px  ground effect median  24 mm, max  62 mm
+   B       2026-09-30 16:34:40: shift ( +7.53, +0.18) px  rot -0.023 deg  scale 0.9998  edge distance 1.40 -> 1.10 px  ground effect median  24 mm, max  57 mm
+CH02: template = 2026-09-18 15:35:00 colour frame, 12000 edge px within 10 px of 20 rigid landmarks
+   control 2026-09-18 15:47:00: shift ( +0.00, +0.00) px  rot +0.000 deg  scale 1.0000  edge distance 0.64 -> 0.64 px  ground effect median   0 mm, max   0 mm
+   B       2026-09-30 16:35:10: shift (-10.08, -1.16) px  rot +0.147 deg  scale 1.0008  edge distance 1.82 -> 1.20 px  ground effect median  40 mm, max 116 mm
+   B       2026-09-30 16:34:40: shift ( -9.57, -1.41) px  rot +0.152 deg  scale 1.0007  edge distance 2.04 -> 1.44 px  ground effect median  39 mm, max 115 mm
+CH03: template = 2026-09-18 15:30:00 colour frame, 12000 edge px within 10 px of 9 rigid landmarks
+   control 2026-09-18 15:05:00: shift ( +0.00, +0.00) px  rot +0.000 deg  scale 1.0000  edge distance 0.85 -> 0.85 px  ground effect median   0 mm, max   0 mm
+   B       2026-09-30 16:35:10: shift ( +1.61,-22.73) px  rot +0.288 deg  scale 1.0022  edge distance 1.94 -> 1.21 px  ground effect median  38 mm, max  87 mm
+   B       2026-09-30 16:34:40: shift ( +2.17,-20.63) px  rot +0.269 deg  scale 1.0024  edge distance 2.18 -> 1.54 px  ground effect median  37 mm, max  79 mm
+CH04: template = 2026-09-18 15:47:00 colour frame, 12000 edge px within 10 px of 6 rigid landmarks
+   control 2026-09-18 15:05:00: shift ( +0.00, +0.00) px  rot +0.000 deg  scale 1.0000  edge distance 0.79 -> 0.79 px  ground effect median   0 mm, max   0 mm
+   B       2026-09-30 16:35:10: shift (-46.11,-25.66) px  rot +0.267 deg  scale 1.0005  edge distance 2.02 -> 1.64 px  ground effect median  71 mm, max 168 mm
+   B       2026-09-30 16:34:40: shift (-32.43,-29.18) px  rot +0.793 deg  scale 0.9994  edge distance 2.00 -> 1.40 px  ground effect median  62 mm, max 176 mm

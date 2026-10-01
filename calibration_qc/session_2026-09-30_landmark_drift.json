@@ -1,0 +1,62 @@
+{
+ "a": "session_2026-09-18_13-54-34",
+ "b": "session_2026-09-30_15-49-39",
+ "cameras": {
+  "CH01": {
+   "b_time": "16:35:10",
+   "dx_px": 7.153620617639543,
+   "dy_px": -0.4109105502787794,
+   "rot_deg": -0.03201344119294929,
+   "scale": 1.0000118864978838,
+   "centre_px": [
+    3840.0,
+    1080.0
+   ],
+   "ground_median_mm": 24.22643190578221,
+   "ground_max_mm": 61.543780771541556,
+   "note": "session-B pixel = centre + scale*R(rot)*(session-A pixel - centre) + (dx, dy)"
+  },
+  "CH02": {
+   "b_time": "16:35:10",
+   "dx_px": -10.083255928302524,
+   "dy_px": -1.1602475478390892,
+   "rot_deg": 0.14732049755961937,
+   "scale": 1.0007678379394704,
+   "centre_px": [
+    3840.0,
+    1080.0
+   ],
+   "ground_median_mm": 40.201746767806235,
+   "ground_max_mm": 116.19565324534103,
+   "note": "session-B pixel = centre + scale*R(rot)*(session-A pixel - centre) + (dx, dy)"
+  },
+  "CH03": {
+   "b_time": "16:35:10",
+   "dx_px": 1.6065246864087381,
+   "dy_px": -22.72892253322255,
+   "rot_deg": 0.2884057758857342,
+   "scale": 1.0022242989801535,
+   "centre_px": [
+    2256.0,
+    1256.0
+   ],
+   "ground_median_mm": 38.27693337245104,
+   "ground_max_mm": 86.81982756897816,
+   "note": "session-B pixel = centre + scale*R(rot)*(session-A pixel - centre) + (dx, dy)"
+  },
+  "CH04": {
+   "b_time": "16:35:10",
+   "dx_px": -46.10554008944517,
+   "dy_px": -25.661134861995784,
+   "rot_deg": 0.2673703360441957,
+   "scale": 1.0005475535351862,
+   "centre_px": [
+    2256.0,
+    1256.0
+   ],
+   "ground_median_mm": 70.53688027343306,
+   "ground_max_mm": 167.5002864227189,
+   "note": "session-B pixel = centre + scale*R(rot)*(session-A pixel - centre) + (dx, dy)"
+  }
+ }
+}

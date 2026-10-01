@@ -645,3 +645,28 @@ cords as lines with the same allowance; the old stations keep their role as the 
 `ball_gui.py` fits a tilted ellipse when 5 or more edge points are marked and lets the operator set one by
 hand (centre, long-axis and short-axis handles): on a 180 deg arc of a 40 x 25 px ellipse a circle fit puts the
 centre 8-16 px off, the ellipse fit within 1 px (synthetic test).
+
+### The cameras moved a little between 2026-09-18 and 2026-09-30 (`landmark_drift.py`)
+
+Measured on the operator's rigid landmarks (pole edges, the boxes on the poles, wall tops, water towers; labelled on
+the 09-18 reference frames with the analysis repo's `landmark_gui.py`, exports in its
+`cv/configs/landmarks/2026c/`). The template is the 09-18 frame's own edges within 10 px of those labels; it is
+fitted onto the 09-30 frame's edges with a similarity transform. Both sides must be in the same colour mode: an IR
+template against a colour frame of the same day already gave 10-18 px in CH03/CH04 (the IR-cut filter moves the
+image), under 2.5 px in CH01/CH02. With colour frames on both sides, a second 09-18 frame (control) comes out at
+0-0.5 px in every camera. Result `session_2026-09-30_landmark_drift.txt` / `.json`, picture
+`session_2026-09-30_camera_motion_poles.jpg` (the 09-18 pole edges drawn at the same pixels on both days).
+
+| camera | 09-18 -> 09-30 (two 09-30 frames) | if the release were used unchanged on 09-30 pixels (z 60 mm) |
+|---|---|---|
+| CH01 | +7.2 / +7.5 px along x, rotation -0.03 deg | 24 mm median, 57-62 mm max |
+| CH02 | -10.1 / -9.6 px, rotation +0.15 deg | 39-40 mm median, 115 mm max |
+| CH03 | -22.7 / -20.6 px along y, rotation +0.27-0.29 deg | 37-38 mm median, 79-87 mm max |
+| CH04 | (-46, -26) / (-32, -29) px, rotation +0.27 / +0.79 deg - the two frames disagree, size uncertain | 62-71 mm median, 168-176 mm max |
+| CH05, CH06 | unmoved (`camera_drift.py`: 0.13 / 0.15 px over 88 / 121 static matches) | - |
+
+Consistent with the analysis repo's finding that every camera shifts a little from day to day. Consequences:
+the 2026-09-30 labels (cones, cords, the ball) are in 09-30 pixels and must be carried into the 09-18 pixel frame
+through these transforms (or the refit gives CH01-CH04 a pose of their own for 09-30) before they meet the release;
+the handoff numbers of `check_supplement.py` above include this motion and are to be recomputed after that. CH04's
+transform needs more landmarks before it is trusted (six rigid ones, two frames 14 px / 0.5 deg apart).
