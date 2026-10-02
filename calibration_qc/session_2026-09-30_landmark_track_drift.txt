@@ -1,0 +1,65 @@
+09-30 px -> 09-18 colour px via landmark_track  (session_2026-09-30_15-49-39 -> session_2026-09-18_13-54-34; labels D:\Documents\GitHub\Field2026_Social_analysis\cv\configs\landmarks\2026c)
+
+CH01: reference 13:57:30 (IR); IR -> colour on 09-18 from 2 ok frames: (+0.68, -0.39) px, rot -0.003 deg
+   09-30 16:35:10: 09-30 -> 09-18 colour (  +3.37,  +6.25) px, rot +0.168 deg, held-out 0.93/2.43 px over 19 units, ok
+   09-30 16:34:40: 09-30 -> 09-18 colour (  +2.95,  +5.96) px, rot +0.167 deg, held-out 1.17/2.50 px over 18 units, ok
+   09-30 16:31:30: 09-30 -> 09-18 colour (  +9.83, +14.39) px, rot +0.339 deg, held-out 1.89/3.80 px over 18 units, ok
+   09-30 16:27:00: 09-30 -> 09-18 colour (  +9.09, +14.91) px, rot +0.347 deg, held-out 2.09/4.44 px over 18 units, ok
+   09-30 16:23:00: 09-30 -> 09-18 colour (  -5.76,  +3.20) px, rot +0.098 deg, held-out 1.24/1.96 px over 20 units, ok
+   09-30 16:15:00: 09-30 -> 09-18 colour (  -6.09,  +6.55) px, rot +0.181 deg, held-out 1.67/3.62 px over 18 units, ok
+   09-30 15:55:00: 09-30 -> 09-18 colour ( +14.93, +15.95) px, rot +0.383 deg, held-out 1.25/8.40 px over 17 units, unreliable
+   09-30 16:20:00: 09-30 -> 09-18 colour (  -5.97,  +0.18) px, rot +0.039 deg, held-out 1.29/2.72 px over 20 units, ok
+   09-30 16:21:00: 09-30 -> 09-18 colour (  -5.75,  +6.04) px, rot +0.162 deg, held-out 1.57/3.18 px over 19 units, ok
+   09-30 16:22:00: 09-30 -> 09-18 colour (  -6.27,  +0.57) px, rot +0.047 deg, held-out 1.41/3.29 px over 20 units, ok
+   09-30 16:23:00: 09-30 -> 09-18 colour (  -5.76,  +3.20) px, rot +0.098 deg, held-out 1.24/1.96 px over 20 units, ok
+   09-30 16:24:00: 09-30 -> 09-18 colour (  -4.64,  +3.76) px, rot +0.113 deg, held-out 1.29/2.94 px over 20 units, ok
+   09-30 16:25:00: 09-30 -> 09-18 colour (  -6.19,  +1.38) px, rot +0.064 deg, held-out 1.29/3.12 px over 20 units, ok
+   09-30 16:26:00: 09-30 -> 09-18 colour (  -6.24, +12.44) px, rot +0.300 deg, held-out 2.43/9.49 px over 19 units, unreliable
+   09-30 16:27:00: 09-30 -> 09-18 colour (  +9.09, +14.91) px, rot +0.347 deg, held-out 2.09/4.44 px over 18 units, ok
+   09-30 16:28:00: 09-30 -> 09-18 colour (  -5.88,  +9.76) px, rot +0.245 deg, held-out 2.26/5.74 px over 19 units, ok
+   09-30 16:29:00: 09-30 -> 09-18 colour (  +4.48,  +6.62) px, rot +0.170 deg, held-out 0.78/2.54 px over 18 units, ok
+   09-30 16:30:00: 09-30 -> 09-18 colour (  -5.70,  -0.07) px, rot +0.033 deg, held-out 1.30/4.02 px over 20 units, ok
+   09-30 16:31:00: 09-30 -> 09-18 colour (  +9.78, +14.88) px, rot +0.344 deg, held-out 2.23/4.22 px over 18 units, ok
+   09-30 16:32:00: 09-30 -> 09-18 colour ( +10.56, +13.93) px, rot +0.328 deg, held-out 1.22/3.50 px over 18 units, ok
+   09-30 16:33:00: 09-30 -> 09-18 colour (  +9.87, +14.13) px, rot +0.334 deg, held-out 1.48/3.38 px over 18 units, ok
+   09-30 16:34:00: 09-30 -> 09-18 colour (  +8.84, +14.25) px, rot +0.343 deg, held-out 1.11/3.81 px over 18 units, ok
+   09-30 16:35:00: 09-30 -> 09-18 colour (  +9.45, +13.98) px, rot +0.330 deg, held-out 1.31/4.29 px over 17 units, ok
+   -> written: median of 21 ok frames (+2.95, +6.51) px, rot +0.170 deg; largest deviation of a frame from it 9.22 px
+CH02: reference 15:22:30 (IR); IR -> colour on 09-18 from 2 ok frames: (+0.90, +0.67) px, rot -0.008 deg
+   09-30 16:35:10: 09-30 -> 09-18 colour ( +11.17,  +1.51) px, rot -0.150 deg, held-out 1.27/2.61 px over 20 units, ok
+   09-30 16:34:40: 09-30 -> 09-18 colour ( +11.04,  +1.52) px, rot -0.151 deg, held-out 1.26/2.61 px over 20 units, ok
+   09-30 16:31:30: 09-30 -> 09-18 colour ( +10.35,  +0.85) px, rot -0.143 deg, held-out 1.25/2.25 px over 20 units, ok
+   09-30 16:27:00: 09-30 -> 09-18 colour ( +10.76,  +1.34) px, rot -0.146 deg, held-out 1.39/2.72 px over 20 units, ok
+   09-30 16:23:00: 09-30 -> 09-18 colour ( +10.48,  +1.15) px, rot -0.141 deg, held-out 1.23/2.25 px over 20 units, ok
+   09-30 16:15:00: 09-30 -> 09-18 colour (  +9.99,  +1.11) px, rot -0.138 deg, held-out 1.28/2.47 px over 20 units, ok
+   09-30 15:55:00: 09-30 -> 09-18 colour (  +7.84,  +1.13) px, rot -0.138 deg, held-out 1.40/2.15 px over 20 units, ok
+   -> written: median of 7 ok frames (+10.31, +1.33) px, rot -0.143 deg; largest deviation of a frame from it 2.48 px
+CH03: reference 15:45:00 (IR); IR -> colour on 09-18 from 3 ok frames: (+0.55, -5.60) px, rot -0.018 deg
+   09-30 16:35:10: 09-30 -> 09-18 colour ( -14.32,  -5.08) px, rot -0.107 deg, held-out 1.50/5.12 px over 12 units, ok
+   09-30 16:34:40: 09-30 -> 09-18 colour ( -14.78,  -7.51) px, rot -0.076 deg, held-out 2.14/5.32 px over 12 units, ok
+   09-30 16:31:30: 09-30 -> 09-18 colour ( -14.32,  -6.81) px, rot -0.106 deg, held-out 1.15/3.83 px over 12 units, ok
+   09-30 16:27:00: 09-30 -> 09-18 colour ( -14.10,  -6.18) px, rot -0.100 deg, held-out 1.08/4.15 px over 12 units, ok
+   09-30 16:23:00: 09-30 -> 09-18 colour ( -15.08,  -7.73) px, rot -0.078 deg, held-out 1.67/4.64 px over 12 units, ok
+   09-30 16:15:00: 09-30 -> 09-18 colour ( -14.96,  -4.92) px, rot -0.089 deg, held-out 1.67/4.82 px over 12 units, ok
+   09-30 15:55:00: 09-30 -> 09-18 colour ( -14.09,  -5.58) px, rot -0.094 deg, held-out 1.22/4.81 px over 12 units, ok
+   -> written: median of 7 ok frames (-14.37, -6.38) px, rot -0.094 deg; largest deviation of a frame from it 1.45 px
+CH03 via the 09-04 12:00 reference: tie 09-18 -> 09-04 held-out 4.16/8.11 px, unreliable
+CH03: reference 15:45:00 (IR); IR -> colour on 09-18 from 3 ok frames: (+0.55, -5.60) px, rot -0.018 deg
+   09-30 16:35:10: 09-30 -> 09-18 colour (  +3.15,  -8.70) px, rot +0.361 deg, held-out 2.08/6.21 px over 7 units, unreliable
+   09-30 16:34:40: 09-30 -> 09-18 colour (  +4.21, -18.13) px, rot +0.504 deg, held-out 5.52/15.58 px over 7 units, unreliable
+   09-30 16:31:30: 09-30 -> 09-18 colour (  +2.86,  -3.82) px, rot +0.287 deg, held-out 5.49/10.53 px over 7 units, unreliable
+   09-30 16:27:00: 09-30 -> 09-18 colour (  +2.46,  -0.31) px, rot +0.545 deg, held-out 4.10/10.16 px over 7 units, unreliable
+   09-30 16:23:00: 09-30 -> 09-18 colour ( +11.07,  -6.40) px, rot +1.408 deg, held-out 11.97/12.79 px over 5 units, unreliable
+   09-30 16:15:00: 09-30 -> 09-18 colour (  -1.57, +20.95) px, rot +2.583 deg, held-out 12.71/15.67 px over 5 units, unreliable
+   09-30 15:55:00: 09-30 -> 09-18 colour (  +2.21,  +4.35) px, rot +0.022 deg, held-out 2.62/5.14 px over 10 units, ok
+   -> written: median of 1 ok frames (+2.21, +4.35) px, rot +0.022 deg; largest deviation of a frame from it 0.00 px
+   (cross-check only, not written)
+CH04: reference 14:32:30 (IR); IR -> colour on 09-18 from 3 ok frames: (+0.03, -0.99) px, rot -0.013 deg
+   09-30 16:35:10: 09-30 -> 09-18 colour (  +1.53,  -2.92) px, rot +0.055 deg, held-out 0.75/2.97 px over 7 units, ok
+   09-30 16:34:40: 09-30 -> 09-18 colour (  +3.82,  -1.48) px, rot +0.063 deg, held-out 1.29/3.61 px over 4 units, ok
+   09-30 16:31:30: no fit
+   09-30 16:27:00: 09-30 -> 09-18 colour (  +1.37,  -7.92) px, rot -0.074 deg, held-out 1.71/2.91 px over 4 units, ok
+   09-30 16:23:00: 09-30 -> 09-18 colour (  +2.11,  -2.82) px, rot +0.049 deg, held-out 1.07/1.82 px over 7 units, ok
+   09-30 16:15:00: 09-30 -> 09-18 colour (  +6.16,  +1.91) px, rot +0.054 deg, held-out 1.34/2.30 px over 6 units, ok
+   09-30 15:55:00: 09-30 -> 09-18 colour (  +5.29,  +2.80) px, rot +0.046 deg, held-out 1.28/2.13 px over 6 units, ok
+   -> written: median of 6 ok frames (+4.51, -2.23) px, rot +0.051 deg; largest deviation of a frame from it 5.70 px

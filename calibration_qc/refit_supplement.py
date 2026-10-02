@@ -87,6 +87,9 @@ def to_0918(cam, uv):
     d = drift.get(cam)
     if not d:
         return uv
+    if "affine_30_to_18" in d:                                   # landmark_track_drift.py: 09-30 px -> 09-18 colour px
+        A = np.asarray(d["affine_30_to_18"], float)
+        return uv @ A[:, :2].T + A[:, 2]
     c = np.asarray(d["centre_px"], float); th = np.radians(d["rot_deg"])
     R = np.array([[np.cos(th), -np.sin(th)], [np.sin(th), np.cos(th)]])
     return c + (uv - c - [d["dx_px"], d["dy_px"]]) @ R / d["scale"]
