@@ -864,3 +864,26 @@ height 0-250 mm per camera pair, most pairs agree best at 90-130 mm and CH01-CH0
 130). So the ball's true size changes nothing measurable, and the CH01-CH02 residual is sideways, not a height
 effect. Per pair (mm at Z = 0 / 60 / 105 / 160 / 250): CH01-CH02 113 / 93 / 85 / 102 / 164, CH01-CH03 136 / 69 / 75 /
 141 / 264, CH02-CH03 185 / 104 / 50 / 69 / 189, CH02-CH06 121 / 61 / 28 / 52 / 143.
+
+### Where CH01 and CH02 disagree, and what the wall tops say (2026-10-02)
+
+The two panos hang either side of pole B2 (CH01 at x 243 / y 85 in, CH02 at x 249 / y 159, h 2.35-2.41 m) and
+share most of the paddock, yet disagree most on the ball (85 mm). Not CH01's 09-30 transform: landmark_track flips
+between three solutions over the sweep (x-scale 1.0007 / 1.0046 / 1.0068); re-tracked at eight times and swapped
+in, the release one (A-type) is best everywhere, B and C worse even in the minutes they were measured (CH01-CH02
+83 / 98 / 111 mm), so they are tracking ambiguities, not camera motion. By position (60 x 60 in cells, reviewed
+20 Hz detections, all inside both supports): east side x 360-420 in 21-26 mm; the far west x 0-60 in 93-125 mm;
+around and between the two cameras x 180-300 in 86-186 mm. The offset is systematic: CH01 minus CH02 median
+(+75, -14) mm, spread around it 66 mm. The boards cannot show this: CH01 and CH02 share only 4 board stations
+(T12, T33, F23, T53); at T12 (x 0-60) they agree to 19 mm where the ball, 11 days later, disagrees by 108.
+
+`walltop_check.py` (rigid-landmark labels, 09-18): the west wall top (WALLTOP_X0) is seen by CH01, CH02 and CH03.
+Cut with the plane x = 0, CH01 reports a level wall top (995-1045 mm along y 0-168 in, slope 0 mm/ft), CH03 agrees
+with CH01 within 55 mm there and then rises (to 1176 at y 216-240), CH02 rises from 1000 to 1225 mm (+19 mm/ft):
+CH01-CH02 +44 -> -199 mm along the wall. With the bundle alone (`--nowarp`) all three tilt more (CH01 970-1137,
+CH02 957-1350). The wall's true profile is unknown until the survey, so only the differences count: at ~1 m on
+the far wall - above the ground the boards covered - the panos' models disagree by up to 20 cm, most of it CH02.
+The other walls give too little overlap (Y240: CH01 and CH03 only at x 0-24, 996 vs 958 mm; Y0: CH02-CH04 -126 mm
+at x 432-480). With the surveyed wall-top heights and pole positions these labels become calibration inputs (known
+lines the cameras must reproduce, where the ground support is thinnest); without them, a refit could only make the
+cameras agree with each other on them.
