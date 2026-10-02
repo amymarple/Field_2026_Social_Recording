@@ -791,3 +791,12 @@ at three times, a consistent ~5.6 px vertical shift; CH01 / CH02 under 1.6 px. T
 landmark_drift section above came from edge-template matching across modes and is wrong for CH04 (the periodic
 wall corrugation lets an edge template lock one period off; frames minutes apart gave 0 and 18 px). So the cohort
 chain's last step (09-18 IR reference px -> the colour-mode boards) is about 5.6 px for CH03 and negligible elsewhere.
+
+### A canvas-space correction for the panos does not pass its gate (2026-10-02)
+
+The Fable audit's E1(b): if the panos' leftover bundle error were a smooth field over the canvas, a correction
+learned from some boards would predict the others. `canvas_gate.py` (output `session_2026-09-18_canvas_gate.txt`),
+leave-one-board-out, thin-plate field at three smoothings: held-out board residual CH01 5.9 -> 6.3 px, CH02 6.0 ->
+7.0 px, worse at every smoothing, better on only 14-47 % of boards; the small and end cameras likewise. The residual
+is board-specific (neighbouring boards disagree; the plate poses already absorb each board's mean, 1.9 / 3.8 px
+median), not a fixed distortion the boards can teach. Not built.

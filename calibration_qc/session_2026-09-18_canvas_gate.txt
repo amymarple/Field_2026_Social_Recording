@@ -1,0 +1,28 @@
+CANVAS-CORRECTION GATE (canvas_gate.py, 2026-10-02): leave-one-board-out, a thin-plate (du, dv)(u, v) fitted on the other
+boards' bundle residuals (release bundle, plate poses as fitted) predicts the held-out board's. Gate (AUDIT_FABLE E1(b)):
+held-out residual should halve if the camera's leftover error is a coherent field.
+
+CH01: 36 boards, 2784 corners; |residual| median 5.09 px
+   smoothing 0.0001: held-out board |residual| median 5.86 -> 6.29 px (p90 18.15 -> 18.66); board-mean offset 1.89 -> 4.51 px; improved on 47 % of boards
+   smoothing 0.001: held-out board |residual| median 5.86 -> 6.28 px (p90 18.15 -> 18.73); board-mean offset 1.89 -> 3.89 px; improved on 39 % of boards
+   smoothing 0.01: held-out board |residual| median 5.86 -> 6.28 px (p90 18.15 -> 17.93); board-mean offset 1.89 -> 3.00 px; improved on 14 % of boards
+CH02: 29 boards, 2142 corners; |residual| median 5.36 px
+   smoothing 0.0001: held-out board |residual| median 5.99 -> 6.99 px (p90 12.82 -> 15.14); board-mean offset 3.79 -> 5.88 px; improved on 45 % of boards
+   smoothing 0.001: held-out board |residual| median 5.99 -> 6.85 px (p90 12.82 -> 16.26); board-mean offset 3.79 -> 6.25 px; improved on 41 % of boards
+   smoothing 0.01: held-out board |residual| median 5.99 -> 7.68 px (p90 12.82 -> 18.92); board-mean offset 3.79 -> 7.19 px; improved on 17 % of boards
+CH03: 13 boards, 858 corners; |residual| median 5.63 px
+   smoothing 0.0001: held-out board |residual| median 5.50 -> 13.44 px (p90 54.46 -> 42.09); board-mean offset 0.58 -> 13.15 px; improved on 46 % of boards
+   smoothing 0.001: held-out board |residual| median 5.50 -> 19.92 px (p90 54.46 -> 44.69); board-mean offset 0.58 -> 16.43 px; improved on 23 % of boards
+   smoothing 0.01: held-out board |residual| median 5.50 -> 11.86 px (p90 54.46 -> 50.27); board-mean offset 0.58 -> 11.96 px; improved on 15 % of boards
+CH04: 14 boards, 1022 corners; |residual| median 5.99 px
+   smoothing 0.0001: held-out board |residual| median 8.30 -> 14.21 px (p90 38.61 -> 51.05); board-mean offset 5.86 -> 12.41 px; improved on 21 % of boards
+   smoothing 0.001: held-out board |residual| median 8.30 -> 12.63 px (p90 38.61 -> 56.14); board-mean offset 5.86 -> 12.03 px; improved on 29 % of boards
+   smoothing 0.01: held-out board |residual| median 8.30 -> 16.08 px (p90 38.61 -> 52.15); board-mean offset 5.86 -> 15.21 px; improved on 21 % of boards
+CH05: 8 boards, 586 corners; |residual| median 9.47 px
+   smoothing 0.0001: held-out board |residual| median 10.74 -> 11.95 px (p90 19.90 -> 16.18); board-mean offset 10.14 -> 11.35 px; improved on 50 % of boards
+   smoothing 0.001: held-out board |residual| median 10.74 -> 10.07 px (p90 19.90 -> 17.36); board-mean offset 10.14 -> 9.04 px; improved on 50 % of boards
+   smoothing 0.01: held-out board |residual| median 10.74 -> 12.48 px (p90 19.90 -> 18.97); board-mean offset 10.14 -> 11.12 px; improved on 25 % of boards
+CH06: 11 boards, 626 corners; |residual| median 13.77 px
+   smoothing 0.0001: held-out board |residual| median 13.96 -> 13.76 px (p90 23.95 -> 27.81); board-mean offset 13.93 -> 13.27 px; improved on 45 % of boards
+   smoothing 0.001: held-out board |residual| median 13.96 -> 13.02 px (p90 23.95 -> 25.61); board-mean offset 13.93 -> 12.95 px; improved on 45 % of boards
+   smoothing 0.01: held-out board |residual| median 13.96 -> 12.15 px (p90 23.95 -> 25.68); board-mean offset 13.93 -> 12.32 px; improved on 45 % of boards
