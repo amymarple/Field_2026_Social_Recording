@@ -30,7 +30,12 @@ balls).
 
 Usage: python refit_supplement.py --session <09-30 session dir> --out <dir> [--drift <landmark_drift.json>]
                                   [--sigma-layout 4] [--cord-weight 0.5] [--folds 5] [--deg CH03=2,...] [--no-supplement]
-                                  [--balls <ball_labels.json>] [--ball-weight 1]
+                                  [--balls <ball_labels.json>] [--ball-weight 1] [--soft-lattice <in>] [--rel <frame_correction.json>]
+--soft-lattice S (2026-10-02, both audits): the 2026-09-18 lattice cones also become shared latent points held to
+their design station by a prior of S inches, like the supplement cones, instead of exact targets in each camera's
+warp; cords and wall foot stay lines. --rel: the warp used as the starting point and as the "release" baseline in
+the checks (default: the one next to the bundle, which after 2026-10-01 is that release; pass
+<root>\qc\release_2026-09-24\frame_correction.json to reproduce the historical comparison).
 Output: <out>\camera_fit.npz (a copy of the release bundle), frame_correction.json (the refitted warps, loadable
 with paddock_map.load(<out>\camera_fit.npz)), REFIT_SUPPLEMENT.txt
 """
@@ -56,13 +61,14 @@ CORD_W = float(opt("--cord-weight", "0.5"))
 FOLDS = int(opt("--folds", "5"))
 NO_SUPP = "--no-supplement" in args                       # control: the same model fitted on the 09-18 labels only
 BALLS = opt("--balls")
+SOFT18 = float(opt("--soft-lattice", "0"))                # in; 0 = the 09-18 cones are exact targets (release)
 BALL_W = float(opt("--ball-weight", "1"))
 R_BALL, BALL_STEP, TAU_REF, TAU_SIGMA = 105.0, 2.0, "CH02", 2.0   # mm; s between ball frames; reference clock; s prior
 OBS_SIGMA = 1.5                                           # in: the scale of a label residual, for the priors
 CONE_Z = fcorr.CONE_Z
 POS = {**fd.LATTICE, **fd.SUPPLEMENT}
 
-REL = json.loads((Path(pm.FIT).parent / "frame_correction.json").read_text(encoding="utf-8"))
+REL = json.loads(Path(opt("--rel", str(Path(pm.FIT).parent / "frame_correction.json"))).read_text(encoding="utf-8"))
 cams = pm.load(pm.FIT, correct=False)
 names = sorted(cams)
 DEG = {c: REL["cameras"][c]["deg"] for c in names}
@@ -149,6 +155,17 @@ def _terms(c, pts):
     return pts, (fcorr.terms(pts, DEG[c]) if len(pts) else np.zeros((0, NT[c])))
 
 
+IDS18 = set()                                             # --soft-lattice: the 09-18 cones as shared latent points
+if SOFT18 > 0:
+    REV = {tuple(np.round(np.asarray(v, float), 3)): k for k, v in fd.LATTICE.items()}
+    for c in names:
+        pts, tgt, kind, grp = base[c]
+        isp = kind == "p"
+        for g, t in zip(pts[isp], tgt[isp]):
+            j = REV[tuple(np.round(t, 3))] + "@0918"
+            cone_obs.append((c, j, np.asarray(g, float))); IDS18.add(j); POS[j] = fd.LATTICE[j[:-5]]
+        base[c] = (pts[~isp], tgt[~isp], kind[~isp], grp[~isp])
+
 PRE = {}                                                  # per camera: fixed points and their polynomial terms
 for _c in names:
     _p, _t, _k, _ = base[_c]
@@ -162,7 +179,7 @@ def solve(use_ids, use_cords=True, ball_ks=(), V=None, W_fixed=None):
     """joint fit; use_ids = the supplement cone IDs whose observations enter, ball_ks = the ball time steps that enter
     (V = ball velocity per step). W_fixed: keep these warps and fit only the ball positions and clock offsets.
     Returns (coef per cam, P per id, tau per cam)."""
-    ids = sorted(use_ids)
+    ids = sorted(set(use_ids) | IDS18)
     jx = {j: i for i, j in enumerate(ids)}
     obs = [(c, j, g) for c, j, g in cone_obs if j in jx]
     design = np.array([POS[j] for j in ids], float).reshape(-1, 2)
@@ -223,7 +240,8 @@ def solve(use_ids, use_cords=True, ball_ks=(), V=None, W_fixed=None):
         for c, (g, T, ij) in GC.items():
             r.append((wp(g, T, W[c]) - P[ij]).ravel())
         if len(ids):
-            r.append(((P - design) * (OBS_SIGMA / SIGMA_LAYOUT)).ravel())
+            sig = np.array([SOFT18 if j in IDS18 else SIGMA_LAYOUT for j in ids])[:, None]
+            r.append(((P - design) * (OBS_SIGMA / sig)).ravel())
         return np.concatenate(r)
 
     sol = least_squares(resid, x0, loss="soft_l1", f_scale=3.0)
@@ -285,7 +303,7 @@ L.append(f"1. without the supplement the joint fit differs from the release by a
          f"support ({'the release itself' if all(DEG[c] == DEG0[c] for c in names) else 'a different warp degree for ' + ', '.join(c for c in names if DEG[c] != DEG0[c])})")
 
 # 2. K-fold over the supplement cones: held-out cones, new fit vs release
-all_ids = sorted({j for _, j, _ in cone_obs})
+all_ids = sorted({j for _, j, _ in cone_obs} - IDS18)
 rng = np.random.default_rng(0)
 order = rng.permutation(all_ids)
 folds = [set(order[i::FOLDS]) for i in range(FOLDS)]
@@ -364,7 +382,8 @@ for c in names:
     after = fcorr.residual_of(fcorr.warp(base[c][0], W[c], DEG[c]), base[c][1], base[c][2])
     out["cameras"][c] = dict(deg=DEG[c], cx=[float(v) for v in W[c][0]], cy=[float(v) for v in W[c][1]],
                              support=[[round(float(a), 2), round(float(b), 2)] for a, b in hull],
-                             n_points=int((base[c][2] == "p").sum()), n_cord=int((base[c][2] == "x").sum()),
+                             n_points=int((base[c][2] == "p").sum()) + sum(1 for cc, j, _ in cone_obs if cc == c and j in IDS18),
+                             n_cord=int((base[c][2] == "x").sum()),
                              n_wall_y=int((base[c][2] == "y").sum()),
                              n_supplement_cones=sum(1 for cc, _, _ in cone_obs if cc == c), n_supplement_cord=len(cord_obs[c][0]),
                              rms_release_on_0918_labels_in=float(np.sqrt((before ** 2).mean())),
