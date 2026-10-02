@@ -1,7 +1,7 @@
 BALL SYNC 20 Hz  fit G:\calibration\qc\camera_fit.npz; tracks G:\calibration\qc\2026-09-30\ball\track20; 09-30 px -> 09-18 colour px by session_2026-09-30_drift_final.json; ball centre z = 105 mm
 detections mapped: CH01 4926, CH02 4420, CH03 2294, CH04 612, CH05 707, CH06 493
 
-HELD BALL (operator 'off ground' + each camera's size ratio; excluded): 17 intervals, 115 s; detections dropped: CH01 283, CH02 353, CH03 208, CH04 10, CH05 0, CH06 0; flagged wrong on the review page: CH01 2, CH02 0, CH03 0, CH04 0, CH05 0, CH06 0
+HELD BALL (operator 'off ground' + each camera's size ratio; excluded): 18 intervals, 116 s; detections dropped: CH01 295, CH02 353, CH03 208, CH04 26, CH05 0, CH06 0; flagged wrong on the review page: CH01 32, CH02 39, CH03 2, CH04 2, CH05 3, CH06 4
       66.60 -   85.90 s  (19.3 s)  operator max size ratio 1.77  operator k34 CH01; operator k35 CH01; operator k36 CH01; ... 7 more; size ratio > 1.25 for 1.8 s; size ratio > 1.25 for 2.6 s
      117.65 -  124.75 s  ( 7.1 s)  operator + operator (review page) max size ratio 1.76  operator k59 CH01; operator k60 CH01; operator k61 CH01; ... 2 more; size ratio > 1.25 for 0.8 s; size ratio > 1.25 for 1.6 s
      165.08 -  171.95 s  ( 6.9 s)  operator + operator (review page) max size ratio 1.73  operator k83 CH01; operator k84 CH01; operator k84 CH02; ... 2 more; size ratio > 1.25 for 2.1 s
@@ -15,76 +15,77 @@ HELD BALL (operator 'off ground' + each camera's size ratio; excluded): 17 inter
      474.50 -  479.95 s  ( 5.4 s)  operator max size ratio 1.76  operator k238 CH01; operator k238 CH02; operator k238 CH04; ... 3 more; size ratio > 1.25 for 2.0 s
      497.65 -  497.95 s  ( 0.3 s)  operator max size ratio 1.02  operator k249 CH01
      501.80 -  507.20 s  ( 5.4 s)  operator max size ratio 1.76  operator k251 CH02; operator k252 CH01; operator k252 CH02; ... 2 more; size ratio > 1.25 for 0.8 s
-  review list (for the page, key s; nothing is dropped by it): CH01 332, CH02 134, CH03 99, CH04 12, CH05 12, CH06 26
-  triangulated ball-centre height (review only; the ball centre is at 105 mm): kept median  104 mm, p10-p90   48- 181, n 9167 | dropped median  496 mm, p10-p90  110-1028, n 206
+     507.21 -  508.01 s  ( 0.8 s)  operator (review page) max size ratio None  
+  review list (for the page, key s; nothing is dropped by it): CH01 326, CH02 134, CH03 99, CH04 8, CH05 12, CH06 26
+  triangulated ball-centre height (review only; the ball centre is at 105 mm): kept median  104 mm, p10-p90   47- 180, n 9085 | dropped median  277 mm, p10-p90   99-1011, n 288
 
 TIME BASE: index  (frame index / fitted frame rate)
   pairwise clock offset (b vs a), median distance at it, and how sharp the minimum is (median at tau +- 0.2 s):
-    CH01-CH02: tau -0.20 s, median   85 mm (n 1697); +-0.2 s:  111 /  115 mm
-    CH01-CH03: tau -0.27 s, median   75 mm (n 1327); +-0.2 s:   86 /   86 mm
-    CH01-CH04: tau -0.76 s, median   65 mm (n 410); +-0.2 s:  106 /  107 mm
-    CH01-CH05: tau -0.29 s, median   37 mm (n 342); +-0.2 s:   59 /   63 mm
-    CH01-CH06: tau -0.06 s, median   57 mm (n 319); +-0.2 s:   90 /   99 mm
-    CH02-CH03: tau -0.07 s, median   50 mm (n 1483); +-0.2 s:   65 /   65 mm
-    CH02-CH04: tau -0.53 s, median   37 mm (n 262); +-0.2 s:   80 /   77 mm
-    CH02-CH05: tau -0.12 s, median   47 mm (n 430); +-0.2 s:   70 /   71 mm
-    CH02-CH06: tau +0.17 s, median   28 mm (n 135); +-0.2 s:   59 /   59 mm
-  per-camera offsets (least squares, vs CH02): CH01 +0.20 s, CH02 +0.00 s, CH03 -0.07 s, CH04 -0.55 s, CH05 -0.11 s, CH06 +0.15 s
-  ALIGNED, every frame pair: median   62 mm, p90  122, n 6409
+    CH01-CH02: tau -0.20 s, median   85 mm (n 1664); +-0.2 s:  111 /  114 mm
+    CH01-CH03: tau -0.29 s, median   74 mm (n 1323); +-0.2 s:   86 /   86 mm
+    CH01-CH04: tau -0.77 s, median   64 mm (n 395); +-0.2 s:  106 /  101 mm
+    CH01-CH05: tau -0.32 s, median   37 mm (n 337); +-0.2 s:   62 /   59 mm
+    CH01-CH06: tau -0.07 s, median   53 mm (n 315); +-0.2 s:   90 /   99 mm
+    CH02-CH03: tau -0.07 s, median   50 mm (n 1471); +-0.2 s:   65 /   65 mm
+    CH02-CH04: tau -0.53 s, median   37 mm (n 256); +-0.2 s:   77 /   77 mm
+    CH02-CH05: tau -0.10 s, median   47 mm (n 427); +-0.2 s:   68 /   72 mm
+    CH02-CH06: tau +0.17 s, median   27 mm (n 133); +-0.2 s:   59 /   60 mm
+  per-camera offsets (least squares, vs CH02): CH01 +0.21 s, CH02 +0.00 s, CH03 -0.07 s, CH04 -0.55 s, CH05 -0.10 s, CH06 +0.15 s
+  ALIGNED, every frame pair: median   61 mm, p90  121, n 6324
   per camera:
-    CH01: median   73 mm, p90  127, n 4098
-    CH02: median   59 mm, p90  129, n 4008
-    CH03: median   63 mm, p90  111, n 2810
-    CH04: median   50 mm, p90  118, n 673
-    CH05: median   43 mm, p90   82, n 772
-    CH06: median   45 mm, p90   99, n 457
+    CH01: median   73 mm, p90  126, n 4036
+    CH02: median   58 mm, p90  128, n 3952
+    CH03: median   63 mm, p90  111, n 2794
+    CH04: median   49 mm, p90  112, n 651
+    CH05: median   43 mm, p90   81, n 765
+    CH06: median   42 mm, p90   98, n 450
   per pair (all frames | ball slower than 5 cm/s):
-    CH01-CH02: median   85 mm, p90  162, n 1697  |  median  110 mm, p90  192, n 385
-    CH01-CH03: median   75 mm, p90  112, n 1327  |  median   86 mm, p90  113, n 470
-    CH01-CH04: median   67 mm, p90  132, n 411  |  median   45 mm, p90  109, n 45
-    CH01-CH05: median   37 mm, p90   67, n 342  |  median   33 mm, p90   67, n 89
-    CH01-CH06: median   57 mm, p90  109, n 321  |  median   40 mm, p90  191, n 87
-    CH02-CH03: median   50 mm, p90  111, n 1483  |  median   48 mm, p90   67, n 411
-    CH02-CH04: median   43 mm, p90   78, n 262  |  median   32 mm, p90   60, n 42
-    CH02-CH05: median   48 mm, p90   86, n 430  |  median   51 mm, p90   83, n 113
-    CH02-CH06: median   30 mm, p90   64, n 136  |  median   18 mm, p90   56, n 41
+    CH01-CH02: median   85 mm, p90  160, n 1664  |  median  110 mm, p90  192, n 385
+    CH01-CH03: median   75 mm, p90  112, n 1323  |  median   86 mm, p90  113, n 470
+    CH01-CH04: median   64 mm, p90  130, n 395  |  median   44 mm, p90  109, n 45
+    CH01-CH05: median   37 mm, p90   67, n 338  |  median   33 mm, p90   67, n 88
+    CH01-CH06: median   54 mm, p90  108, n 316  |  median   40 mm, p90  192, n 87
+    CH02-CH03: median   50 mm, p90  110, n 1471  |  median   48 mm, p90   67, n 411
+    CH02-CH04: median   42 mm, p90   74, n 256  |  median   32 mm, p90   60, n 42
+    CH02-CH05: median   48 mm, p90   85, n 427  |  median   51 mm, p90   83, n 113
+    CH02-CH06: median   28 mm, p90   61, n 134  |  median   18 mm, p90   56, n 40
   by region:
-    60-400 in: median   52 mm, p90  108, n 2498
-    x < 60 in: median   72 mm, p90  127, n 3099
-    x > 400 in (CH04 end): median   49 mm, p90  116, n 812
+    60-400 in: median   51 mm, p90  106, n 2454
+    x < 60 in: median   72 mm, p90  127, n 3081
+    x > 400 in (CH04 end): median   49 mm, p90  112, n 789
 
 TIME BASE: pts  (recording timestamps)
   pairwise clock offset (b vs a), median distance at it, and how sharp the minimum is (median at tau +- 0.2 s):
-    CH01-CH02: tau -0.20 s, median   90 mm (n 1686); +-0.2 s:  111 /  113 mm
-    CH01-CH03: tau -0.26 s, median   77 mm (n 1326); +-0.2 s:   86 /   86 mm
-    CH01-CH04: tau -0.73 s, median   71 mm (n 411); +-0.2 s:   99 /  113 mm
-    CH01-CH05: tau -0.30 s, median   42 mm (n 346); +-0.2 s:   58 /   61 mm
-    CH01-CH06: tau -0.04 s, median   62 mm (n 321); +-0.2 s:   88 /  100 mm
-    CH02-CH03: tau -0.10 s, median   52 mm (n 1490); +-0.2 s:   65 /   63 mm
-    CH02-CH04: tau -0.50 s, median   44 mm (n 266); +-0.2 s:   70 /   82 mm
-    CH02-CH05: tau -0.10 s, median   51 mm (n 433); +-0.2 s:   67 /   73 mm
-    CH02-CH06: tau +0.16 s, median   31 mm (n 131); +-0.2 s:   60 /   64 mm
+    CH01-CH02: tau -0.20 s, median   90 mm (n 1652); +-0.2 s:  111 /  112 mm
+    CH01-CH03: tau -0.26 s, median   77 mm (n 1322); +-0.2 s:   86 /   86 mm
+    CH01-CH04: tau -0.72 s, median   69 mm (n 396); +-0.2 s:   97 /  112 mm
+    CH01-CH05: tau -0.30 s, median   41 mm (n 342); +-0.2 s:   56 /   60 mm
+    CH01-CH06: tau -0.04 s, median   61 mm (n 318); +-0.2 s:   86 /   99 mm
+    CH02-CH03: tau -0.10 s, median   52 mm (n 1475); +-0.2 s:   65 /   63 mm
+    CH02-CH04: tau -0.50 s, median   43 mm (n 261); +-0.2 s:   69 /   81 mm
+    CH02-CH05: tau -0.10 s, median   51 mm (n 430); +-0.2 s:   67 /   72 mm
+    CH02-CH06: tau +0.16 s, median   30 mm (n 130); +-0.2 s:   59 /   64 mm
   per-camera offsets (least squares, vs CH02): CH01 +0.19 s, CH02 +0.00 s, CH03 -0.09 s, CH04 -0.52 s, CH05 -0.10 s, CH06 +0.15 s
-  ALIGNED, every frame pair: median   65 mm, p90  127, n 6412
+  ALIGNED, every frame pair: median   64 mm, p90  126, n 6328
   per camera:
-    CH01: median   77 mm, p90  134, n 4090
-    CH02: median   62 mm, p90  139, n 4007
-    CH03: median   64 mm, p90  113, n 2818
-    CH04: median   54 mm, p90  133, n 678
-    CH05: median   47 mm, p90   88, n 779
-    CH06: median   53 mm, p90  110, n 452
+    CH01: median   77 mm, p90  132, n 4030
+    CH02: median   61 mm, p90  137, n 3950
+    CH03: median   64 mm, p90  113, n 2800
+    CH04: median   54 mm, p90  128, n 657
+    CH05: median   47 mm, p90   86, n 771
+    CH06: median   52 mm, p90  109, n 448
   per pair (all frames | ball slower than 5 cm/s):
-    CH01-CH02: median   91 mm, p90  173, n 1685  |  median  110 mm, p90  188, n 252
-    CH01-CH03: median   78 mm, p90  113, n 1326  |  median   86 mm, p90  113, n 332
-    CH01-CH04: median   72 mm, p90  141, n 411  |  median   54 mm, p90  106, n 31
-    CH01-CH05: median   42 mm, p90   69, n 347  |  median   33 mm, p90   67, n 56
-    CH01-CH06: median   62 mm, p90  119, n 321  |  median   33 mm, p90  104, n 55
-    CH02-CH03: median   52 mm, p90  113, n 1492  |  median   48 mm, p90   67, n 279
-    CH02-CH04: median   46 mm, p90   97, n 267  |  median   43 mm, p90   61, n 24
-    CH02-CH05: median   51 mm, p90   92, n 432  |  median   51 mm, p90   79, n 88
-    CH02-CH06: median   31 mm, p90   72, n 131  |  median   13 mm, p90   55, n 30
+    CH01-CH02: median   91 mm, p90  172, n 1652  |  median  110 mm, p90  188, n 251
+    CH01-CH03: median   78 mm, p90  113, n 1322  |  median   86 mm, p90  113, n 332
+    CH01-CH04: median   72 mm, p90  138, n 396  |  median   54 mm, p90  106, n 31
+    CH01-CH05: median   42 mm, p90   69, n 342  |  median   33 mm, p90   67, n 56
+    CH01-CH06: median   62 mm, p90  119, n 318  |  median   33 mm, p90  104, n 55
+    CH02-CH03: median   52 mm, p90  113, n 1478  |  median   48 mm, p90   67, n 279
+    CH02-CH04: median   45 mm, p90   88, n 261  |  median   47 mm, p90   61, n 23
+    CH02-CH05: median   51 mm, p90   91, n 429  |  median   51 mm, p90   79, n 88
+    CH02-CH06: median   31 mm, p90   68, n 130  |  median   13 mm, p90   55, n 30
   by region:
-    60-400 in: median   54 mm, p90  116, n 2492
-    x < 60 in: median   75 mm, p90  131, n 3099
-    x > 400 in (CH04 end): median   54 mm, p90  130, n 821
+    60-400 in: median   54 mm, p90  113, n 2446
+    x < 60 in: median   74 mm, p90  130, n 3083
+    x > 400 in (CH04 end): median   54 mm, p90  126, n 799
 

@@ -852,3 +852,8 @@ worth a look (key s): detections > 250 mm from the other cameras at the aligned 
 the camera's own track, or a size ratio outside 0.7-1.35 - 615 frames in 88 stretches (CH01 29, CH02 40, others
 4-5). The list only steers the operator's eye; a detection leaves the comparison only when flagged wrong from the
 image.
+
+Full pass (same day, every camera, same file): 82 detections flagged wrong (CH01 32, CH02 39, CH03 2, CH04 2, CH05 3,
+CH06 4), 15 missed, one more held range (507.2-508.0 s). All pairs 61 / 121 mm (n 6324), per camera 42-73 mm, CH04
+end 49 / 112, CH01-CH02 85 - the residual between the two panos is not wrong detections either. This is the
+operator-reviewed ball check of release 10-02b.
