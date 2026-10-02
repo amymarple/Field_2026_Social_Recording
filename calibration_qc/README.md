@@ -809,3 +809,13 @@ the 09-18 IR -> colour step; CH04 through a pre-shift grid), checked by eye on o
 (`session_2026-09-30_drift_final.json`): boards 39 / 87 -> 37 / 86 mm, held-out cones 66 / 135 -> 62 / 124,
 CH02-CH04 76 -> 53, CH02-CH03 44 -> 24, CH01-CH03 42 -> 71 mm. Adopted; details in `RELEASE_2026-10-02.md`. The CH04
 end's ~250 mm on the balls does not change with CH04's transform and is a property of the ball data there.
+
+### The ball sweep at 20 Hz: the CH04 end is fine; frame timestamps are bursty (2026-10-02)
+
+Another session tracked the ball in every frame of every camera (`ball_track20.py`, outputs in
+`<root>\qc\2026-09-30\ball\track20\`). `ball_sync20.py` fits one clock offset per camera from the stick's pushes and
+compares every frame pair at its aligned time (`BALL_SYNC20.txt`): all pairs 63 / 125 mm, the CH04 end 49 mm,
+CH02-CH04 41 mm. The 2-s grid's ~250 mm at the CH04 end was the grid: the recordings' frame timestamps are bursty
+(frames arrive in clumps; 0.04-0.09 s rms and up to 0.57 s off a steady 20 fps clock), and frame index / frame rate
+is the better time base (63 vs 65 mm). For tracking: time frames by their index within a segment, not by their
+stored timestamp. Clock offsets vs CH02 (index base): CH01 +0.20, CH03 -0.07, CH04 -0.55, CH05 -0.11, CH06 +0.15 s.
