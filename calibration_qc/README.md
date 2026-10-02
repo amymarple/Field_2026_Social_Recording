@@ -923,3 +923,20 @@ px/cm along the far walls). Jumps (median / p90 mm): CH02|CH03 26 / 129, CH02|CH
 CH02|CH04 40 / 63, CH02|CH05 42 / 84, CH01|CH04 45 / 112, CH01|CH06 56 / 113, CH01|CH03 58 / 100, CH01|CH02
 93 / 197 - the last on the boundary under the two panos (x 200-320 in), which only they see and where both
 disagree with everything (186 / 98 mm cells). CH04|CH06 has no ball pairs (not measured).
+
+### Drone footage inside the paddock: first 3-D model (2026-10-02)
+
+The operator flew the Atom 2 inside the paddock at 1-2 m on 2026-10-02 17:37-17:58 (F:\ATOM_001\DCIM\PTSC_0011-0018,
+4K 29.97 fps, zoom 1.0x; 0018 was not finalised - "moov atom not found" - and does not open; AUXF holds only 1080p
+proxies and thumbnails). What the drone records: the SD-card PHOTOS carry XMP with gimbal pitch / yaw / roll,
+aircraft attitude, relative altitude to the cm, focal length 4.73 mm (24 mm equivalent) and a time with zone (the
+09-30 "nadir" photo PTSC_0008 was at gimbal pitch -76.65 deg, 14.70 m); the VIDEOS only carry the SRT (altitude in
+whole metres, no gimbal angles); app exports strip everything. Gimbal roll reads exactly 0.000 on every photo, so it
+is a set value, not a measurement.
+
+`drone_sfm.py` (COLMAP 4.2.1 CUDA build in <root>in; SIFT 414 frames at 1 fps in 17 s and exhaustive matching in
+9 min on the RTX 5070 Ti; the incremental mapper ran 42 min on the CPU - GPU bundle adjustment is now the default)
+registered 404 of 414 frames from PTSC_0012 / 0014 / 0016 / 0017 into one model: 97,916 points, 0.69 px mean
+reprojection error, one camera (f 1473 px at 1920 wide, i.e. 66 deg across; k1 0.075). Seen against its own ground
+plane the paddock floor, the wall tops (the orange flagging) and the top frame stand out; its scale and orientation
+are arbitrary until known points tie it to the paddock (`<qc root>\drone_sfm6-10-02\`).
