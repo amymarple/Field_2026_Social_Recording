@@ -758,3 +758,12 @@ circumference and lean, 44 pole-to-pole laser distances (17 between the nine pol
 top height at 24 points, both houses (base size, corner heights, corners to the nearby B and A poles), camera
 lens heights, and 26 still-ball spots each seen by two or more cameras (a still ball needs no clock), plus a
 +y push along T7. Entries are kept in the browser and copied out as text.
+
+## Release 2026-10-01: ground correction with the supplement cones and the ball sweep
+
+Adopted by the operator after the comparison above (ball weight 0.5). Only `frame_correction.json` changes; the
+bundle is the 2026-09-24 one, byte for byte. Boards between cameras 52 / 108 mm (was 71 / 153), held-out cones
+61 / 119 (78 / 160), held-out balls 88 (117). `PADDOCK_AGREEMENT.txt`, `LINE_CHECK.txt` and
+`DOWNSTREAM_VALIDATION.txt` are regenerated (the latter's ensemble sections compare against the old method and
+are not valid for this release). Provenance, reproduction, the evidence and the open points for the audit:
+`RELEASE_2026-10-01.md`. The previous warp: git `c3b5cef`, and `<root>\qc\release_2026-09-24\`.
