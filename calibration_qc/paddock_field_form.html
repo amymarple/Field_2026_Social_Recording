@@ -1,0 +1,421 @@
+<title>Paddock Field Measurements</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,400..800&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Field tool for a tape and a phone in sunlight: one column, big targets, survey-flag orange for what still needs doing,
+   mono digits for every number that is read off a tape. */
+:root {
+  --bg: #eef2f0; --surface: #ffffff; --ink: #13201b; --muted: #56675f; --line: #cfd8d4;
+  --accent: #d9480f; --accent-ink: #ffffff; --ok: #1d7a49; --warn: #a86a0c; --bad: #b8322a; --chip: #e2e9e6;
+  --f-display: "Archivo", "Arial Narrow", Arial, sans-serif; --f-data: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f1513; --surface: #172019; --ink: #e6eeea; --muted: #97a8a0; --line: #2a3631;
+  --accent: #ff7a33; --accent-ink: #1a0d05; --ok: #4cc48a; --warn: #e3aa45; --bad: #ff6b5f; --chip: #223029; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0f1513; --surface: #172019; --ink: #e6eeea; --muted: #97a8a0; --line: #2a3631;
+  --accent: #ff7a33; --accent-ink: #1a0d05; --ok: #4cc48a; --warn: #e3aa45; --bad: #ff6b5f; --chip: #223029; color-scheme: dark }
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-display); font-size: 16px; line-height: 1.45 }
+.wrap { max-width: 760px; margin: 0 auto; padding-inline: 16px; padding-block: 0 48px }
+header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line) }
+.top .row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-block: 12px 6px }
+h1 { font-size: 1.25rem; font-weight: 800; font-stretch: 80%; letter-spacing: .01em; margin: 0; text-wrap: balance }
+.sync { font-family: var(--f-data); font-size: .75rem; color: var(--muted); white-space: nowrap }
+.sync.off { color: var(--bad) }
+nav.tabs { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 8px }
+nav.tabs button { flex: 0 0 auto; font: 600 .95rem var(--f-display); font-stretch: 85%; padding: 8px 12px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); min-height: 40px }
+nav.tabs button[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink) }
+nav.tabs .n { font-family: var(--f-data); font-size: .75rem; opacity: .75; margin-left: 4px }
+section.tab { display: grid; gap: 18px; padding-top: 16px }
+h2 { font-size: 1.05rem; font-weight: 800; font-stretch: 85%; text-transform: uppercase; letter-spacing: .06em; margin: 8px 0 0; color: var(--muted) }
+p.hint { margin: 0; color: var(--muted); font-size: .92rem; max-width: 65ch }
+.banner { border: 1px solid var(--bad); color: var(--bad); border-radius: var(--r); padding: 10px 12px; font-size: .92rem }
+.settings { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; font-size: .92rem }
+.settings label { display: flex; align-items: center; gap: 6px }
+select, input { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; min-height: 42px; padding: 6px 8px }
+input { font-family: var(--f-data); font-variant-numeric: tabular-nums }
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px }
+.map { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 8px; overflow-x: auto }
+.map svg { display: block; width: 100%; max-width: 100%; height: auto }
+.map text { font-family: var(--f-data); fill: var(--ink) }
+.map .lab { font-size: 11px }
+.map .axis { font-size: 10px; fill: var(--muted) }
+.map .seg { stroke-width: 7; stroke-linecap: round; cursor: pointer }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: .82rem; color: var(--muted); padding: 6px 4px 2px }
+.legend i { display: inline-block; width: 18px; height: 5px; border-radius: 3px; vertical-align: middle; margin-right: 5px }
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px }
+.summary div { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: .85rem; min-width: 0 }
+.summary b { display: block; font-family: var(--f-data); font-size: 1.05rem; font-weight: 600 }
+.list { display: grid; border-top: 1px solid var(--line) }
+.item { display: grid; gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--line); scroll-margin-top: 120px }
+.item .head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px }
+.id { font-family: var(--f-data); font-weight: 600; font-size: 1rem; background: var(--chip); padding: 2px 8px; border-radius: 6px }
+.design { font-size: .85rem; color: var(--muted) }
+.state { margin-left: auto; font-size: .8rem; font-family: var(--f-data); color: var(--muted) }
+.state.todo { color: var(--accent); font-weight: 600 }
+.state.done { color: var(--ok) }
+.state.err { color: var(--bad) }
+.readings { display: grid; gap: 6px }
+.rd { display: flex; flex-wrap: wrap; align-items: center; gap: 6px }
+.rd > span.k { width: 64px; font-size: .82rem; color: var(--muted) }
+.len { display: inline-flex; gap: 4px; align-items: center }
+.len input.ft { width: 58px } .len input.in { width: 74px } .len input.cm { width: 110px } .len select { width: 78px }
+.len small { color: var(--muted); font-size: .78rem }
+.opts { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: .88rem }
+.opts input.note { flex: 1 1 180px; min-width: 0; font-family: var(--f-display) }
+.result { font-family: var(--f-data); font-size: .9rem; font-variant-numeric: tabular-nums }
+.result .ok { color: var(--ok) } .result .warn { color: var(--warn) } .result .bad { color: var(--bad) }
+.checks { display: grid; border-top: 1px solid var(--line) }
+.check { display: grid; grid-template-columns: 34px 1fr; gap: 4px 10px; padding: 12px 0; border-bottom: 1px solid var(--line); align-items: start }
+.check input[type=checkbox] { width: 26px; height: 26px; min-height: 0; margin: 2px 0 0; accent-color: var(--ok) }
+.check .t { font-weight: 600 }
+.check .d { grid-column: 2; color: var(--muted); font-size: .9rem; max-width: 65ch }
+.check.done .t { text-decoration: line-through; color: var(--muted) }
+.check .when { grid-column: 2; font-family: var(--f-data); font-size: .75rem; color: var(--ok) }
+.btn { font: 700 1rem var(--f-display); font-stretch: 85%; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); padding: 10px 16px; min-height: 44px }
+.btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); font-weight: 600 }
+.logform { display: flex; flex-wrap: wrap; gap: 8px }
+.logform input { flex: 1 1 200px; min-width: 0; font-family: var(--f-display) }
+.log { display: grid; border-top: 1px solid var(--line) }
+.log div { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); align-items: center }
+.log time { font-family: var(--f-data); font-size: .9rem }
+.empty { color: var(--muted); font-size: .92rem; padding: 12px 0 }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important } }
+</style>
+
+<header class="top"><div class="wrap">
+  <div class="row"><h1>Paddock Field Measurements</h1><span class="sync" id="sync">connecting…</span></div>
+  <nav class="tabs" role="tablist">
+    <button role="tab" id="t-poles" aria-selected="true" data-tab="poles">Poles<span class="n" id="n-poles"></span></button>
+    <button role="tab" id="t-walls" aria-selected="false" data-tab="walls">Walls &amp; cameras<span class="n" id="n-walls"></span></button>
+    <button role="tab" id="t-shots" aria-selected="false" data-tab="shots">Saturday shots<span class="n" id="n-shots"></span></button>
+    <button role="tab" id="t-log" aria-selected="false" data-tab="log">Time log<span class="n" id="n-log"></span></button>
+  </nav>
+</div></header>
+
+<main class="wrap">
+  <div class="banner" id="offline" hidden>Not connected to the shared store: what you type stays on this phone only (and Claude cannot read it). Reopen the page from claude.ai to sync.</div>
+
+  <section class="tab" id="poles">
+    <p class="hint">Fifteen poles on a 10 ft grid: rows A (y 0), B (y 120 in), C (y 240 in), columns 0-4 from the west wall (x 0) to the east wall (x 480 in). Tap a line on the map to jump to it. Every value saves as you type.</p>
+    <div class="settings">
+      <label>Tape <select id="set-units"><option value="imp">ft · in · 1/16</option><option value="cm">cm</option></select></label>
+      <label>Measured between <select id="set-how"><option value="gap">facing sides (gap)</option><option value="same">same side of both</option><option value="centre">centres</option></select></label>
+      <label>Height above ground <input id="set-h" inputmode="decimal" style="width:70px"> cm</label>
+    </div>
+    <div class="map"><svg id="map" viewBox="0 0 540 300" role="img" aria-label="Pole grid with measured spans"></svg>
+      <div class="legend"><span><i style="background:var(--line)"></i>to measure</span><span><i style="background:var(--ok)"></i>measured</span><span><i style="background:var(--warn)"></i>two readings disagree &gt; 1/4 in</span></div></div>
+    <div class="summary" id="summary"></div>
+    <h2>Spans along the length (x)</h2><div class="list" id="list-x"></div>
+    <h2>Spans across (y)</h2><div class="list" id="list-y"></div>
+    <h2>Pole thickness and plumb</h2>
+    <p class="hint">Wrap the tape around each pole at the height you measure the spans; the page turns the circumference into a diameter and uses it to get centre-to-centre distances from gaps.</p>
+    <div class="list" id="list-poles"></div>
+    <h2>One-tape checks (optional)</h2>
+    <p class="hint">A single pull over the whole length, width or diagonal. The two diagonals tell whether the grid is square.</p>
+    <div class="list" id="list-long"></div>
+  </section>
+
+  <section class="tab" id="walls" hidden>
+    <p class="hint">Heights from the ground at the wall's foot to the top edge of the wall sheet, and from the ground to the centre of each camera lens. The west wall top is the one the cameras disagree on.</p>
+    <h2>Wall tops</h2><div class="list" id="list-walls"></div>
+    <h2>Camera lens heights</h2><div class="list" id="list-cams"></div>
+  </section>
+
+  <section class="tab" id="shots" hidden>
+    <p class="hint">Saturday 2026-10-03. Photos rather than video for anything measured; zoom at 1.0x the whole day. Tick as you go; mark flight start and end times in the Time log so the frames can be matched to the rig's recording.</p>
+    <div id="checks"></div>
+  </section>
+
+  <section class="tab" id="log" hidden>
+    <p class="hint">One tap stamps this phone's clock with a label. Use it at every take-off, landing and anything you place or move.</p>
+    <form class="logform" id="logform"><input id="log-label" placeholder="e.g. flight 1 take-off, board at west end" autocomplete="off"><button class="btn" type="submit">Mark time</button></form>
+    <div class="log" id="loglist"></div>
+  </section>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+const IN_CM = 2.54, FR = ["", "1/16", "1/8", "3/16", "1/4", "5/16", "3/8", "7/16", "1/2", "9/16", "5/8", "11/16", "3/4", "13/16", "7/8", "15/16"];
+const POLE_XY = {}; "ABC".split("").forEach((r, ri) => { for (let c = 0; c < 5; c++) POLE_XY[r + c] = [c * 120, ri * 120]; });
+const SEGS = [];
+"ABC".split("").forEach(r => { for (let c = 0; c < 4; c++) SEGS.push({ id: `seg_${r}${c}-${r}${c + 1}`, a: r + c, b: r + (c + 1), design: 120, axis: "x" }); });
+for (let c = 0; c < 5; c++) { SEGS.push({ id: `seg_A${c}-B${c}`, a: "A" + c, b: "B" + c, design: 120, axis: "y" }); SEGS.push({ id: `seg_B${c}-C${c}`, a: "B" + c, b: "C" + c, design: 120, axis: "y" }); }
+const LONG = [["A0", "A4", 480], ["C0", "C4", 480], ["A0", "C0", 240], ["A4", "C4", 240], ["A0", "C4", 536.66], ["A4", "C0", 536.66]]
+  .map(([a, b, d]) => ({ id: `long_${a}-${b}`, a, b, design: d, axis: "long" }));
+const POLES = Object.keys(POLE_XY).map(p => ({ id: `pole_${p}`, name: p }));
+const WALLS = [["W", "West wall (x 0)", [30, 90, 150, 210], "y"], ["E", "East wall (x 480 in)", [30, 90, 150, 210], "y"],
+               ["S", "Wall at y 0 (row A)", [60, 180, 300, 420], "x"], ["N", "Wall at y 240 (row C)", [60, 180, 300, 420], "x"]]
+  .flatMap(([k, name, at, ax]) => at.map(v => ({ id: `wall_${k}_${ax}${v}`, label: `${name}, ${ax} ${v} in`, group: k })));
+const CAMS = ["CH01", "CH02", "CH03", "CH04", "CH05", "CH06"].map(c => ({ id: `cam_${c}`, label: `${c} lens centre` }));
+const CHECKS = [
+  ["Before flying", [
+    ["lens", "Drone lens: 15-20 photos of the ChArUco board", "Board flat on the ground, drone held 1-2 m away, motors off. Change angle and position so the board passes through every corner of the frame and the middle. Same photo mode as the flights."],
+    ["settings", "Photo mode, full resolution, zoom 1.0x", "Gimbal straight down (-90 deg) for the nadir shots. If there is a distortion-correction switch, leave it in one state all day and write which in the note."],
+    ["sails", "Fold back the four shade sails (if possible)", "They hide the corners and both ends, where the calibration is weakest."],
+    ["boards", "Board flat on the ground at the west end, then the east end", "Near the wall, where both the drone and the rig cameras see it. Mark the time in the log each time it is placed."],
+  ]],
+  ["Flights outside the paddock", [
+    ["nadir12", "Hover over the centre at ~12 m: 2-3 photos straight down", "Whole paddock in the frame, all four corners."],
+    ["nadir20", "Same at ~20 m", ""],
+    ["grid", "Grid at 8-10 m: 3 lines along the length", "A photo every 1.5-2 m; neighbouring photos overlap 70-80 %."],
+    ["orbit8", "Orbit at ~8 m height, camera 45 deg down", "A photo every 20-30 deg all the way round."],
+    ["orbit4", "Orbit at ~4 m height", "Shows the wall tops and the sides of the poles."],
+  ]],
+  ["Inside the paddock (no animals inside; prop guards; slow)", [
+    ["level", "Hover at ~1.5 m, camera level (pitch 0), facing each wall", "Long walls at 3 places each, short walls at 2; at each place turn 180 deg and shoot the opposite wall too. Extra places along the west wall."],
+    ["reverse", "180 deg pairs straight down: centre and west end", "Same spot, camera straight down, one photo, rotate 180 deg, another photo. This measures the gimbal's own tilt."],
+    ["corners", "Corners and ends under the sails, straight down at ~1.5 m", "Get the corner cones C1-C4 and the floor along both end walls in frame, overlapping photos."],
+    ["housings", "Each rig camera housing from 2-3 angles", "CH01-CH06; hover or hold the drone."],
+  ]],
+  ["Handheld (phone or the drone held, motors off)", [
+    ["wallwalk", "Walk each wall: a photo of the wall top every ~1 m", "West wall first."],
+    ["polesides", "Each pole from two sides, foot included", ""],
+  ]],
+  ["After", [
+    ["copy", "Copy everything to F:\\calibration\\drone\\2026-10-03\\", "Photos, MP4s and their SRT files. Also copy PTSC_0004.MP4 and PTSC_0007.MP4 from 2026-09-30."],
+  ]],
+];
+
+let db = null, live = false;
+const S = { items: {}, checks: {}, log: [], settings: { units: "imp", how: "gap", h_cm: 30 } };
+const pending = new Map(), inflight = new Set();
+const LS = "paddock_field_v1";
+function lsLoad() { try { const v = JSON.parse(localStorage.getItem(LS) || "null"); if (v) Object.assign(S, v); } catch (e) {} }
+function lsSave() { try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) {} }
+
+// ---------- lengths ----------
+function toImp(v) { if (v == null || !isFinite(v)) return { ft: "", inch: "", fr: 0 };
+  let s16 = Math.round(v * 16), ft = Math.floor(s16 / 192); s16 -= ft * 192; const inch = Math.floor(s16 / 16); return { ft, inch, fr: s16 - inch * 16 }; }
+function fmt(v) { if (v == null || !isFinite(v)) return "–"; if (S.settings.units === "cm") return (v * IN_CM).toFixed(1) + " cm";
+  const t = toImp(v); return `${t.ft ? t.ft + "' " : ""}${t.inch}${t.fr ? " " + FR[t.fr] : ""}"`; }
+function fmtIn(v, d = 2) { return v == null || !isFinite(v) ? "–" : (S.settings.units === "cm" ? (v * IN_CM).toFixed(1) + " cm" : v.toFixed(d) + " in"); }
+function lenHTML(key) {
+  if (S.settings.units === "cm") return `<span class="len" data-key="${key}"><input class="cm" id="${key}_cm" inputmode="decimal" placeholder="cm" aria-label="${key} in cm"></span>`;
+  return `<span class="len" data-key="${key}"><input class="ft" id="${key}_ft" inputmode="numeric" placeholder="ft" aria-label="feet"><small>ft</small>` +
+    `<input class="in" id="${key}_in" inputmode="decimal" placeholder="in" aria-label="inches"><select id="${key}_fr" aria-label="sixteenths">` +
+    FR.map((f, i) => `<option value="${i}">${f || "+0"}</option>`).join("") + `</select></span>`;
+}
+function readLen(key) {
+  if (S.settings.units === "cm") { const v = parseFloat(($("#" + key + "_cm") || {}).value); return isFinite(v) ? v / IN_CM : null; }
+  const ft = parseFloat($("#" + key + "_ft").value), inch = parseFloat($("#" + key + "_in").value), fr = +$("#" + key + "_fr").value;
+  if (!isFinite(ft) && !isFinite(inch) && !fr) return null;
+  return (isFinite(ft) ? ft * 12 : 0) + (isFinite(inch) ? inch : 0) + fr / 16;
+}
+function writeLen(key, v) {
+  const act = document.activeElement; if (act && act.id && act.id.startsWith(key + "_")) return;   // never clobber typing
+  if (S.settings.units === "cm") { const el = $("#" + key + "_cm"); if (el) el.value = v == null ? "" : (v * IN_CM).toFixed(1); return; }
+  const t = toImp(v), f = $("#" + key + "_ft"); if (!f) return;
+  f.value = t.ft === "" ? "" : t.ft; $("#" + key + "_in").value = t.inch === "" ? "" : t.inch; $("#" + key + "_fr").value = t.fr;
+}
+
+// ---------- derived ----------
+function diam(p) { const d = S.items["pole_" + p]; return d && isFinite(d.circ) ? d.circ / Math.PI : null; }
+function reading(d) { const r = [d && d.r1, d && d.r2].filter(v => v != null && isFinite(v)); return r.length ? r.reduce((a, b) => a + b) / r.length : null; }
+function spread(d) { return d && isFinite(d.r1) && isFinite(d.r2) ? Math.abs(d.r1 - d.r2) : null; }
+function centre(seg) {
+  const d = S.items[seg.id], r = reading(d); if (r == null) return { v: null };
+  const how = (d && d.how) || S.settings.how;
+  if (how === "gap") { const da = diam(seg.a), db_ = diam(seg.b);
+    if (da != null && db_ != null) return { v: r + (da + db_) / 2, how };
+    return { v: r + 12, how, assumed: true }; }
+  return { v: r, how };
+}
+function segState(seg) { const d = S.items[seg.id]; if (reading(d) == null) return "todo"; const sp = spread(d); return sp != null && sp > 0.25 ? "warn" : "done"; }
+
+// ---------- rendering ----------
+function segRow(seg) {
+  return `<div class="item" id="row-${seg.id}" data-id="${seg.id}" data-kind="seg">
+    <div class="head"><span class="id">${seg.a}–${seg.b}</span><span class="design">design ${seg.design === 536.66 ? "536.7 in (44' 8 5/8\")" : seg.design + " in"}</span><span class="state" id="st-${seg.id}"></span></div>
+    <div class="readings"><div class="rd"><span class="k">reading 1</span>${lenHTML(seg.id + "_r1")}</div><div class="rd"><span class="k">reading 2</span>${lenHTML(seg.id + "_r2")}</div></div>
+    <div class="opts"><select id="${seg.id}_how" aria-label="what was measured"><option value="">as set above</option><option value="gap">gap (facing sides)</option><option value="same">same side of both</option><option value="centre">centres</option></select>
+      <input class="note" id="${seg.id}_note" placeholder="note (obstacle, tape sag, …)"></div>
+    <div class="result" id="res-${seg.id}"></div></div>`;
+}
+function poleRow(p) {
+  return `<div class="item" id="row-${p.id}" data-id="${p.id}" data-kind="pole">
+    <div class="head"><span class="id">${p.name}</span><span class="design">x ${POLE_XY[p.name][0]}, y ${POLE_XY[p.name][1]} in</span><span class="state" id="st-${p.id}"></span></div>
+    <div class="rd"><span class="k">around</span>${lenHTML(p.id + "_circ")}</div>
+    <div class="opts"><select id="${p.id}_lean" aria-label="plumb"><option value="">plumb?</option><option value="plumb">looks plumb</option><option value="+x">top leans east (+x)</option><option value="-x">top leans west (-x)</option><option value="+y">top leans to row C (+y)</option><option value="-y">top leans to row A (-y)</option></select>
+      <input id="${p.id}_leanmm" inputmode="decimal" placeholder="mm per m" style="width:110px" aria-label="lean in mm per metre">
+      <input class="note" id="${p.id}_note" placeholder="note"></div>
+    <div class="result" id="res-${p.id}"></div></div>`;
+}
+function hRow(it) {
+  return `<div class="item" id="row-${it.id}" data-id="${it.id}" data-kind="h">
+    <div class="head"><span class="id">${it.id.replace(/^(wall|cam)_/, "").replace(/_/g, " ")}</span><span class="design">${it.label}</span><span class="state" id="st-${it.id}"></span></div>
+    <div class="readings"><div class="rd"><span class="k">reading 1</span>${lenHTML(it.id + "_r1")}</div><div class="rd"><span class="k">reading 2</span>${lenHTML(it.id + "_r2")}</div></div>
+    <div class="opts"><input class="note" id="${it.id}_note" placeholder="note (where exactly, what edge)"></div>
+    <div class="result" id="res-${it.id}"></div></div>`;
+}
+function buildLists() {
+  $("#list-x").innerHTML = SEGS.filter(s => s.axis === "x").map(segRow).join("");
+  $("#list-y").innerHTML = SEGS.filter(s => s.axis === "y").map(segRow).join("");
+  $("#list-long").innerHTML = LONG.map(segRow).join("");
+  $("#list-poles").innerHTML = POLES.map(poleRow).join("");
+  $("#list-walls").innerHTML = WALLS.map(hRow).join("");
+  $("#list-cams").innerHTML = CAMS.map(hRow).join("");
+  $("#checks").innerHTML = CHECKS.map(([g, rows]) => `<h2>${g}</h2><div class="checks">` + rows.map(([id, t, d]) =>
+    `<label class="check" id="ck-${id}"><input type="checkbox" id="chk_${id}"><span class="t">${t}</span>${d ? `<span class="d">${d}</span>` : ""}<span class="when" id="when-${id}"></span></label>`).join("") + `</div>`).join("");
+}
+function fillInputs() {
+  const all = [...SEGS, ...LONG];
+  for (const s of all) { const d = S.items[s.id] || {}; writeLen(s.id + "_r1", d.r1); writeLen(s.id + "_r2", d.r2); setIfIdle(s.id + "_how", d.how || ""); setIfIdle(s.id + "_note", d.note || ""); }
+  for (const p of POLES) { const d = S.items[p.id] || {}; writeLen(p.id + "_circ", d.circ); setIfIdle(p.id + "_lean", d.lean || ""); setIfIdle(p.id + "_leanmm", d.lean_mm ?? ""); setIfIdle(p.id + "_note", d.note || ""); }
+  for (const h of [...WALLS, ...CAMS]) { const d = S.items[h.id] || {}; writeLen(h.id + "_r1", d.r1); writeLen(h.id + "_r2", d.r2); setIfIdle(h.id + "_note", d.note || ""); }
+  setIfIdle("set-units", S.settings.units); setIfIdle("set-how", S.settings.how); setIfIdle("set-h", S.settings.h_cm ?? "");
+  for (const [, rows] of CHECKS) for (const [id] of rows) { const c = S.checks[id]; const el = $("#chk_" + id); if (el) el.checked = !!(c && c.done);
+    $("#ck-" + id).classList.toggle("done", !!(c && c.done)); $("#when-" + id).textContent = c && c.done && c.at ? "done " + new Date(c.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""; }
+}
+function setIfIdle(id, v) { const el = $("#" + id); if (el && document.activeElement !== el) el.value = v; }
+function stateText(id, st) { const el = $("#st-" + id); if (!el) return;
+  const p = pending.has(id) || inflight.has(id);
+  el.className = "state " + (p ? "" : st === "todo" ? "todo" : st === "err" ? "err" : "done");
+  el.textContent = p ? "saving…" : st === "todo" ? "to measure" : st === "err" ? "not saved" : "saved"; }
+function renderDerived() {
+  for (const s of [...SEGS, ...LONG]) {
+    const d = S.items[s.id], c = centre(s), sp = spread(d), st = segState(s); stateText(s.id, d && d._err ? "err" : st);
+    const el = $("#res-" + s.id); if (!el) continue;
+    if (c.v == null) { el.innerHTML = ""; continue; }
+    const dev = c.v - s.design, cls = Math.abs(dev) <= 1 ? "ok" : Math.abs(dev) <= 3 ? "warn" : "bad";
+    el.innerHTML = `centre to centre <b>${fmtIn(c.v)}</b>${c.assumed ? " (poles taken as 12 in thick until both are wrapped)" : ""} · ` +
+      `<span class="${cls}">${dev >= 0 ? "+" : ""}${fmtIn(dev)} vs design</span>` + (sp != null ? ` · readings differ <span class="${sp > 0.25 ? "warn" : "ok"}">${fmtIn(sp)}</span>` : "");
+  }
+  for (const p of POLES) { const d = S.items[p.id] || {}, dm = diam(p.name); stateText(p.id, d._err ? "err" : isFinite(d.circ) ? "done" : "todo");
+    $("#res-" + p.id).innerHTML = dm != null ? `diameter <b>${fmtIn(dm)}</b>` : ""; }
+  for (const h of [...WALLS, ...CAMS]) { const d = S.items[h.id], r = reading(d), sp = spread(d); stateText(h.id, d && d._err ? "err" : r == null ? "todo" : "done");
+    $("#res-" + h.id).innerHTML = r == null ? "" : `height <b>${fmtIn(r)}</b>` + (sp != null ? ` · readings differ <span class="${sp > 0.25 ? "warn" : "ok"}">${fmtIn(sp)}</span>` : ""); }
+  // west wall level check
+  const w = WALLS.filter(x => x.group === "W").map(x => reading(S.items[x.id])).filter(v => v != null);
+  // summary
+  const nSeg = SEGS.filter(s => reading(S.items[s.id]) != null).length, nPole = POLES.filter(p => isFinite((S.items[p.id] || {}).circ)).length;
+  const rowSum = r => { const v = [0, 1, 2, 3].map(c => centre(SEGS.find(s => s.id === `seg_${r}${c}-${r}${c + 1}`)).v); return v.every(x => x != null) ? v.reduce((a, b) => a + b) : null; };
+  const one = id => centre(LONG.find(s => s.id === id)).v;
+  const dA = rowSum("A"), dC = rowSum("C"), dg1 = one("long_A0-C4"), dg2 = one("long_A4-C0");
+  $("#summary").innerHTML = `<div>spans measured<b>${nSeg} / ${SEGS.length}</b></div><div>poles wrapped<b>${nPole} / ${POLES.length}</b></div>` +
+    `<div>row A, four spans<b>${dA == null ? "–" : fmtIn(dA, 1)}</b>${one("long_A0-A4") != null && dA != null ? `one tape ${fmtIn(one("long_A0-A4"), 1)}` : "design 480 in"}</div>` +
+    `<div>row C, four spans<b>${dC == null ? "–" : fmtIn(dC, 1)}</b>${one("long_C0-C4") != null && dC != null ? `one tape ${fmtIn(one("long_C0-C4"), 1)}` : "design 480 in"}</div>` +
+    `<div>diagonals differ<b>${dg1 != null && dg2 != null ? fmtIn(Math.abs(dg1 - dg2), 1) : "–"}</b>0 = square</div>` +
+    `<div>west wall top spread<b>${w.length >= 2 ? fmtIn(Math.max(...w) - Math.min(...w), 2) : "–"}</b>0 = level</div>`;
+  $("#n-poles").textContent = `${nSeg + nPole}/${SEGS.length + POLES.length}`;
+  $("#n-walls").textContent = `${[...WALLS, ...CAMS].filter(h => reading(S.items[h.id]) != null).length}/${WALLS.length + CAMS.length}`;
+  const nCk = CHECKS.reduce((a, [, r]) => a + r.length, 0), dCk = Object.values(S.checks).filter(c => c && c.done).length;
+  $("#n-shots").textContent = `${dCk}/${nCk}`; $("#n-log").textContent = S.log.length ? String(S.log.length) : "";
+  drawMap();
+}
+function drawMap() {
+  const X = x => 30 + x, Y = y => 270 - y, col = { todo: "var(--line)", done: "var(--ok)", warn: "var(--warn)" };
+  let s = `<rect x="${X(0)}" y="${Y(240)}" width="480" height="240" fill="none" stroke="var(--muted)" stroke-dasharray="4 4"/>` +
+    `<text class="axis" x="${X(0)}" y="${Y(240) - 8}">row C · y 240</text><text class="axis" x="${X(0)}" y="${Y(0) + 22}">row A · y 0</text>` +
+    `<text class="axis" x="${X(0) - 22}" y="${Y(120) + 4}" transform="rotate(-90 ${X(0) - 22} ${Y(120)})" text-anchor="middle">west · x 0</text>` +
+    `<text class="axis" x="${X(480) + 22}" y="${Y(120) + 4}" transform="rotate(90 ${X(480) + 22} ${Y(120)})" text-anchor="middle">east · x 480</text>`;
+  for (const g of SEGS) { const [x1, y1] = POLE_XY[g.a], [x2, y2] = POLE_XY[g.b];
+    s += `<line class="seg" data-go="${g.id}" x1="${X(x1)}" y1="${Y(y1)}" x2="${X(x2)}" y2="${Y(y2)}" stroke="${col[segState(g)]}"><title>${g.a}–${g.b}</title></line>`; }
+  for (const [p, [x, y]] of Object.entries(POLE_XY)) { const done = isFinite((S.items["pole_" + p] || {}).circ);
+    s += `<circle cx="${X(x)}" cy="${Y(y)}" r="9" fill="${done ? "var(--ok)" : "var(--surface)"}" stroke="var(--ink)" stroke-width="2" data-go="pole_${p}" style="cursor:pointer"/>` +
+      `<text class="lab" x="${X(x) + 12}" y="${Y(y) - 10}">${p}</text>`; }
+  $("#map").innerHTML = s;
+}
+
+// ---------- saving ----------
+function bodyFor(id, kind) {
+  const note = ($("#" + id + "_note") || {}).value || "";
+  if (kind === "pole") { const mm = parseFloat($("#" + id + "_leanmm").value);
+    return { circ: readLen(id + "_circ"), lean: $("#" + id + "_lean").value, lean_mm: isFinite(mm) ? mm : null, note }; }
+  const b = { r1: readLen(id + "_r1"), r2: readLen(id + "_r2"), note };
+  if (kind === "seg") { b.how = $("#" + id + "_how").value || S.settings.how; b.h_cm = S.settings.h_cm; }
+  return b;
+}
+function queue(id, kind) {
+  const b = bodyFor(id, kind); b.units_entered = S.settings.units; b.updated = new Date().toISOString();
+  S.items[id] = b; pending.set(id, b); renderDerived(); lsSave();
+  clearTimeout(queue["t" + id]); queue["t" + id] = setTimeout(() => flush(id), 700);
+}
+async function flush(id) {
+  if (!pending.has(id) || inflight.has(id)) return;
+  const b = pending.get(id); pending.delete(id);
+  if (!db) { renderDerived(); return; }
+  inflight.add(id); let retry = false;
+  const { _err, ...clean } = b;
+  try { await db.doc("items/" + id).set(clean); delete b._err; }
+  catch (e) { b._err = (e && e.code) || "error"; retry = !!(e && e.code === "unavailable"); }
+  finally {
+    inflight.delete(id);
+    if (pending.has(id)) flush(id);                                    // a newer edit arrived meanwhile
+    else if (retry) { pending.set(id, b); setTimeout(() => flush(id), 1500 + Math.random() * 1000); }
+    renderDerived();
+  }
+}
+async function saveSettings() {
+  const h = parseFloat($("#set-h").value);
+  S.settings = { units: $("#set-units").value, how: $("#set-how").value, h_cm: isFinite(h) ? h : null }; lsSave();
+  if (db) { try { await db.doc("meta/settings").set(S.settings); } catch (e) {} }
+}
+async function setCheck(id, done) {
+  const c = { done, at: new Date().toISOString() }; S.checks[id] = c; lsSave(); fillInputs(); renderDerived();
+  if (db) { try { await db.doc("checks/" + id).set(c); } catch (e) { $("#when-" + id).textContent = "not saved"; } }
+}
+function renderLog() {
+  const L = [...S.log].sort((a, b) => (b.t || "").localeCompare(a.t || ""));
+  $("#loglist").innerHTML = L.length ? L.map(e => `<div><time>${new Date(e.t).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit", second: "2-digit" })}</time>` +
+    `<span>${esc(e.label || "")}</span><button class="btn ghost" data-del="${e.id}" aria-label="delete entry">${delArm === e.id ? "Tap again to delete" : "Delete"}</button></div>`).join("")
+    : `<p class="empty">No marks yet. Type a label and tap Mark time at every take-off and landing.</p>`;
+  $("#n-log").textContent = S.log.length ? String(S.log.length) : "";
+}
+let delArm = null;
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+// ---------- events ----------
+document.addEventListener("input", e => { const row = e.target.closest(".item"); if (row) queue(row.dataset.id, row.dataset.kind); });
+document.addEventListener("change", e => {
+  const t = e.target;
+  if (t.id === "set-units") { saveSettings().then(() => { buildLists(); fillInputs(); renderDerived(); }); return; }
+  if (t.id === "set-how" || t.id === "set-h") { saveSettings().then(renderDerived); return; }
+  if (t.id && t.id.startsWith("chk_")) { setCheck(t.id.slice(4), t.checked); return; }
+  const row = t.closest(".item"); if (row) { queue(row.dataset.id, row.dataset.kind); flush(row.dataset.id); }
+});
+document.addEventListener("click", e => {
+  const tab = e.target.closest("nav.tabs button");
+  if (tab) { document.querySelectorAll("nav.tabs button").forEach(b => b.setAttribute("aria-selected", b === tab ? "true" : "false"));
+    document.querySelectorAll("section.tab").forEach(s => s.hidden = s.id !== tab.dataset.tab); try { localStorage.setItem(LS + "_tab", tab.dataset.tab); } catch (x) {} return; }
+  const go = e.target.closest("[data-go]");
+  if (go) { const r = $("#row-" + go.dataset.go); if (r) { r.scrollIntoView({ behavior: "smooth", block: "start" }); const f = r.querySelector("input"); if (f) setTimeout(() => f.focus({ preventScroll: true }), 400); } return; }
+  const del = e.target.closest("[data-del]");
+  if (del) { const id = del.dataset.del;
+    if (delArm !== id) { delArm = id; renderLog(); setTimeout(() => { if (delArm === id) { delArm = null; renderLog(); } }, 4000); return; }
+    delArm = null; S.log = S.log.filter(x => x.id !== id); lsSave(); renderLog();
+    if (db) db.doc("log/" + id).delete().catch(() => {}); }
+});
+$("#logform").addEventListener("submit", async e => {
+  e.preventDefault(); const label = $("#log-label").value.trim() || "mark";
+  const entry = { t: new Date().toISOString(), label };
+  $("#log-label").value = "";
+  if (db) { try { const ref = await db.collection("log").add(entry); if (!S.log.some(x => x.id === ref.id)) S.log.push({ id: ref.id, ...entry }); }
+    catch (x) { S.log.push({ id: "local-" + Date.now(), ...entry }); } }
+  else S.log.push({ id: "local-" + Date.now(), ...entry });
+  lsSave(); renderLog();
+});
+
+// ---------- start ----------
+lsLoad();
+try { const t = localStorage.getItem(LS + "_tab"); if (t) { const b = document.querySelector(`nav.tabs button[data-tab="${t}"]`); if (b) b.click(); } } catch (e) {}
+buildLists(); fillInputs(); renderDerived(); renderLog();
+(async () => {
+  try { db = window.claude && window.claude.use ? await window.claude.use("db") : null; } catch (e) { db = null; }
+  if (!db) { $("#sync").textContent = "this phone only"; $("#sync").classList.add("off"); $("#offline").hidden = false; return; }
+  $("#sync").textContent = "synced";
+  const fail = () => { $("#sync").textContent = "sync stopped"; $("#sync").classList.add("off"); };
+  db.collection("items").onSnapshot(snap => {
+    for (const d of snap.docs) if (!pending.has(d.id) && !inflight.has(d.id)) S.items[d.id] = { ...d.data() };
+    lsSave(); fillInputs(); renderDerived();
+  }, fail);
+  db.collection("checks").onSnapshot(snap => { for (const d of snap.docs) S.checks[d.id] = { ...d.data() }; lsSave(); fillInputs(); renderDerived(); }, fail);
+  db.collection("log").onSnapshot(snap => { S.log = snap.docs.map(d => ({ id: d.id, ...d.data() })); lsSave(); renderLog(); }, fail);
+  db.doc("meta/settings").onSnapshot(s => { if (s.exists) { const prev = S.settings.units; S.settings = { ...S.settings, ...s.data() }; lsSave();
+      if (prev !== S.settings.units) buildLists(); fillInputs(); renderDerived(); } }, fail);
+})();
+</script>
