@@ -824,3 +824,14 @@ Frame rate per camera against the PC clock (frame index vs timestamp over the 9-
 file is a line fitted per file (frame index -> PC time, slope and intercept, from its own timestamps), and the
 offset to CH02 (which sees the sync LED) is then fitted from simultaneous detections in the overlap. The PC's own
 drift (25 ppm since 09-04, `field2026-sync/from-field/*pc-drift*`) is common to every camera and does not enter.
+
+Review and held ball (2026-10-02). `ball20_gui.py` builds a review page of every searched frame (crop around the
+ball with the ellipse, stepped or played at 20 fps; flags wrong / missed). The operator's verdict: the tracks are
+good, every ball found, the ellipse sometimes loose, and frames with the ball in the hand must go. `ball_sync20.py`
+now drops held frames before comparing: intervals seeded at the operator's 2-s "off ground" marks (and stretches
+where a camera sees the ball > 1.25x its predicted ground size for >= 0.5 s), grown until the size ratio is back
+under 1.10 or an operator on-ground mark, padded 0.15 s. Evidence never comes from comparing cameras, which would
+remove the disagreements being measured; the cameras' triangulated height is shown on the review page only. Note
+the triangulated height of on-ground frames: 104 mm median (p10-p90 48-181) against the ball centre's 105 mm.
+Result: 13 intervals, 94 s, 688 detections dropped, all pairs 62 / 122 mm (was 63 / 125). Operator edits on the
+page (h = held from/to, u = not held) are applied with `ball_sync20.py --flags <ball20_flags.json>`.
