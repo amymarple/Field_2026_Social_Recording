@@ -35,8 +35,13 @@ rejected, detections flagged wrong) are applied with --flags.
 The cameras' own triangulated height (least-squares point of the simultaneous rays) is written beside the
 intervals for the review page only; it is not used to exclude anything.
 
+--centre top (tested 2026-10-02, not used): SAM 3's mask loses the ball's bottom where grass hides it, so its centre
+sits a few px high (2.5-4.7 px on CH01-CH04 against the operator's drawings); this variant keeps SAM's top edge and
+horizontal centre and takes the radius from the calibration (r_pred) where the ellipse is shorter. The cameras
+agree less with it (all pairs 65 / 134 mm vs 62 / 122).
+
 Usage: python ball_sync20.py [--fit <camera_fit.npz>] [--track <dir>] [--drift <json>] [--base index|pts|both]
-                             [--labels <ball labels>] [--flags <ball20_flags.json>] [--keep-held]
+                             [--labels <ball labels>] [--flags <ball20_flags.json>] [--keep-held] [--centre sam|top] [--out <txt>]
 Output: <fit dir>\BALL_SYNC20.txt; <track dir>\held20.json (intervals, evidence, offsets, heights)
 """
 import sys, json, itertools, collections
@@ -56,6 +61,7 @@ DRIFT = Path(opt("--drift", str(HERE / "session_2026-09-30_drift_final.json")))
 LABELS = Path(opt("--labels", str(HERE / "session_2026-09-30_ball_labels.json")))
 FLAGS = opt("--flags")
 KEEP_HELD = "--keep-held" in args
+CENTRE = opt("--centre", "sam")                                           # sam | top (see the docstring)
 BASES = ["index", "pts"] if opt("--base", "both") == "both" else [opt("--base")]
 Z, GAP, REF, SLOW = 105.0, 0.25, "CH02", 50.0                             # mm; s; reference camera; mm/s
 HELD_ON, HELD_OFF, HELD_MIN, PAD, DT = 1.25, 1.10, 0.5, 0.15, 0.05        # size ratio; s
@@ -83,6 +89,9 @@ def load(cam):
     sel = np.array([k for k, f in enumerate(fr) if f[3]])
     det = [fr[k][3] for k in sel]
     uv = np.array([[q["cx"], q["cy"]] for q in det], float)
+    if CENTRE == "top":                                                   # keep the top edge, radius from the calibration
+        hv = np.sqrt([(q["a"] * np.sin(q["th"])) ** 2 + (q["b"] * np.cos(q["th"])) ** 2 for q in det])
+        uv[:, 1] += np.maximum(0.0, np.array([q["r_pred"] for q in det]) - hv)
     c = cams[cam]; d = c.rays(to_0918(cam, uv)); s = (Z - c.centre[2]) / d[:, 2]
     X = c.centre + s[:, None] * d
     xy = pm.fit_to_physical(X[:, :2], c.correction); xy[~(s > 0)] = np.nan
@@ -248,19 +257,21 @@ for c, A in tracks.items():
     n_held[c], n_wrong[c] = int(h.sum()), int(w.sum())
     keep[c] = ~w & (np.ones(len(t), bool) if KEEP_HELD else ~h)
 z_rev = heights(tracks, off0)
-TRACK.joinpath("held20.json").write_text(json.dumps(dict(
-    note="Ball held off the ground (ball_sync20.py): intervals on the common clock = steady index clock of each camera "
-         "(line t = a * entry + b fitted to its timestamps) minus its offset vs CH02; heights are the cameras' "
-         "triangulation, for review only (never used to exclude).",
-    params=dict(held_on=HELD_ON, held_off=HELD_OFF, held_min_s=HELD_MIN, pad_s=PAD),
-    offsets_s={c: round(float(o), 3) for c, o in off0.items()},
-    lines={c: A["line"] for c, A in tracks.items()},
-    intervals=held,
-    cams={c: dict(entry=A["entry"].tolist(), size_ratio=np.round(A["rr"], 3).tolist(),
-                  height_mm=[None if not np.isfinite(v) else round(float(v)) for v in z_rev[c][0]],
-                  n_cams=z_rev[c][1].tolist()) for c, A in tracks.items()}), separators=(",", ":")), encoding="utf-8")
+if CENTRE == "sam":
+    TRACK.joinpath("held20.json").write_text(json.dumps(dict(
+        note="Ball held off the ground (ball_sync20.py): intervals on the common clock = steady index clock of each camera "
+             "(line t = a * entry + b fitted to its timestamps) minus its offset vs CH02; heights are the cameras' "
+             "triangulation, for review only (never used to exclude).",
+        params=dict(held_on=HELD_ON, held_off=HELD_OFF, held_min_s=HELD_MIN, pad_s=PAD),
+        offsets_s={c: round(float(o), 3) for c, o in off0.items()},
+        lines={c: A["line"] for c, A in tracks.items()},
+        intervals=held,
+        cams={c: dict(entry=A["entry"].tolist(), size_ratio=np.round(A["rr"], 3).tolist(),
+                      height_mm=[None if not np.isfinite(v) else round(float(v)) for v in z_rev[c][0]],
+                      n_cams=z_rev[c][1].tolist()) for c, A in tracks.items()}), separators=(",", ":")), encoding="utf-8")
 
-L = [f"BALL SYNC 20 Hz  fit {FIT}; tracks {TRACK}; 09-30 px -> 09-18 colour px by {DRIFT.name}; ball centre z = {Z:.0f} mm",
+L = [f"BALL SYNC 20 Hz  fit {FIT}; tracks {TRACK}; 09-30 px -> 09-18 colour px by {DRIFT.name}; ball centre z = {Z:.0f} mm"
+     + ("" if CENTRE == "sam" else "; CENTRE = top edge + calibrated radius (--centre top)"),
      "detections mapped: " + ", ".join(f"{c} {len(v['xy'])}" for c, v in tracks.items()), "",
      f"HELD BALL (operator 'off ground' + each camera's size ratio; {'NOT excluded (--keep-held)' if KEEP_HELD else 'excluded'}): "
      f"{len(held)} intervals, {sum(h['t1'] - h['t0'] for h in held):.0f} s; detections dropped: "
@@ -303,7 +314,7 @@ for base in BASES:
     L += [f"  ALIGNED, every frame pair: {q(allp)}", "  per camera:"] + [f"    {c}: {q(v)}" for c, v in sorted(percam.items())]
     L += ["  per pair (all frames | ball slower than 5 cm/s):"] + [f"    {p}: {q(v)}  |  {q(slow[p])}" for p, v in sorted(pair.items())]
     L += ["  by region:"] + [f"    {r}: {q(v)}" for r, v in sorted(region.items())] + [""]
-OUT = FIT.parent / "BALL_SYNC20.txt"
+OUT = Path(opt("--out", str(FIT.parent / "BALL_SYNC20.txt")))
 OUT.write_text("\n".join(L) + "\n", encoding="utf-8")
 print("\n".join(L))
 print("->", OUT, "and", TRACK / "held20.json")

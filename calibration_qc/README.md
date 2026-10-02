@@ -835,3 +835,11 @@ remove the disagreements being measured; the cameras' triangulated height is sho
 the triangulated height of on-ground frames: 104 mm median (p10-p90 48-181) against the ball centre's 105 mm.
 Result: 13 intervals, 94 s, 688 detections dropped, all pairs 62 / 122 mm (was 63 / 125). Operator edits on the
 page (h = held from/to, u = not held) are applied with `ball_sync20.py --flags <ball20_flags.json>`.
+
+The operator also saw loose ellipses where grass hides the ball's lower part. Measured against the operator's own
+drawings on the 2-s frames (SAM 3 20 Hz detection on the same frame, operator-drawn marks only): the SAM centre
+sits 2.5-4.7 px high on CH01-CH04 and its radius is 4-9 % small, while the calibration's predicted radius matches
+the operator's within 4 %. A parameter-free fix - keep SAM's top edge and horizontal centre, take the radius from
+the calibration where the ellipse is shorter (`--centre top`) - removes most of the vertical offset (CH01 +3.3 ->
+-0.4 px) but not the scatter (6.5 -> 6.3 px median), and the cameras agree less with it: all pairs 65 / 134 mm,
+CH01-CH02 91 (SAM centres: 62 / 122, 85). Not used. So the CH01-CH02 ball residual is not the grass masks either.
