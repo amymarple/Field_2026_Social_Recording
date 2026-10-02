@@ -23,6 +23,9 @@ Revision 2 (2026-10-02) follows the two independent audits (`<root>\qc\AUDIT_AST
 floor error into 2.3-2.5 cm at the far end and no data constrains it), still ball 8-10 s per spot with the far end
 first, a +y and a -y pass with stops, a staff with marks at known low heights, a clock event all cameras see, and
 an IR <-> colour switch with the scene still; the field steps that need the cameras recording come first.
+Revision 3 (2026-10-02): no spot is seen by all six cameras (CH03 / CH04 look at opposite ends, CH05 / CH06 at
+their houses), so the clock check is four jumps, each where both panos and one other camera see it; optional,
+since the 20 Hz ball already gives the offsets (ball_sync20.py).
 The committed sheet is PRETEARDOWN_SURVEY_SHEET_2026-10-01.html in the repository root.
 """
 import sys, math
@@ -425,14 +428,22 @@ code { font-family:var(--mono); font-size:.9em; }
 </section>
 
 <section>
-  <h2><span class="step">3</span>One clock event <span class="when">cameras recording</span></h2>
+  <h2><span class="step">3</span>Clock check: four jumps <span class="when">cameras recording</span> <span class="when">optional</span></h2>
+  <p>No spot is seen by all six cameras: CH03 looks only at the x = 0 end, CH04 only at the x = 480 end, CH05/CH06
+  only around their houses. The two panoramas see everywhere, so each camera is tied to them where they overlap.
+  The cameras' clock offsets are already measured from the 20 Hz ball; these jumps are an independent check.</p>
   <ol>
-    <li>Everyone out of view except one person standing in the open near x 180, y 120 (between the west house
-    and pole B2), where all six cameras see them. That person jumps once, clearly. Write the PC time to the second.</li>
+    <li>Everyone else out of view. One person jumps once, clearly, at each spot below, and writes the PC time to the second:
+      <ul>
+        <li>x 40, y 120 (the x = 0 end): CH01, CH02, CH03</li>
+        <li>x 440, y 120 (the x = 480 end): CH01, CH02, CH04</li>
+        <li>x 135, y 150 (north side of the west house): CH01, CH02, CH05</li>
+        <li>x 347, y 90 (south side of the east house): CH01, CH02, CH06</li>
+      </ul></li>
     <li>Hold a phone showing a network clock with seconds (e.g. time.is) in front of CH05 for 10 s and write the PC
     time. This ties the PC clock to what the cameras burn into their picture.</li>
   </ol>
-  <div class="rec"><label>Jump (PC time)@@T6@@</label><label>Phone clock in front of CH05 (PC time)@@T7@@</label></div>
+  <div class="rec"><label>Jump times (PC), in the order above@@T6@@</label><label>Phone clock in front of CH05 (PC time)@@T7@@</label></div>
 </section>
 
 <section>
@@ -597,7 +608,7 @@ page = (page.replace("@@MAP@@", svg).replace("@@BANDS@@", band_rows).replace("@@
         .replace("@@T3@@", inp("time.houses", "HH:MM:SS", "houses start", "t wide"))
         .replace("@@T4@@", inp("time.push", "start - end", "T7 push start and end", "t wide"))
         .replace("@@T5@@", inp("time.staff", "start - end", "staff start and end", "t wide"))
-        .replace("@@T6@@", inp("time.jump", "HH:MM:SS", "jump PC time", "t wide"))
+        .replace("@@T6@@", inp("time.jump", "4 times", "jump PC times", "t wide"))
         .replace("@@T7@@", inp("time.phone", "HH:MM:SS", "phone clock PC time", "t wide"))
         .replace("@@T8@@", inp("time.ir", "4 times", "IR switch times", "t wide"))
         .replace("@@T9@@", inp("level.note", "water hose / laser; grass cm", "level and grass", "t wide")))
