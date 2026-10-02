@@ -857,3 +857,10 @@ Full pass (same day, every camera, same file): 82 detections flagged wrong (CH01
 CH06 4), 15 missed, one more held range (507.2-508.0 s). All pairs 61 / 121 mm (n 6324), per camera 42-73 mm, CH04
 end 49 / 112, CH01-CH02 85 - the residual between the two panos is not wrong detections either. This is the
 operator-reviewed ball check of release 10-02b.
+
+Ball size / height (2026-10-02): the release assumes the ball centre at 105 mm (a regulation volleyball, 65-67 cm
+around). The cameras measure it themselves - triangulated centre height 104 mm median - and sweeping the assumed
+height 0-250 mm per camera pair, most pairs agree best at 90-130 mm and CH01-CH02 at 105 (85 mm; 87 at 90, 89 at
+130). So the ball's true size changes nothing measurable, and the CH01-CH02 residual is sideways, not a height
+effect. Per pair (mm at Z = 0 / 60 / 105 / 160 / 250): CH01-CH02 113 / 93 / 85 / 102 / 164, CH01-CH03 136 / 69 / 75 /
+141 / 264, CH02-CH03 185 / 104 / 50 / 69 / 189, CH02-CH06 121 / 61 / 28 / 52 / 143.
