@@ -18,6 +18,8 @@ ground" marks and each camera's size ratio, on the common clock); the page shade
 camera and shows the size ratio and the cameras' triangulated height (review only). h at the first and again at
 the last held frame adds a held interval (all cameras), u removes the one under the cursor (an automatic one is
 recorded as rejected), g jumps to the next one. ball_sync20.py --flags <export> applies the edits.
+Review list (held20.json): detections far from the other cameras, jumping off their own track or of the wrong size
+are ticked orange under the strip; s jumps to the next stretch of them, so the operator need not step every frame.
 
 Usage: python ball20_gui.py [--cams CH01,...] [--ball <qc ball dir>] [--session <09-30 dir>] [--html-only]
        (run ball_sync20.py first for the held intervals; --html-only rebuilds the page only)
@@ -127,17 +129,19 @@ PAGE = r"""<!doctype html><html><head><meta charset="utf-8"><title>Ball 20 Hz re
  <button onclick="heldMark()" style="background:#73c">held from/to (h)</button>
  <button onclick="heldRemove()">not held (u)</button>
  <button onclick="nextHeld()">next held (g)</button>
+ <button onclick="nextSus()" style="background:#c80">next to check (s)</button>
  <button onclick="exportFlags()" style="background:#3c3;font-weight:bold">Export ball20_flags.json</button>
 </div>
 <input id="slider" type="range" min="0" value="0" style="margin:6px 8px">
-<canvas id="strip" width="900" height="18" title="green = detected, grey = searched without a detection, red = flagged, purple top = ball held"></canvas>
+<canvas id="strip" width="900" height="18" title="green = detected, grey = searched without a detection, red = flagged, purple top = ball held, orange bottom = to check"></canvas>
 <div id="wrap"><canvas id="cv" width="720" height="720"></canvas>
 <div id="side"></div></div>
 <div id="help">One square per searched frame: the ball's neighbourhood at full resolution (side = 6 x the predicted ball radius),
 cyan = the detected ellipse (d hides it). Where nothing was detected the square sits on the nearest detection within 1 s.
 Keys: &larr;/&rarr; one frame, &uarr;/&darr; 20 frames, space play/pause, b wrong, m missed, c clear, f next flagged, n next frame without a detection,
 1-6 camera, d overlay. Held ball (purple): h at the first and at the last held frame adds an interval for every camera,
-u removes the one under the cursor, g next held, Esc cancels a started h. Flags are kept in this browser; Export writes them to a file.</div>
+u removes the one under the cursor, g next held, Esc cancels a started h. Orange ticks = detections worth a look
+(far from the other cameras, a one-frame jump, or the wrong size): s jumps to the next stretch of them. Flags are kept in this browser; Export writes them to a file.</div>
 <script>
 const CAMS=__CAMS__, KEYS='ball20_flags_v1', KEYH='ball20_held_v1', HELD=__HELD__;
 const $=id=>document.getElementById(id), cv=$('cv'), g=cv.getContext('2d'), st=$('strip'), sg=st.getContext('2d');
@@ -152,6 +156,8 @@ function heldMark(){const e=fr()[i];if(e.T==null)return;if(pend==null){pend=e.T;
   const a=[Math.min(pend,e.T),Math.max(pend,e.T)].map(v=>Math.round(v*100)/100);pend=null;hed.added.push(a);save();draw();}
 function heldRemove(){const e=fr()[i],h=heldAt(e.T);if(!h)return;const k=hed.added.findIndex(a=>e.T>=a[0]&&e.T<=a[1]);
   if(k>=0)hed.added.splice(k,1);else hed.rejected.push([h.t0,h.t1]);save();draw();}
+function nextSus(){const F=fr();let last=null;for(let k=0;k<F.length;k++){if(!F[k].sus)continue;   // start of the next stretch:
+  if(k>i&&(last==null||F[k].T-last>1.0)){go(k);return;}last=F[k].T;}}                             // suspects < 1 s apart are one
 function nextHeld(){const F=fr();for(let k=i+1;k<F.length;k++)if(heldAt(F[k].T)&&!heldAt(F[k-1].T)){go(k);return;}}
 function key(e){return cam+'|'+e.i;}
 function fr(){return data[cam].frames;}
@@ -177,11 +183,13 @@ function draw(){const F=fr(),e=F[i];if(!e)return;const im=img(e);for(let k=1;k<=
    <div>size vs a ball on the ground: ${e.rr==null?'-':'<b>x '+e.rr.toFixed(2)+'</b>'}</div>
    <div>height from ${e.nc||0} cameras: ${e.z==null?'-':e.z+' mm'} <span style="opacity:.6">(review only; ball centre 105)</span></div>
    <div>${H?'<span class="flag" style="background:#73c">HELD</span> '+(H.evidence||[]).join('; '):''}</div>
-   <div style="margin-top:8px">flags on ${cam}: ${F.filter(x=>flags[key(x)]==='wrong').length} wrong, ${F.filter(x=>flags[key(x)]==='missed').length} missed</div>`;
+   <div>${e.sus?'<span class="flag" style="background:#c80">CHECK</span> '+e.sus:''}</div>
+   <div style="margin-top:8px">flags on ${cam}: ${F.filter(x=>flags[key(x)]==='wrong').length} wrong, ${F.filter(x=>flags[key(x)]==='missed').length} missed;
+   to check: ${F.filter(x=>x.sus).length} frames</div>`;
   strip();}
 function strip(){const F=fr(),w=st.width;sg.fillStyle='#333';sg.fillRect(0,0,w,18);
   F.forEach((e,k)=>{const x=Math.floor(k*w/F.length),ww=Math.max(1,Math.ceil(w/F.length));sg.fillStyle=flags[key(e)]?'#e33':(e.ell?'#2a2':'#777');sg.fillRect(x,flags[key(e)]?0:6,ww,flags[key(e)]?18:12);
-    if(heldAt(e.T)){sg.fillStyle='#a5f';sg.fillRect(x,0,ww,6);}});
+    if(heldAt(e.T)){sg.fillStyle='#a5f';sg.fillRect(x,0,ww,6);}if(e.sus){sg.fillStyle='#f90';sg.fillRect(x,14,ww,4);}});
   sg.fillStyle='#ff0';sg.fillRect(Math.floor(i*w/F.length),0,2,18);}
 function go(k){const F=fr();i=Math.max(0,Math.min(F.length-1,k));draw();}
 function step(d){go(i+d);}
@@ -203,7 +211,7 @@ document.addEventListener('keydown',e=>{if(e.target.tagName==='SELECT')return;
   else if(e.key==='ArrowDown'){e.preventDefault();step(20);}else if(e.key===' '){e.preventDefault();toggle();}
   else if(e.key==='b')setFlag('wrong');else if(e.key==='m')setFlag('missed');else if(e.key==='c')setFlag(null);
   else if(e.key==='f')nextWhere(x=>flags[key(x)]);else if(e.key==='n')nextWhere(x=>!x.ell);
-  else if(e.key==='h')heldMark();else if(e.key==='u')heldRemove();else if(e.key==='g')nextHeld();else if(e.key==='Escape'){pend=null;draw();}
+  else if(e.key==='s')nextSus();else if(e.key==='h')heldMark();else if(e.key==='u')heldRemove();else if(e.key==='g')nextHeld();else if(e.key==='Escape'){pend=null;draw();}
   else if(e.key==='d'){overlay=!overlay;draw();}else if(e.key>='1'&&e.key<=String(CAMS.length))load(CAMS[+e.key-1]);});
 </script>
 <script>window.INDEX=__INDEX__;</script>
@@ -224,10 +232,13 @@ if __name__ == "__main__":
             continue
         (a, b), off, h = held["lines"][c], held["offsets_s"][c], held["cams"][c]
         per = {e: (r, z, n) for e, r, z, n in zip(h["entry"], h["size_ratio"], h["height_mm"], h["n_cams"])}
+        sus = {int(k): v for k, v in h.get("suspect", {}).items()}
         for e in inline[c]["frames"]:
             e["T"] = round(a * e["i"] + b - off, 3)
             if e["i"] in per:
                 e["rr"], e["z"], e["nc"] = per[e["i"]]
+            if e["i"] in sus:
+                e["sus"] = sus[e["i"]]
     if not held:
         print("no held20.json - run ball_sync20.py first for the held intervals")
     (OUT / "ball20_review.html").write_text(PAGE.replace("__CAMS__", json.dumps(have)).replace("__INDEX__", json.dumps(inline))

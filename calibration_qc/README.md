@@ -843,3 +843,12 @@ the operator's within 4 %. A parameter-free fix - keep SAM's top edge and horizo
 the calibration where the ellipse is shorter (`--centre top`) - removes most of the vertical offset (CH01 +3.3 ->
 -0.4 px) but not the scatter (6.5 -> 6.3 px median), and the cameras agree less with it: all pairs 65 / 134 mm,
 CH01-CH02 91 (SAM centres: 62 / 122, 85). Not used. So the CH01-CH02 ball residual is not the grass masks either.
+
+First operator pass on the page (CH01, `session_2026-09-30_ball20_flags.json`, applied with `--flags`): 2 wrong
+detections, 15 missed frames, 4 held ranges added (three extend automatic ones by 0.1-0.2 s; 316-331 s extends one
+by 8 s and covers CH02's accepted 2-s marks k162-165, a disagreement with the 2-s review left for the operator).
+Numbers unchanged: 62 / 122 mm, n 6411 -> 6409. Instead of stepping all ~16,000 frames, the page now lists what is
+worth a look (key s): detections > 250 mm from the other cameras at the aligned time, one-frame jumps > 150 mm off
+the camera's own track, or a size ratio outside 0.7-1.35 - 615 frames in 88 stretches (CH01 29, CH02 40, others
+4-5). The list only steers the operator's eye; a detection leaves the comparison only when flagged wrong from the
+image.

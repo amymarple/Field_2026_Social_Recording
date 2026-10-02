@@ -35,6 +35,12 @@ rejected, detections flagged wrong) are applied with --flags.
 The cameras' own triangulated height (least-squares point of the simultaneous rays) is written beside the
 intervals for the review page only; it is not used to exclude anything.
 
+Review list. Every detection outside the held intervals that is far from the other cameras at the aligned time
+(median over the cameras that see the ball > SUS_FAR mm), jumps off its own track for one frame (> SUS_JUMP mm from
+the mean of its neighbours) or has a size ratio outside SUS_SIZE is listed in held20.json for the review page
+(key s). The list only decides what the operator looks at; a detection leaves the comparison only when the operator
+flags it wrong from the image.
+
 --centre top (tested 2026-10-02, not used): SAM 3's mask loses the ball's bottom where grass hides it, so its centre
 sits a few px high (2.5-4.7 px on CH01-CH04 against the operator's drawings); this variant keeps SAM's top edge and
 horizontal centre and takes the radius from the calibration (r_pred) where the ellipse is shorter. The cameras
@@ -65,6 +71,7 @@ CENTRE = opt("--centre", "sam")                                           # sam 
 BASES = ["index", "pts"] if opt("--base", "both") == "both" else [opt("--base")]
 Z, GAP, REF, SLOW = 105.0, 0.25, "CH02", 50.0                             # mm; s; reference camera; mm/s
 HELD_ON, HELD_OFF, HELD_MIN, PAD, DT = 1.25, 1.10, 0.5, 0.15, 0.05        # size ratio; s
+SUS_FAR, SUS_JUMP, SUS_SIZE = 250.0, 150.0, (0.7, 1.35)                   # review list: mm; mm; size ratio
 TAUS = np.round(np.arange(-1.5, 1.5001, 0.01), 3)
 cams = pm.load(FIT)
 drift = json.loads(DRIFT.read_text(encoding="utf-8"))["cameras"]
@@ -236,6 +243,28 @@ def heights(tr, off):
     return out
 
 
+def suspects(tr, off, held_mask):
+    """review list per camera: {entry: reason} (see the docstring)."""
+    out = {}
+    for c, A in tr.items():
+        t = A["index"] - off[c]
+        D = np.array([np.hypot(*(A["xy"] - interp(B["index"] - off[o], B["xy"], t)).T) for o, B in tr.items() if o != c])
+        far = np.full(len(t), np.nan); has = np.isfinite(D).any(0)
+        far[has] = np.nanmedian(D[:, has], axis=0)
+        jump = np.full(len(t), np.nan)
+        ok = np.zeros(len(t), bool); ok[1:-1] = (np.diff(t)[:-1] < 0.2) & (np.diff(t)[1:] < 0.2)
+        jump[ok] = np.hypot(*(A["xy"][ok] - (A["xy"][np.roll(ok, -1)] + A["xy"][np.roll(ok, 1)]) / 2).T)
+        rr = A["rr"]; r = {}
+        for k in np.where(~held_mask[c])[0]:
+            why = ([f"{far[k]:.0f} mm from the other cameras"] if far[k] > SUS_FAR else []) + \
+                  ([f"jumps {jump[k]:.0f} mm off its own track"] if jump[k] > SUS_JUMP else []) + \
+                  ([f"size x{rr[k]:.2f}"] if not SUS_SIZE[0] <= rr[k] <= SUS_SIZE[1] else [])
+            if why:
+                r[int(A["entry"][k])] = "; ".join(why)
+        out[c] = r
+    return out
+
+
 tracks = {c: load(c) for c in ("CH01", "CH02", "CH03", "CH04", "CH05", "CH06") if (TRACK / f"ball20_{c}.json").exists()}
 labels = json.loads(LABELS.read_text(encoding="utf-8"))["labels"]
 off0 = fit_offsets(tracks, "index")[0]                                    # first pass, every detection
@@ -247,7 +276,7 @@ rejected = [tuple(x) for x in flags.get("held_rejected", [])]
 held = [h for h in held if not any(abs(h["t0"] - a) < 0.01 and abs(h["t1"] - b) < 0.01 for a, b in rejected)]
 held.sort(key=lambda h: h["t0"])
 wrong = {(f["cam"], f["entry"]) for f in flags.get("flags", []) if f.get("flag") == "wrong"}
-keep, n_held, n_wrong = {}, collections.Counter(), collections.Counter()
+keep, n_held, n_wrong, held_mask = {}, collections.Counter(), collections.Counter(), {}
 for c, A in tracks.items():
     t = A["index"] - off0[c]
     h = np.zeros(len(t), bool)
@@ -256,7 +285,9 @@ for c, A in tracks.items():
     w = np.array([(c, int(e)) in wrong for e in A["entry"]], bool)
     n_held[c], n_wrong[c] = int(h.sum()), int(w.sum())
     keep[c] = ~w & (np.ones(len(t), bool) if KEEP_HELD else ~h)
+    held_mask[c] = h
 z_rev = heights(tracks, off0)
+sus = suspects(tracks, off0, held_mask)
 if CENTRE == "sam":
     TRACK.joinpath("held20.json").write_text(json.dumps(dict(
         note="Ball held off the ground (ball_sync20.py): intervals on the common clock = steady index clock of each camera "
@@ -268,7 +299,8 @@ if CENTRE == "sam":
         intervals=held,
         cams={c: dict(entry=A["entry"].tolist(), size_ratio=np.round(A["rr"], 3).tolist(),
                       height_mm=[None if not np.isfinite(v) else round(float(v)) for v in z_rev[c][0]],
-                      n_cams=z_rev[c][1].tolist()) for c, A in tracks.items()}), separators=(",", ":")), encoding="utf-8")
+                      n_cams=z_rev[c][1].tolist(), suspect=sus[c]) for c, A in tracks.items()}),
+                   separators=(",", ":")), encoding="utf-8")
 
 L = [f"BALL SYNC 20 Hz  fit {FIT}; tracks {TRACK}; 09-30 px -> 09-18 colour px by {DRIFT.name}; ball centre z = {Z:.0f} mm"
      + ("" if CENTRE == "sam" else "; CENTRE = top edge + calibrated radius (--centre top)"),
@@ -276,8 +308,17 @@ L = [f"BALL SYNC 20 Hz  fit {FIT}; tracks {TRACK}; 09-30 px -> 09-18 colour px b
      f"HELD BALL (operator 'off ground' + each camera's size ratio; {'NOT excluded (--keep-held)' if KEEP_HELD else 'excluded'}): "
      f"{len(held)} intervals, {sum(h['t1'] - h['t0'] for h in held):.0f} s; detections dropped: "
      + ", ".join(f"{c} {n_held[c]}" for c in tracks) + (f"; flagged wrong on the review page: " + ", ".join(f"{c} {n_wrong[c]}" for c in tracks) if wrong else "")]
+shown = []
+for h in held:                                                            # the report merges overlapping intervals
+    if shown and h["t0"] <= shown[-1]["t1"]:
+        m = shown[-1]; m["t1"] = max(m["t1"], h["t1"]); m["evidence"] = m["evidence"] + h["evidence"]
+        m["source"] = " + ".join(sorted(set(m["source"].split(" + ")) | {h["source"]}))
+        m["max_size_ratio"] = max([v for v in (m["max_size_ratio"], h["max_size_ratio"]) if v is not None], default=None)
+    else:
+        shown.append(dict(h))
 L += [f"    {h['t0']:7.2f} - {h['t1']:7.2f} s  ({h['t1'] - h['t0']:4.1f} s)  {h['source']:<8} max size ratio {h['max_size_ratio']}  "
-      + "; ".join(h["evidence"]) for h in held]
+      + "; ".join(h["evidence"]) for h in shown]
+L += ["  review list (for the page, key s; nothing is dropped by it): " + ", ".join(f"{c} {len(v)}" for c, v in sus.items())]
 zz = {c: z_rev[c][0][keep[c]] for c in tracks}
 zh = {c: z_rev[c][0][~keep[c]] for c in tracks}
 fz = lambda v: (lambda v: f"median {np.median(v):4.0f} mm, p10-p90 {np.percentile(v, 10):4.0f}-{np.percentile(v, 90):4.0f}, n {len(v)}" if len(v) else "-")(v[np.isfinite(v)])

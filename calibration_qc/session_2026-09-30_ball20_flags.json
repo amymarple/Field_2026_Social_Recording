@@ -1,0 +1,176 @@
+{
+ "flags": [
+  {
+   "cam": "CH01",
+   "entry": 939,
+   "clock": "16:23:26.97",
+   "t_file": 1406.9739,
+   "t_grid": 45.9769,
+   "flag": "missed",
+   "detected": true
+  },
+  {
+   "cam": "CH01",
+   "entry": 2794,
+   "clock": "16:24:59.68",
+   "t_file": 1499.6847,
+   "t_grid": 138.6877,
+   "flag": "missed",
+   "detected": false
+  },
+  {
+   "cam": "CH01",
+   "entry": 2796,
+   "clock": "16:24:59.76",
+   "t_file": 1499.7632,
+   "t_grid": 138.7662,
+   "flag": "missed",
+   "detected": false
+  },
+  {
+   "cam": "CH01",
+   "entry": 2798,
+   "clock": "16:24:59.89",
+   "t_file": 1499.8964,
+   "t_grid": 138.8994,
+   "flag": "missed",
+   "detected": false
+  },
+  {
+   "cam": "CH01",
+   "entry": 2799,
+   "clock": "16:24:59.93",
+   "t_file": 1499.9319,
+   "t_grid": 138.9349,
+   "flag": "missed",
+   "detected": false
+  },
+  {
+   "cam": "CH01",
+   "entry": 2802,
+   "clock": "16:25:00.08",
+   "t_file": 1500.0848,
+   "t_grid": 139.0878,
+   "flag": "missed",
+   "detected": false
+  },
+  {
+   "cam": "CH01",
+   "entry": 2805,
+   "clock": "16:25:00.31",
+   "t_file": 1500.3194,
+   "t_grid": 139.3224,
+   "flag": "missed",
+   "detected": false
+  },
+  {
+   "cam": "CH01",
+   "entry": 2809,
+   "clock": "16:25:00.41",
+   "t_file": 1500.4186,
+   "t_grid": 139.4216,
+   "flag": "missed",
+   "detected": false
+  },
+  {
+   "cam": "CH01",
+   "entry": 2814,
+   "clock": "16:25:00.69",
+   "t_file": 1500.6947,
+   "t_grid": 139.6977,
+   "flag": "missed",
+   "detected": false
+  },
+  {
+   "cam": "CH01",
+   "entry": 2815,
+   "clock": "16:25:00.73",
+   "t_file": 1500.7317,
+   "t_grid": 139.7347,
+   "flag": "missed",
+   "detected": false
+  },
+  {
+   "cam": "CH01",
+   "entry": 2817,
+   "clock": "16:25:00.81",
+   "t_file": 1500.8119,
+   "t_grid": 139.8149,
+   "flag": "missed",
+   "detected": false
+  },
+  {
+   "cam": "CH01",
+   "entry": 2838,
+   "clock": "16:25:01.90",
+   "t_file": 1501.9015,
+   "t_grid": 140.9045,
+   "flag": "missed",
+   "detected": false
+  },
+  {
+   "cam": "CH01",
+   "entry": 2869,
+   "clock": "16:25:03.42",
+   "t_file": 1503.4214,
+   "t_grid": 142.4244,
+   "flag": "missed",
+   "detected": false
+  },
+  {
+   "cam": "CH01",
+   "entry": 3075,
+   "clock": "16:25:13.73",
+   "t_file": 1513.7332,
+   "t_grid": 152.7362,
+   "flag": "missed",
+   "detected": false
+  },
+  {
+   "cam": "CH01",
+   "entry": 3080,
+   "clock": "16:25:13.99",
+   "t_file": 1513.9926,
+   "t_grid": 152.9956,
+   "flag": "missed",
+   "detected": false
+  },
+  {
+   "cam": "CH01",
+   "entry": 9984,
+   "clock": "16:30:59.22",
+   "t_file": 1859.2263,
+   "t_grid": 498.2293,
+   "flag": "wrong",
+   "detected": true
+  },
+  {
+   "cam": "CH01",
+   "entry": 10423,
+   "clock": "16:31:21.17",
+   "t_file": 1881.1712,
+   "t_grid": 520.1742,
+   "flag": "wrong",
+   "detected": true
+  }
+ ],
+ "held_added": [
+  [
+   119.42,
+   120.92
+  ],
+  [
+   165.08,
+   167.83
+  ],
+  [
+   201.08,
+   203.48
+  ],
+  [
+   315.99,
+   331.09
+  ]
+ ],
+ "held_rejected": []
+}
