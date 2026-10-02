@@ -780,3 +780,14 @@ operator; evidence, reproduction and open points in `RELEASE_2026-10-02.md`. Two
 this notebook, from the audits: the pole and plumb-line numbers for CH03/CH04 fed IR-frame labels into colour-mode
 rays (10-18 px mode shift; the pano numbers stand), and "model ceiling" was not shown - the lattice term was the
 larger removable part.
+
+### IR vs colour on 2026-09-18, measured with landmark_track (2026-10-02)
+
+`ir_colour_shift.py` (output `session_2026-09-18_ir_colour_shift.txt`) runs the analysis repo's `landmark_track`
+(NCC on the operator's rigid landmarks, affine, leave-one-landmark-out error) from each camera's labelled IR
+reference frame to colour frames of the same day, camera static. Colour vs IR: CH04 (0, -0.2) / (0, -1.8) /
+(0, -1.0) px at 14:41 / 15:05 / 15:47 (held-out 1.0-1.3 px), i.e. none to speak of; CH03 (+0.2..+0.7, -5.4..-5.8) px
+at three times, a consistent ~5.6 px vertical shift; CH01 / CH02 under 1.6 px. The "10-18 px for CH03/CH04" in the
+landmark_drift section above came from edge-template matching across modes and is wrong for CH04 (the periodic
+wall corrugation lets an edge template lock one period off; frames minutes apart gave 0 and 18 px). So the cohort
+chain's last step (09-18 IR reference px -> the colour-mode boards) is about 5.6 px for CH03 and negligible elsewhere.

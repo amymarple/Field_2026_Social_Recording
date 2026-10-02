@@ -1,0 +1,26 @@
+IR -> COLOUR SHIFT ON 2026-09-18 (camera static; ir_colour_shift.py: the analysis repo's landmark_track from each camera's
+labelled IR reference frame to same-day frames; affine, leave-one-landmark-out error; 2026-10-02)
+
+CH04: reference = labelled frame 14:32:30 (saturation 0)
+   14:32:30 IR    : shift at centre ( +0.00, -0.01) px, rot -0.001 deg, held-out 0.21/0.28 px over 15 units, ok
+   14:34:00 IR    : shift at centre ( -0.05, +0.30) px, rot -0.002 deg, held-out 0.25/0.47 px over 15 units, ok
+   14:37:00 colour: shift at centre ( -1.69, -3.07) px, rot -0.029 deg, held-out 1.78/2.25 px over 8 units, ok
+   14:41:00 colour: shift at centre ( +0.07, -0.16) px, rot -0.013 deg, held-out 0.99/1.99 px over 11 units, ok
+   14:46:00 colour: shift at centre (+21.29, -4.65) px, rot -0.011 deg, held-out 4.27/5.69 px over 6 units, unreliable
+   15:05:00 colour: shift at centre ( -0.05, -1.79) px, rot -0.011 deg, held-out 1.26/1.67 px over 11 units, ok
+   15:47:00 colour: shift at centre ( +0.08, -1.03) px, rot -0.015 deg, held-out 1.03/1.69 px over 11 units, ok
+CH03: reference = labelled frame 15:45:00 (saturation 0)
+   15:45:00 IR    : shift at centre ( +0.04, -0.05) px, rot -0.001 deg, held-out 0.21/0.29 px over 15 units, ok
+   15:44:00 IR    : shift at centre ( +0.34, +0.08) px, rot +0.000 deg, held-out 0.25/0.37 px over 15 units, ok
+   15:30:00 colour: shift at centre ( +0.69, -5.61) px, rot -0.009 deg, held-out 1.04/2.38 px over 12 units, ok
+   15:05:00 colour: shift at centre ( +0.71, -5.80) px, rot -0.011 deg, held-out 1.31/2.13 px over 12 units, ok
+   15:20:00 colour: shift at centre ( +0.24, -5.40) px, rot -0.034 deg, held-out 0.65/2.01 px over 11 units, ok
+CH01: reference = labelled frame 13:57:30 (saturation 0)
+   13:57:30 IR    : shift at centre ( -0.01, -0.02) px, rot -0.000 deg, held-out 0.21/0.27 px over 20 units, ok
+   13:59:00 IR    : shift at centre ( -0.15, -0.38) px, rot -0.004 deg, held-out 0.25/0.37 px over 20 units, ok
+   14:10:00 colour: shift at centre ( +1.37, +0.77) px, rot -0.006 deg, held-out 1.87/3.92 px over 20 units, ok
+   15:20:00 colour: shift at centre ( -0.01, -1.55) px, rot -0.000 deg, held-out 1.44/3.12 px over 20 units, ok
+CH02: reference = labelled frame 15:22:30 (saturation 0)
+   15:22:30 IR    : shift at centre ( -0.00, -0.01) px, rot +0.000 deg, held-out 0.21/0.29 px over 20 units, ok
+   15:35:00 colour: shift at centre ( +0.76, +0.53) px, rot -0.007 deg, held-out 1.69/2.72 px over 20 units, ok
+   15:47:00 colour: shift at centre ( +1.04, +0.80) px, rot -0.009 deg, held-out 1.49/2.80 px over 20 units, ok
