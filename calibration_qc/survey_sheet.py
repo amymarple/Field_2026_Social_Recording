@@ -18,6 +18,11 @@ Pole design positions: 15 poles on a 10 ft grid (`field_layout.json`): rows A / 
 columns 0-4 at x = 0..480 in. Houses: design footprint 24 5/8 x 18 in at (134.9, 120.0) and (347.0, 119.1) in,
 long side along y. Which cameras see which pole: the operator's landmark labels (09-18). Camera positions and the
 still-ball spots' cameras: the release fit (paddock_map.load()).
+Revision 2 (2026-10-02) follows the two independent audits (`<root>\qc\AUDIT_ASTRA_2026-10-02.md`,
+`AUDIT_FABLE_2026-10-02.md`): every height against ONE level datum (a floor-height map - the panos turn each cm of
+floor error into 2.3-2.5 cm at the far end and no data constrains it), still ball 8-10 s per spot with the far end
+first, a +y and a -y pass with stops, a staff with marks at known low heights, a clock event all cameras see, and
+an IR <-> colour switch with the scene still; the field steps that need the cameras recording come first.
 The committed sheet is PRETEARDOWN_SURVEY_SHEET_2026-10-01.html in the repository root.
 """
 import sys, math
@@ -62,6 +67,10 @@ for name, h in HOUSES.items():
         SPOTS.append((f"Around the {name} house", round(x), round(y)))
 SPOTS = [(g, x, y, seen_by((x, y))) for g, x, y in SPOTS]
 SPOTS = [(f"S{i + 1}", g, x, y, s) for i, (g, x, y, s) in enumerate(t for t in SPOTS if len(t[3]) >= 2)]   # a tie needs two cameras
+STAFF = set()
+for grp, every in (("Far end", 2), ("x = 0 end", 4)):
+    STAFF |= {k for i, (k, g, x, y, s) in enumerate([t for t in SPOTS if t[1] == grp]) if i % every == 0}
+STAFF |= {next(k for k, g, x, y, s in SPOTS if g == f"Around the {n} house") for n in HOUSES}
 
 
 def where(x, y):
@@ -97,6 +106,7 @@ for x, c in ((0, "0"), (480, "4")):
     WALL += [(f"A{c}&ndash;B{c}", x, 60), (f"B{c}", x, 120), (f"B{c}&ndash;C{c}", x, 180)]
 
 
+STAFF_TAG = '<div class="tag">staff here too (step 2)</div>'
 NONE_TAG, WARN_TAG, FIRST_TAG = '<span class="muted">none</span>', '<div class="warn">carries {}</div>', '<span class="first">first</span>'
 
 
@@ -151,15 +161,17 @@ band_rows = "".join(
     f'{WARN_TAG.format(CARRY[p]) if p in CARRY else ""}</td>'
     f'<td>{inp(f"pole.{p}.band120", "cm", p + " lower band top edge, cm")}</td><td>{inp(f"pole.{p}.band200", "cm", p + " upper band top edge, cm")}</td>'
     f'<td>{inp(f"pole.{p}.circ", "cm", p + " circumference, cm")}</td><td>{inp(f"pole.{p}.lean_x", "deg", p + " lean toward +x, deg")}</td>'
-    f'<td>{inp(f"pole.{p}.lean_y", "deg", p + " lean toward +y, deg")}</td></tr>'
+    f'<td>{inp(f"pole.{p}.lean_y", "deg", p + " lean toward +y, deg")}</td>'
+    f'<td>{inp(f"pole.{p}.foot_datum", "cm", p + " ground at the foot vs datum, cm")}</td></tr>'
     for p, (x, y) in POLES.items())
 spot_rows, last = [], None
 for k, g, x, y, s in SPOTS:
     if g != last:
-        spot_rows.append(f'<tr class="grp"><th colspan="4" scope="rowgroup">{g}</th></tr>')
+        spot_rows.append(f'<tr class="grp"><th colspan="5" scope="rowgroup">{g}</th></tr>')
         last = g
     spot_rows.append(f'<tr><th scope="row"><label class="pos">{ck("spot." + k, k + " done")}<span class="id">{k}</span></label></th>'
-                     f'<td class="num">{x}, {y}</td><td>{where(x, y)}</td><td><div class="cams">{chips(s)}</div></td></tr>')
+                     f'<td class="num">{x}, {y}</td><td>{where(x, y)}{STAFF_TAG if k in STAFF else ""}</td>'
+                     f'<td><div class="cams">{chips(s)}</div></td><td>{inp("spot." + k + ".datum", "cm", k + " ground vs datum, cm")}</td></tr>')
 spot_rows = "".join(spot_rows)
 FIRST_PAIRS = {(p, q) for p, q in PAIRS if p in SEEN and q in SEEN}
 pair_rows = "".join(
@@ -169,7 +181,8 @@ pair_rows = "".join(
     f'<td>{inp(f"dist.{p}-{q}.1", "cm", p + " to " + q + " shot 1, cm")}</td><td>{inp(f"dist.{p}-{q}.2", "cm", p + " to " + q + " shot 2, cm")}</td></tr>'
     for p, q in PAIRS)
 wall_rows = "".join(
-    f'<tr><th scope="row">{n}</th><td class="num">{x}, {y}</td><td>{inp(f"wall.{x}.{y}", "cm", "wall top at " + str(x) + ", " + str(y) + ", cm")}</td></tr>'
+    f'<tr><th scope="row">{n}</th><td class="num">{x}, {y}</td><td>{inp(f"wall.{x}.{y}.foot_datum", "cm", "ground at the wall foot vs datum at " + str(x) + ", " + str(y))}</td>'
+    f'<td>{inp(f"wall.{x}.{y}.top", "cm", "wall top above that ground at " + str(x) + ", " + str(y) + ", cm")}</td></tr>'
     for n, x, y in WALL)
 house_blocks = []
 for name, h in HOUSES.items():
@@ -178,7 +191,8 @@ for name, h in HOUSES.items():
     corners = "".join(
         f'<tr><th scope="row">{cn}</th><td>{inp(f"house.{name}.{cn}.height", "cm", name + " house " + cn + " top height, cm")}</td>'
         f'<td>{inp(f"house.{name}.{cn}.to_{bp}", "cm", name + " house " + cn + " to " + bp + ", cm")}</td>'
-        f'<td>{inp(f"house.{name}.{cn}.to_{ap}", "cm", name + " house " + cn + " to " + ap + ", cm")}</td></tr>'
+        f'<td>{inp(f"house.{name}.{cn}.to_{ap}", "cm", name + " house " + cn + " to " + ap + ", cm")}</td>'
+        f'<td>{inp(f"house.{name}.{cn}.datum", "cm", name + " house " + cn + " ground vs datum, cm")}</td></tr>'
         for cn in ("SW", "SE", "NE", "NW"))
     house_blocks.append(f"""
   <div class="house-card">
@@ -191,7 +205,7 @@ for name, h in HOUSES.items():
     </div>
     <div class="tbl"><table>
       <thead><tr><th scope="col">Corner</th><th scope="col">Top surface above ground (cm)</th>
-      <th scope="col">To {h['pole']} face (cm)</th><th scope="col">To {h['apole']} face (cm)</th></tr></thead>
+      <th scope="col">To {h['pole']} face (cm)</th><th scope="col">To {h['apole']} face (cm)</th><th scope="col">Ground vs datum (cm)</th></tr></thead>
       <tbody>{corners}</tbody></table></div>
   </div>""")
 house_blocks = "".join(house_blocks)
@@ -202,7 +216,8 @@ cam_rows = "".join(
     f'<td class="num">{v[2] * 2.54:.0f} cm<span class="xv">x {v[0]:.0f}, y {v[1]:.0f} in</span></td>'
     f'<td>{inp(f"cam.{c}.height", "cm", c + " lens height, cm")}</td>'
     f'<td>{inp(f"cam.{c}.mount", "pole / arm", c + " mount", "t wide")}</td>'
-    f'<td>{inp(f"cam.{c}.offset", "cm, direction", c + " offset from pole face", "t wide")}</td></tr>'
+    f'<td>{inp(f"cam.{c}.offset", "cm, direction", c + " offset from pole face", "t wide")}</td>'
+    f'<td>{inp(f"cam.{c}.datum", "cm", c + " ground below the camera vs datum, cm")}</td></tr>'
     for c, v in CAM.items())
 N_SPOTS, N_PAIRS, N_WALL = len(SPOTS), len(PAIRS), len(WALL)
 
@@ -284,6 +299,9 @@ tr.grp th { font-size:14px; letter-spacing:.8px; text-transform:uppercase; color
 .first { font-family:var(--display); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.8px;
   color:var(--pole); background:var(--pole-soft); border-radius:3px; padding:0 5px; }
 .warn { font-family:var(--display); font-size:12.5px; font-weight:600; color:var(--warn); margin-top:3px; }
+.tag { font-family:var(--display); font-size:12.5px; font-weight:600; color:var(--cord); margin-top:3px; }
+.part { font-family:var(--display); font-weight:700; font-size:15px; letter-spacing:1.2px; text-transform:uppercase;
+  color:var(--muted); border-top:2px solid var(--rule); padding-top:10px; }
 .cams { display:flex; flex-wrap:wrap; gap:3px; }
 .cam { font-family:var(--mono); font-size:11.5px; border:1px solid var(--rule); border-radius:3px; padding:0 4px; color:var(--ink); }
 .num { font-family:var(--mono); font-variant-numeric:tabular-nums; white-space:nowrap; }
@@ -312,40 +330,38 @@ code { font-family:var(--mono); font-size:.9em; }
 
 <div class="wrap">
 <header>
-  <div class="eyebrow">Field 2026 · camera calibration · before teardown · written 2026-10-01</div>
+  <div class="eyebrow">Field 2026 · camera calibration · before teardown · revision 2, 2026-10-02</div>
   <h1>Pole, house and wall survey</h1>
-  <p>Everything the cameras have been calibrated on so far lies on the ground. Above the ground the lens models
-  are off, and nothing on the ground can show by how much. The poles, the two houses and the wall top are rigid
-  and stand at heights the cameras see. Measured once, they become 3-D reference points for every camera. After
-  the teardown they cannot be measured again.</p>
+  <p>What the calibration still needs from the field, in the order two independent reviews ranked it. Some of it
+  needs the cameras recording, so that comes first. After the teardown none of it can be measured again.</p>
   <div class="facts">
-    <div><b>About 90 minutes</b><span>two people; steps 1&ndash;2 need the cameras recording (about 20 min), the rest does not</span></div>
-    <div><b>@@NPAIRS@@ distances</b><span>pole to pole with the laser rangefinder, each shot twice</span></div>
-    <div><b>@@NSPOTS@@ still-ball spots</b><span>a still ball needs no clock, so it separates timing from position</span></div>
-    <div><b>Cameras untouched</b><span>B1, B2 and B3 carry cameras; tape them gently, never pull or lean on a pole</span></div>
+    <div><b>About two hours</b><span>two people; steps 1&ndash;5 need the cameras recording (about 45 min), the rest does not</span></div>
+    <div><b>One height datum</b><span>every height on this sheet is read against the same level reference</span></div>
+    <div><b>@@NSPOTS@@ still-ball spots</b><span>8&ndash;10 s each, far end first; a still ball needs no clock</span></div>
+    <div><b>Cameras untouched</b><span>B1, B2 and B3 carry cameras; never pull or lean on a pole</span></div>
   </div>
 </header>
 
 <section class="callout why">
   <h2>What the measurements are for</h2>
   <ul>
-    <li><b>Poles are plumb lines.</b> Under today's model the long pole edges in the panoramas bend by 4&ndash;10 px
-    and stand 0.5&ndash;4&deg; off vertical; CH03's corner poles come out 10&ndash;19&deg; off, CH04's 4&ndash;5&deg;.
-    Straight and vertical needs no measurement; that part is already usable.</li>
-    <li><b>The pole positions do need measuring.</b> The 10 ft grid is only good to about a foot: the cameras put
-    B1, A4 and C0 about 30 cm from their grid points, B3 and B4 about 10 cm. With the positions measured to about
-    1 cm and bands at measured heights, each pole becomes a set of fixed points above the ground.</li>
-    <li><b>The houses are boxes of known size.</b> Their eight corners are 3-D points at two heights, seen by the
-    panoramas and by CH05/CH06.</li>
-    <li><b>The wall top</b> is a straight line about 98 cm up, the same shape as the wall foot already used, but at a height.</li>
-    <li><b>The still ball</b> settles the far end: on the moving sweep, CH04's clock offset and its position error looked the same.</li>
+    <li><b>The floor.</b> The fit assumes one flat ground plane. At the far end the panoramas move a point
+    2.3&ndash;2.5 cm sideways for every 1 cm the real ground is higher or lower, and nothing measured so far tells
+    how flat it is. Both reviews put this first.</li>
+    <li><b>Still targets at the CH04 end.</b> On the moving sweep, CH04's clock and its position error look the
+    same. A still ball or staff needs no clock.</li>
+    <li><b>IR and colour.</b> Switching the IR filter shifts the CH03/CH04 images by 10&ndash;18 px (2&ndash;5 cm on
+    the ground). Night footage needs that shift, measured with the scene still.</li>
+    <li><b>A clock event</b> that every camera sees gives the cameras' relative timing to one frame.</li>
+    <li><b>Poles, houses, wall top</b> are fixed structures at heights the cameras see. They are also the only
+    way to calibrate cohorts 1&ndash;2 afterwards.</li>
   </ul>
 </section>
 
 <section>
   <div class="map">@@MAP@@</div>
   <div class="legend">
-    <span><svg viewBox="0 0 22 14"><circle cx="11" cy="7" r="5" fill="var(--pole)"/></svg>pole a camera sees (bands first)</span>
+    <span><svg viewBox="0 0 22 14"><circle cx="11" cy="7" r="5" fill="var(--pole)"/></svg>pole a camera sees</span>
     <span><svg viewBox="0 0 22 14"><circle cx="11" cy="7" r="4.5" fill="var(--paper)" stroke="var(--pole)" stroke-width="2"/></svg>pole for the survey network only</span>
     <span><svg viewBox="0 0 22 14"><line x1="1" y1="7" x2="21" y2="7" stroke="var(--cord)" stroke-width="1.4" opacity=".6"/></svg>pole-to-pole distance</span>
     <span><svg viewBox="0 0 22 14"><rect x="5" y="2" width="12" height="10" fill="var(--paper)" stroke="var(--ink)" stroke-dasharray="3 2"/></svg>house, design position</span>
@@ -362,109 +378,151 @@ code { font-family:var(--mono); font-size:.9em; }
   <ol>
     <li><b>Start the calibration recorder</b> on the field PC (cmd, in the repository folder):
     <code>powershell -NoProfile -ExecutionPolicy Bypass -File calibration_record.ps1</code>. Check that every stream grows.</li>
-    <li><b>All six ground cameras in colour</b> on the NVR live view, none in black-and-white IR. Daylight; dry domes.</li>
-    <li><b>Bring:</b> laser rangefinder, 5 m tape, bright orange or red tape (not white, not green), a marker, a phone
-    with a level app, the ball, a small card to tape on a pole as a laser target.</li>
-    <li>Write the PC time of every recorded step on this sheet. If anyone bumps a camera or its pole, write the time too.</li>
+    <li><b>All six ground cameras in colour</b> on the NVR live view. Daylight; dry domes. One person stays able to
+    switch the cameras' IR mode (step 4).</li>
+    <li><b>Bring:</b> laser rangefinder, 5 m tape, bright orange or red tape, a marker, a phone with a level app,
+    the ball, a card to tape on a pole as a laser target, and:
+      <ul>
+        <li>a <b>level reference</b>: a clear hose 10 m or more filled with water (a water level), or a line laser on a tripod;</li>
+        <li>a straight <b>staff</b> about 1.5 m long with tape marks whose lower edge is at 0 (the tip), 60, 105, 200 and
+        300 mm, alternating colours.</li>
+      </ul></li>
+    <li><b>Pick the datum</b> before starting: one fixed mark that stays put, e.g. a pencil line on pole B2 at about
+    50 cm. Every "vs datum" number on this sheet is the ground there minus the datum, in cm (negative = lower).</li>
+    <li>Write the PC time of every recorded step. If anyone bumps a camera or its pole, write the time too.</li>
   </ol>
 </section>
 
-<section>
-  <h2><span class="step">1</span>Bands on the poles <span class="when">cameras recording</span></h2>
-  <ol>
-    <li>On every pole, wrap two turns of tape as a band. Put the <b>top edge</b> at 120 cm and at 200 cm above
-    the ground at the pole's foot (press the grass down; on a wall pole, measure on the paddock side). Start
-    with the nine poles that cameras see (filled on the map).</li>
-    <li>Measure where each top edge actually is and write it down. The exact number matters more than hitting 120 or 200.</li>
-    <li>Then <b>everyone out of view for 30 s</b> and write the PC time:
-    @@CLEAR@@</li>
-  </ol>
-  <p class="note">The diameter and lean columns belong to step 3; fill them later.</p>
-  <div class="tbl"><table>
-    <thead><tr><th scope="col">Pole</th><th scope="col">Seen by</th><th scope="col">Band ~120 (cm)</th>
-    <th scope="col">Band ~200 (cm)</th><th scope="col">Circumference at band (cm)</th><th scope="col">Lean +x (deg)</th><th scope="col">Lean +y (deg)</th></tr></thead>
-    <tbody>@@BANDS@@</tbody></table></div>
-</section>
+<div class="part">Part 1 · cameras recording</div>
 
 <section>
-  <h2><span class="step">2</span>Still ball <span class="when">cameras recording</span></h2>
+  <h2><span class="step">1</span>Still ball <span class="when">cameras recording</span></h2>
   <ol>
-    <li>Put the ball on the ground at the spot (&plusmn;10 in is fine; the exact position is not needed). Step
-    1.5 m sideways, away from the middle row of poles where the cameras hang, and crouch.</li>
-    <li>Count four seconds, then move to the next spot. Write the PC time at the start of each group.</li>
-    <li>After S@@NSPOTS@@: push the ball slowly along cord T7 (x 456) from y 12 to y 228, the opposite way to
-    the 09-30 sweep, stopping 3 s at every tick.</li>
+    <li>Far end first. Put the ball on the ground at the spot (&plusmn;10 in is fine). Step 1.5 m sideways, away
+    from the middle row of poles where the cameras hang, and crouch.</li>
+    <li><b>Hold 8&ndash;10 s</b>, then move to the next spot. Write the PC time at the start of each group.</li>
+    <li>After the far end: push the ball slowly along cord T7 (x 456) from y 12 to y 228, stopping 3 s at every
+    tick, then back from y 228 to y 12, stopping again.</li>
+    <li>Leave the "vs datum" column for step 6.</li>
   </ol>
   <div class="rec">
     <label>Far end, start (PC time)@@T1@@</label>
+    <label>T7 push +y then -y, start and end@@T4@@</label>
     <label>x = 0 end, start@@T2@@</label>
     <label>Houses, start@@T3@@</label>
-    <label>T7 push, start and end@@T4@@</label>
   </div>
   <div class="tbl"><table>
-    <thead><tr><th scope="col">Spot</th><th scope="col">x, y (in)</th><th scope="col">Where</th><th scope="col">Seen by</th></tr></thead>
+    <thead><tr><th scope="col">Spot</th><th scope="col">x, y (in)</th><th scope="col">Where</th><th scope="col">Seen by</th><th scope="col">Ground vs datum (cm, step 6)</th></tr></thead>
     <tbody>@@SPOTS@@</tbody></table></div>
 </section>
 
 <section>
-  <h2><span class="step">3</span>Pole size and lean</h2>
-  <ul>
-    <li><b>Circumference</b> with the tape, at the lower band. It turns face-to-face distances into centre-to-centre.
-    (The images suggest about 14&ndash;15 cm across, so about 46 cm round.)</li>
-    <li><b>Lean</b> with the phone's level app held flat against the pole at about 150 cm: once on the face toward
-    +x (E), once on the face toward +y (N). Positive = the top leans that way.</li>
-    <li>Both go into the table of step 1.</li>
-  </ul>
+  <h2><span class="step">2</span>Staff at known heights <span class="when">cameras recording</span></h2>
+  <p>At every spot tagged "staff here too", stand the staff on the ground with its 0 mark at the bottom, held
+  vertical (phone level against it), for 8&ndash;10 s. It shows each camera points at 0, 60, 105, 200 and 300 mm
+  above the same ground: the height scale near rat height, with no clock involved.</p>
+  <div class="rec"><label>Start and end (PC time)@@T5@@</label></div>
 </section>
 
 <section>
-  <h2><span class="step">4</span>Pole to pole</h2>
+  <h2><span class="step">3</span>One clock event <span class="when">cameras recording</span></h2>
   <ol>
-    <li>Hold the rangefinder flat against pole P at the lower band, aim at the lower band of pole Q, along the line
-    between the two poles' centres. If the beam misses a thin pole, tape the card on Q at the band.</li>
-    <li>The reading is face to face. Shoot twice; if the two differ by more than 1 cm, shoot again and keep the best two.</li>
-    <li>Rows marked <span class="first">first</span> join two of the nine poles the cameras see. Short of time, measure
-    only those. If a line is blocked, skip it; the network has spares.</li>
+    <li>Everyone out of view except one person standing in the open near x 180, y 120 (between the west house
+    and pole B2), where all six cameras see them. That person jumps once, clearly. Write the PC time to the second.</li>
+    <li>Hold a phone showing a network clock with seconds (e.g. time.is) in front of CH05 for 10 s and write the PC
+    time. This ties the PC clock to what the cameras burn into their picture.</li>
   </ol>
+  <div class="rec"><label>Jump (PC time)@@T6@@</label><label>Phone clock in front of CH05 (PC time)@@T7@@</label></div>
+</section>
+
+<section>
+  <h2><span class="step">4</span>IR and colour, scene still <span class="when">cameras recording</span></h2>
+  <ol>
+    <li>Everyone out of view, nothing moving in the paddock.</li>
+    <li>Switch all six cameras to black-and-white (IR) for 60 s, then back to colour for 60 s. Do it twice.</li>
+    <li>Write the PC time of each switch. The cameras must not be touched; switch them from the NVR or the app.</li>
+  </ol>
+  <div class="rec"><label>Switch times (to IR, to colour, to IR, to colour)@@T8@@</label></div>
+</section>
+
+<section>
+  <h2><span class="step">5</span>Bands on the poles <span class="when">cameras recording</span></h2>
+  <p>Only if step 8 (pole positions) will be done too; bands without positions are of no use. On each pole a
+  camera sees, wrap two turns of tape with the <b>top edge</b> at about 120 cm and 200 cm above the ground at the
+  foot, then everyone out of view for 30 s. The exact heights are measured in step 8.</p>
+  <div class="rec"><label>Clear field after the bands (PC time)@@CLEAR@@</label></div>
+</section>
+
+<div class="part">Part 2 · no recording needed</div>
+
+<section>
+  <h2><span class="step">6</span>Floor heights against the datum</h2>
+  <ol>
+    <li>Set up the level reference so it reaches the datum and as many spots as possible; move it as often as
+    needed, re-reading the datum (or a point already read) after each move.</li>
+    <li>At every still-ball spot (step 1 table), every pole foot (step 8 table), every house corner (step 7), the
+    wall foot points (step 9) and below every camera (step 7): the height of the soil surface (grass pressed down)
+    relative to the datum, in cm.</li>
+    <li>Note roughly how tall the grass is where the ball sat at the far end.</li>
+  </ol>
+  <div class="rec"><label>Level used, and grass height at the far end@@T9@@</label></div>
+</section>
+
+<section>
+  <h2><span class="step">7</span>Cameras and houses</h2>
+  <p>Lens height above the ground directly below it (laser straight up, or the tape), what it hangs on, its
+  horizontal offset from that pole's face, and the ground there vs the datum. The fit's value is there to catch
+  a slip. One review reads the fit 6&ndash;12 cm above the taped heights for CH03 and CH04; this measurement settles it.</p>
+  <div class="tbl"><table>
+    <thead><tr><th scope="col">Camera</th><th scope="col">Fit says</th><th scope="col">Lens height (cm)</th><th scope="col">Mounted on</th><th scope="col">Offset from pole face</th><th scope="col">Ground vs datum (cm)</th></tr></thead>
+    <tbody>@@CAMS@@</tbody></table></div>
+  <ul>
+    <li><b>Houses:</b> outside dimensions of the base; the top surface's height above the ground at each corner;
+    any roof overhang; each base corner's distance to the nearest B pole and to the A pole of the same column,
+    about 20 cm above the ground, pole face to the corner edge; the ground at each corner vs the datum.</li>
+    <li>Do not move a house. If one was moved after 2026-09-30, say when.</li>
+  </ul>
+  @@HOUSES@@
+</section>
+
+<section>
+  <h2><span class="step">8</span>Poles</h2>
+  <ul>
+    <li><b>Circumference</b> with the tape at about 120 cm, or the two widths if the pole is square (the images
+    suggest about 14 cm across, a 6 x 6 in post; the base may be thicker).</li>
+    <li><b>Lean</b> with the phone's level app held flat against the pole at about 150 cm: on the face toward +x (E)
+    and on the face toward +y (N). Positive = the top leans that way.</li>
+    <li><b>Bands</b> (if step 5 was done): the exact height of each band's top edge above the ground at the foot.</li>
+    <li><b>Distances:</b> hold the rangefinder flat against pole P at the lower band and aim at the same height on
+    pole Q, along the line between the centres (tape the card on Q if the beam misses). Face to face; shoot twice;
+    if the two differ by more than 1 cm, shoot again. Rows marked <span class="first">first</span> join two of the
+    nine poles the cameras see: do those, the rest only if time allows.</li>
+  </ul>
+  <div class="tbl"><table>
+    <thead><tr><th scope="col">Pole</th><th scope="col">Seen by</th><th scope="col">Band ~120 (cm)</th>
+    <th scope="col">Band ~200 (cm)</th><th scope="col">Circumference (cm)</th><th scope="col">Lean +x (deg)</th><th scope="col">Lean +y (deg)</th><th scope="col">Foot vs datum (cm)</th></tr></thead>
+    <tbody>@@BANDS@@</tbody></table></div>
   <div class="tbl"><table>
     <thead><tr><th scope="col">Pair</th><th scope="col">Design, centres</th><th scope="col">Shot 1 (cm)</th><th scope="col">Shot 2 (cm)</th></tr></thead>
     <tbody>@@PAIRS@@</tbody></table></div>
 </section>
 
 <section>
-  <h2><span class="step">5</span>Wall top height</h2>
-  <p>Tape from the ground on the paddock side (grass pressed down) to the top edge of the wall, at every pole on
-  the wall and half-way between. @@NWALL@@ points; the design value is 97.8 cm.</p>
+  <h2><span class="step">9</span>Wall top</h2>
+  <p>At every pole on the wall and half-way between (@@NWALL@@ points; design 97.8 cm): the ground at the wall
+  foot vs the datum, and the top edge's height above that ground (tape, paddock side, grass pressed down). The
+  corners and ends matter most.</p>
   <div class="tbl"><table>
-    <thead><tr><th scope="col">At</th><th scope="col">x, y (in)</th><th scope="col">Height (cm)</th></tr></thead>
+    <thead><tr><th scope="col">At</th><th scope="col">x, y (in)</th><th scope="col">Foot vs datum (cm)</th><th scope="col">Top above ground (cm)</th></tr></thead>
     <tbody>@@WALL@@</tbody></table></div>
 </section>
 
 <section>
-  <h2><span class="step">6</span>The two houses</h2>
-  <ul>
-    <li>Outside dimensions of the base; the top surface's height above the ground at each corner; any roof overhang.</li>
-    <li>Each base corner's distance to the nearest B pole and to the A pole of the same column, about 20 cm above
-    the ground, pole face to the corner edge. Corners by the compass words above (SW = toward x = 0 and row A).</li>
-    <li>Do not move a house. If one was moved after 2026-09-30, say when: its size still counts, its position then only fits later footage.</li>
-  </ul>
-  @@HOUSES@@
-</section>
-
-<section>
-  <h2><span class="step">7</span>Camera mounts</h2>
-  <p>Height of each lens above the ground (laser straight up from below the camera, or the tape), what it hangs
-  on, and its horizontal distance from that pole's face. The fit's value is there to catch a slip, not as the answer.</p>
-  <div class="tbl"><table>
-    <thead><tr><th scope="col">Camera</th><th scope="col">Fit says</th><th scope="col">Lens height (cm)</th><th scope="col">Mounted on</th><th scope="col">Offset from pole face</th></tr></thead>
-    <tbody>@@CAMS@@</tbody></table></div>
-</section>
-
-<section>
-  <h2><span class="step">8</span>Photos</h2>
+  <h2><span class="step">10</span>Photos</h2>
   <ul>
     <li>Each pole from two sides with the tape held against it from the ground past the upper band.</li>
     <li>Each house from all four sides with the tape along its edges, and one from above.</li>
+    <li>The level setup and the datum mark; the grass at the far-end spots.</li>
     <li>Wide shots from each corner of the paddock that tie poles, houses and walls together.</li>
   </ul>
 </section>
@@ -473,7 +531,8 @@ code { font-family:var(--mono); font-size:.9em; }
   <h2>When done</h2>
   <ol>
     <li>Stop the calibration recorder (Ctrl+C) and copy the session to the analysis PC before anything is taken down.</li>
-    <li>Copy the entries below and paste them into the chat, or into <code>README_camera_calibration.md</code>.</li>
+    <li><b>Copy the entries below and paste them into the chat</b> before leaving the field. They live only in this
+    browser on this device; clearing it or switching phones loses them.</li>
   </ol>
   <div class="actions"><button type="button" id="copy">Copy all entries</button><span id="copied" role="status"></span></div>
   <textarea id="dump" readonly hidden aria-label="All entries as text"></textarea>
@@ -536,7 +595,12 @@ page = (page.replace("@@MAP@@", svg).replace("@@BANDS@@", band_rows).replace("@@
         .replace("@@T1@@", inp("time.far", "HH:MM:SS", "far end start", "t wide"))
         .replace("@@T2@@", inp("time.x0", "HH:MM:SS", "x = 0 end start", "t wide"))
         .replace("@@T3@@", inp("time.houses", "HH:MM:SS", "houses start", "t wide"))
-        .replace("@@T4@@", inp("time.push", "start - end", "T7 push start and end", "t wide")))
+        .replace("@@T4@@", inp("time.push", "start - end", "T7 push start and end", "t wide"))
+        .replace("@@T5@@", inp("time.staff", "start - end", "staff start and end", "t wide"))
+        .replace("@@T6@@", inp("time.jump", "HH:MM:SS", "jump PC time", "t wide"))
+        .replace("@@T7@@", inp("time.phone", "HH:MM:SS", "phone clock PC time", "t wide"))
+        .replace("@@T8@@", inp("time.ir", "4 times", "IR switch times", "t wide"))
+        .replace("@@T9@@", inp("level.note", "water hose / laser; grass cm", "level and grass", "t wide")))
 OUT.write_text(page, encoding="utf-8")
-print("->", OUT, len(page), "bytes;", N_SPOTS, "spots,", N_PAIRS, "pairs,", N_WALL, "wall points;",
+print("->", OUT, len(page), "bytes;", N_SPOTS, "spots (staff at " + ", ".join(sorted(STAFF, key=lambda k: int(k[1:]))) + "),", N_PAIRS, "pairs,", N_WALL, "wall points;",
       "spots seen by < 2 cameras:", [k for k, g, x, y, s in SPOTS if len(s) < 2])
