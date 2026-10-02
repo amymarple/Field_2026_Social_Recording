@@ -819,3 +819,8 @@ CH02-CH04 41 mm. The 2-s grid's ~250 mm at the CH04 end was the grid: the record
 (frames arrive in clumps; 0.04-0.09 s rms and up to 0.57 s off a steady 20 fps clock), and frame index / frame rate
 is the better time base (63 vs 65 mm). For tracking: time frames by their index within a segment, not by their
 stored timestamp. Clock offsets vs CH02 (index base): CH01 +0.20, CH03 -0.07, CH04 -0.55, CH05 -0.11, CH06 +0.15 s.
+Frame rate per camera against the PC clock (frame index vs timestamp over the 9-minute sweep): CH01/CH02/CH05/CH06
+19.997-20.001 fps, CH03/CH04 19.983-19.985 (~0.08 % slower, ~3 s per hour). So a camera's time within an hourly
+file is a line fitted per file (frame index -> PC time, slope and intercept, from its own timestamps), and the
+offset to CH02 (which sees the sync LED) is then fitted from simultaneous detections in the overlap. The PC's own
+drift (25 ppm since 09-04, `field2026-sync/from-field/*pc-drift*`) is common to every camera and does not enter.
