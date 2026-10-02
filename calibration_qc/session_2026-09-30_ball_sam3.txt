@@ -1,0 +1,7 @@
+BALL SAM3  prompts ['ball', 'volleyball'], imgsz 1008, conf >= 0.1, mask white >= 0.3, size factor 1.234 x calibration
+CH01: marks in 161/258 frames not ruled out by the operator; operator's balls found 22/23, centre error median 6.2 px, p90 11.0 px; marks where the operator said not in view / hidden: 0/3; fixed objects dropped at [(6748, 1510, 67)] (x, y, frames)
+CH02: marks in 130/256 frames not ruled out by the operator; operator's balls found 23/26, centre error median 6.0 px, p90 9.5 px; marks where the operator said not in view / hidden: 0/5
+CH03: marks in 60/67 frames not ruled out by the operator; operator's balls found 52/54, centre error median 3.3 px, p90 6.2 px; marks where the operator said not in view / hidden: 0/1
+CH04: marks in 14/16 frames not ruled out by the operator; operator's balls found 13/14, centre error median 2.9 px, p90 8.9 px; marks where the operator said not in view / hidden: 0/4
+CH05: marks in 19/95 frames not ruled out by the operator; operator's balls found 18/18, centre error median 1.5 px, p90 16.8 px; marks where the operator said not in view / hidden: 0/44
+CH06: marks in 10/13 frames not ruled out by the operator; operator's balls found 10/12, centre error median 2.4 px, p90 19.5 px; marks where the operator said not in view / hidden: 0/60; fixed objects dropped at [(1670, 989, 9)] (x, y, frames)

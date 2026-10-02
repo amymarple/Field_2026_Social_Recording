@@ -1,0 +1,33 @@
+REFIT OF THE GROUND CORRECTION WITH THE 2026-09-30 SUPPLEMENT  (bundle unchanged: G:\calibration\qc\camera_fit.npz)
+105 cone observations of 58 cones, 98 cord points (Y39/Y201); prior 4.0 in on the layout, cord weight 0.5; 09-30 pixels carried to 09-18 through landmark_drift.json
+ball sweep ball_labels_2026-10-01_2151.json: 331 marks, 100 time steps seen by 2+ cameras (236 marks) as tie points, weight 0.5, clock offsets for CH01, CH03, CH04, CH05, CH06 (reference CH02)
+
+1. without the supplement the joint fit differs from the release by at most 199.6 mm inside each camera's support (a different warp degree for CH03, CH04, CH05, CH06)
+2. HELD-OUT supplement cones (5 folds; each fold refitted without its cones, all balls in):
+   two cameras on the same unseen cone   release: median   78 mm, p90  160, max  397   (n 61)
+                                         refit:   median   61 mm, p90  119, max  230
+   a camera's cone vs its design position release: median  100 mm, p90  210, max  300   (n 105)
+                                         refit:   median   92 mm, p90  175, max  306
+2b. HELD-OUT balls (5 contiguous blocks of the sweep; clock offsets fitted on the training balls each time):
+   release          two cameras on the same unseen ball: median  117 mm, p90  346, max 1074   (n 172)
+                    per pair (median mm, pairs with >= 4): CH01-CH02 116  CH01-CH03 144  CH01-CH04 542  CH01-CH05 105  CH01-CH06 82  CH02-CH03 85  CH02-CH04 333  CH02-CH05 107  CH02-CH06 73
+   cone refit       two cameras on the same unseen ball: median   89 mm, p90  260, max  987   (n 172)
+                    per pair (median mm, pairs with >= 4): CH01-CH02 104  CH01-CH03 99  CH01-CH04 430  CH01-CH05 85  CH01-CH06 63  CH02-CH03 49  CH02-CH04 346  CH02-CH05 67  CH02-CH06 63
+   cone+ball refit  two cameras on the same unseen ball: median   88 mm, p90  260, max  980   (n 172)
+                    per pair (median mm, pairs with >= 4): CH01-CH02 103  CH01-CH03 95  CH01-CH04 428  CH01-CH05 82  CH01-CH06 62  CH02-CH03 46  CH02-CH04 345  CH02-CH05 76  CH02-CH06 58
+3. ALL supplement cones in (training): two cameras on the same cone median   54 mm, p90   96, max  202; vs design median   91 mm, p90  174, max  304
+   estimated cone positions vs design (the layout as the cameras see it): median   87 mm, p90  153, max  277
+   largest: T42M 277 mm, T32M 213 mm, V44 204 mm, F52M 172 mm, T72M 167 mm, T53M 154 mm, F43 153 mm, T34M 135 mm
+   balls (training): two cameras on the same ball median   74 mm, p90  192, max 1086; clock offsets CH01 -0.30 s, CH03 +0.06 s, CH04 +0.82 s, CH05 +0.12 s, CH06 -0.15 s (vs CH02)
+   CH01: correction moved by median   32 mm, max  194 mm (inside the release's support)
+   CH02: correction moved by median    8 mm, max   27 mm (inside the release's support)
+   CH03: correction moved by median   62 mm, max  215 mm (inside the release's support)
+   CH04: correction moved by median   44 mm, max  133 mm (inside the release's support)
+   CH05: correction moved by median   19 mm, max   87 mm (inside the release's support)
+   CH06: correction moved by median   16 mm, max   64 mm (inside the release's support)
+   CH01: 09-18 labels rms 3.74 in (release) -> 3.88 in (refit); 43 supplement cones, 27 cord points
+   CH02: 09-18 labels rms 2.82 in (release) -> 2.83 in (refit); 28 supplement cones, 23 cord points
+   CH03: 09-18 labels rms 2.42 in (release) -> 1.37 in (refit); 10 supplement cones, 19 cord points
+   CH04: 09-18 labels rms 1.95 in (release) -> 1.52 in (refit); 10 supplement cones, 23 cord points
+   CH05: 09-18 labels rms 0.94 in (release) -> 0.84 in (refit); 6 supplement cones, 2 cord points
+   CH06: 09-18 labels rms 2.13 in (release) -> 2.07 in (refit); 8 supplement cones, 4 cord points

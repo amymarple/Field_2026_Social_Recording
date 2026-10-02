@@ -1,0 +1,62 @@
+================================================================================================
+CROSS-CAMERA AGREEMENT ON THE PADDOCK FLOOR   (points taken at z = 6 mm)
+================================================================================================
+
+  5361 board corners mapped; 1938 of them were decoded by two or more
+  cameras, so each has two or more independent paddock positions for one physical spot.
+  5 camera-views excluded because the fit itself rejected them: CH01/V42, CH02/V13, CH03/F14, CH04/T62, CH04/T65
+
+  pair             n pts  boards   median      p90      max     systematic offset (dx, dy)
+  CH01-CH04         401       5     73mm    121mm    182mm         -67,      -17 mm
+  CH01-CH06         299       6     51mm    101mm    137mm         +11,      +13 mm
+  CH01-CH02         290       4     29mm    105mm    117mm         -19,       -1 mm
+  CH02-CH06         274       5     37mm     52mm     62mm         +37,       -3 mm
+  CH02-CH05         263       4     42mm     87mm    116mm         +35,      -24 mm
+  CH01-CH05         245       3     35mm     88mm    120mm         -32,       -9 mm
+  CH02-CH04         243       4     84mm    121mm    138mm         -67,      -55 mm
+  CH01-CH03         195       3     37mm     84mm    153mm         -19,      +27 mm
+  CH02-CH03          88       1     50mm     64mm     79mm         +26,      +43 mm
+
+  over every shared corner: median 51 mm, p90 108 mm, max 182 mm
+  (2.0 in / 4.2 in)
+
+  by station (worst pair at that station, median over its corners):
+  station   session           x,y (in)  n corners  disagreement
+  T64       09-19       401.4,  186.5         51        133 mm
+  T61       09-19       401.4,   25.9         35        120 mm
+  F52       09-18       363.3,   87.1         30        100 mm
+  T71       09-18       439.8,   23.2         88         98 mm
+  F23       09-18       147.6,  157.2         86         97 mm
+  V62       09-18       432.1,  103.2         86         93 mm
+  T54       09-18       328.5,  183.3         70         81 mm
+  T63       09-19       405.5,  132.4         32         79 mm
+  T34       09-18       183.1,  183.6         82         75 mm
+  T74       09-18       438.0,  185.5         88         74 mm
+  F14       09-18        73.5,  211.3         88         63 mm
+  T75       09-18       437.8,  218.9         88         57 mm
+  V22       09-18       150.1,   82.2         49         56 mm
+  T73       09-18       440.7,  132.4         88         55 mm
+  V53       09-18       352.5,  160.0         81         54 mm
+  T11       09-19        41.2,   20.9         88         50 mm
+  T53       09-18       301.0,  129.5         82         50 mm
+  F54       09-18       345.6,  184.0         11         47 mm
+  T33       09-18       183.1,  129.1         85         43 mm
+  F43       09-18       301.0,  158.7         42         43 mm
+  V42       09-18       297.2,  104.2         61         38 mm
+  T52       09-18       328.6,   76.4         54         37 mm
+  T72       09-18       438.9,   77.8         88         34 mm
+  F41       09-18       292.8,   54.1         42         32 mm
+  T14       09-18        43.5,  185.2         64         31 mm
+  T32       09-18       183.0,   75.8         87         28 mm
+  T23       09-19        74.2,  129.6         43         19 mm
+  T12       09-19        42.5,   75.5         88         16 mm
+  V51       09-18       364.0,   49.5         61         15 mm
+
+  for comparison, the error from assuming the wrong HEIGHT (a pixel is a ray, not a point):
+  camera    mm slide per mm of height   a 60 mm-high back read as ground
+  CH01                       0.86                             52 mm
+  CH02                       0.86                             51 mm
+  CH03                       1.02                             61 mm
+  CH04                       0.93                             56 mm
+  CH05                       0.09                              5 mm
+  CH06                       0.10                              6 mm

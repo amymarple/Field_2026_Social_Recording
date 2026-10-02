@@ -670,3 +670,68 @@ the 2026-09-30 labels (cones, cords, the ball) are in 09-30 pixels and must be c
 through these transforms (or the refit gives CH01-CH04 a pose of their own for 09-30) before they meet the release;
 the handoff numbers of `check_supplement.py` above include this motion and are to be recomputed after that. CH04's
 transform needs more landmarks before it is trusted (six rigid ones, two frames 14 px / 0.5 deg apart).
+
+### The ball sweep: machine marks and the operator's review (2026-10-01)
+
+Marking 261 times x 6 cameras by hand was too slow, so `ball_sam3.py` proposes marks and the operator reviews
+them in `ball_gui.py` (cyan dashed = machine mark with its score; `a` accept, `m` next machine mark, `s` not in
+view, `S` not in view for a range of frames, `h` hidden, `l` seen but off the ground - carried or lifted, its
+height unknown, kept out of the ground fit). SAM 3 (`facebook/sam3`, text prompts "ball" + "volleyball") runs on
+full-resolution 1008-px tiles over the part of each frame where the paddock floor is; a detection is kept if its
+size is 0.5-1.8 x what the calibration predicts there and its mask is >= 30 % white (the ball's masks: median
+60 %, lowest 30 %; the disc cones 0-25 %); a spot that holds a detection in a quarter of a camera's frames is a fixed object (a blue cone in CH03, a
+pipe cap in CH06) and is dropped; a Viterbi pass per camera picks one detection or "not in view" per frame. A first
+version sent the small cameras in whole (the ball ~20 px across after the shrink to 1008 px) with "volleyball"
+alone at conf 0.2, and the operator reported many misses; its pano tiles followed "motion", which over 9 minutes of
+changing light was the whole frame. Frames the operator rules out (`session_2026-09-30_ball_operator_ranges.json`:
+CH03 69-261, CH04 1-243, CH05 140-261, CH06 1-165 and 238-261, GUI numbering) are not searched.
+
+Against the operator's marks (`session_2026-09-30_ball_sam3.txt`): found CH01 22/23, CH02 23/26, CH03 52/54,
+CH04 13/14, CH05 18/18, CH06 10/12; none on a frame the operator called not in view or hidden. The operator then
+reviewed every camera (`session_2026-09-30_ball_labels.json`, 21:51 export): accepted 112 machine marks, drew
+the rest, rejected 37 pano marks as the ball carried off the ground. Machine centres against the operator's own
+drawings, on the ground: 5-16 mm median on CH03-CH06, 31 mm (p90 60-67) on the panos, where SAM 3's mask often
+covers only part of the ball (one panel close to the camera, the coloured half against the white wall or house,
+the top half above the grass).
+
+`ball_refine.py` tried to do better by fitting the outline the calibration predicts for a 105 mm sphere to the
+grass / not-grass edge. It is repeatable but biased: where grass hides the ball's lower part it lifts the centre
+4-7 px, and the cameras agree less on the same ball with it (88-109 mm) than with the operator's marks (87 mm;
+`session_2026-09-30_ball_refine_check.txt`). Not used; the operator's marks stand.
+
+Every mark goes to the ground at the ball-centre height, 105 mm (09-30 pixels carried to 09-18 by
+`landmark_drift`). Sweeping that assumed height, the cameras agree best at 80-105 mm (median 86 / 85 mm, 97 at
+130, 117 at 160), so the ball sat on the soil, not on top of the grass. Camera clocks: the file names resolve
+the start to 1 s, so each camera's offset is a free parameter, fitted from the ball tracks: CH01 -0.3 s,
+CH03 +0.1, CH04 +0.8, CH05 +0.1, CH06 -0.15 (against CH02). CH04's is confounded with its position: both of the
+sweep's passes through CH04's view ran in -y, so a clock offset and a y offset look the same there, and its
+pixel drift between the sessions is itself uncertain (above).
+
+### Ground correction refitted with the supplement cones and the ball sweep (2026-10-01; candidate, NOT the release)
+
+`refit_supplement.py` refits the per-camera ground warp (the bundle is unchanged) for all six cameras jointly:
+the 2026-09-18 labels as in the release; every 2026-09-30 cone as a tie point held to its design position by a
+4 in prior; cords Y39 / Y201 as lines (weight 0.5); and with `--balls`, every time step two or more cameras saw
+the ball as a free tie point, with a clock offset per camera (weight 0.5). Warp degree 3 for the panos as in
+the release, 2 for CH03-CH06 (they now have enough points). Outputs under `<root>\qc\refit_2026-10-01_*`
+(load with `paddock_map.load(<dir>\camera_fit.npz)`); summaries in the repository:
+`session_2026-09-30_refit_cones.txt` / `_cones_boards.txt` (cones only) and `session_2026-09-30_refit_cones_balls.txt`
+/ `_cones_balls_boards.txt` (cones + balls, weight 0.5). Three independent checks:
+
+| | boards 09-18/19, two cameras on one corner (median / p90) | held-out cones (5 folds) | held-out balls (5 blocks of the sweep) | balls in the fit |
+|---|---|---|---|---|
+| release | 71 / 153 mm | 78 / 160 mm | 117 mm | 109 mm |
+| cones | 51 / 108 | 69 / 131 | 89 | 85 |
+| cones + balls, ball weight 0.3 | 51 / 108 | 63 / 125 | 90 | 81 |
+| cones + balls, ball weight 0.5 | 52 / 108 | 61 / 119 | 88 | 75 |
+| cones + balls, ball weight 1 | 54 / 109 | 60 / 102 | 89 | 63 |
+
+The cones do most of the work; the balls add tie points where the sweep went and help the held-out cones, but a
+held-out block of the sweep (a region the fit saw no balls in) does not improve over the cones alone, and at
+weight 1 the boards start to get worse. Weight 0.5 is the candidate. Per camera pair on the balls (weight 0.5 fit,
+each fit's own clock offsets; `session_2026-09-30_refit_ball_pairs.txt`, the last column of the table): CH02-CH03
+34 mm, CH01-CH06 46, CH02-CH05 47, CH02-CH06 56, CH01-CH03 74, CH01-CH05 77, CH01-CH02 88, CH0x-CH04 201-293. The CH04 end (x > 400 in) remains the weak handoff: clock and position are confounded there (above),
+CH04's drift transform is uncertain, and the panos see that end at the corners of their canvas with 2.3-2.5 mm of
+horizontal error per mm of height error. What would settle it before teardown: the ball (or anything with a known
+height) held STILL for ~3 s at 10-15 spots across CH04's view and the panos' far end - a still object needs no
+clock - and a pass in +y as well as -y.

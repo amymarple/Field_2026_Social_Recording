@@ -14,9 +14,18 @@ The ellipse can also be set by hand: "e" turns the current circle into one, then
 move it, the long-axis handle to stretch and rotate it, the short-axis handle to widen or narrow it - useful
 when only part of the outline shows. The ball's position is the centre of the ellipse (or circle).
 "s" says the ball is not in this camera's view at that time, "h" that it is there but hidden (house, person,
-stick) and cannot be outlined: "not visible" is the operator's statement, never the program's.
+stick) and cannot be outlined, "l" that it is seen but off the ground (carried, lifted on the stick): its height is
+unknown, so it is no use for the ground map and is kept apart from the ball marks: "not visible" is the operator's statement, never the program's. Either mark stays on
+the camera (the status and the thumbnail say so); up / down arrows (or space) move between cameras. "S" (shift+s)
+says "not in view" for a whole range of frames of this camera (frames already marked as ball are kept). Ranges the
+operator gave outside the page go into operator_ranges.json next to the page ({"not_in_view": {cam: [[first,
+last], ...]}}, GUI frame numbers, inclusive); the page fills them in as "not in view" wherever nothing is marked yet.
 The previous time's mark in the same camera is drawn as a dashed circle; the view keeps its zoom between
 times, so the ball is usually near the middle of it.
+
+Machine marks: if ball_sam3.py has written machine.json next to the page, its ellipse is shown (cyan, dashed)
+wherever the operator has not marked that camera and time. "a" accepts it (and moves to the next time); clicking
+the edge or "s" / "h" replaces it. Export writes every machine mark too, as "machine-unchecked" until accepted.
 
 Times are PC clock = segment start (from the file name, 1 s resolution) + offset in the file. The streams'
 true relative delays are unknown at this point; the ball tracks are what will measure them.
@@ -88,6 +97,10 @@ def extract(cam):
 with ThreadPoolExecutor(max_workers=len(CAMS)) as ex:
     cams = list(ex.map(extract, CAMS))
 jobs = dict(session=SESSION.name, date=DATE, window=[w0, w1], step=STEP, clocks=CLOCKS, cams=cams)
+_mf = OUT / "machine.json"
+MACHINE = json.loads(_mf.read_text(encoding="utf-8"))["cams"] if _mf.exists() else {}
+_rf = OUT / "operator_ranges.json"
+RANGES = json.loads(_rf.read_text(encoding="utf-8"))["not_in_view"] if _rf.exists() else {}
 (OUT / "jobs.json").write_text(json.dumps(jobs, indent=1), encoding="utf-8")
 
 html = r"""<!doctype html><html><head><meta charset="utf-8"><title>Ball sweep __DATE__</title>
@@ -106,9 +119,12 @@ html = r"""<!doctype html><html><head><meta charset="utf-8"><title>Ball sweep __
  <span id="status" style="padding:2px 10px;border-radius:4px;font-weight:bold"></span>
  <span id="fitinfo"></span>
  <button onclick="go(k-1)">&lt; time (&larr;)</button><button onclick="go(k+1)">time &gt; (&rarr;)</button>
- <button onclick="nextCam()">next camera (space)</button><button onclick="nextOpen()">next unreviewed (n)</button>
+ <button onclick="prevCam()">&lt; camera (&uarr;)</button><button onclick="nextCam()">camera &gt; (&darr; / space)</button><button onclick="nextOpen()">next unreviewed (n)</button>
+ <button onclick="acceptMachine()" style="background:#0a8a8a">machine mark is right (a)</button>
  <button onclick="setVerdict('not visible')" style="background:#833">not in view (s)</button>
+ <button onclick="rangeOut()" style="background:#833">not in view, frames ... to ... (S)</button>
  <button onclick="setVerdict('hidden')" style="background:#a60">there but hidden (h)</button>
+ <button onclick="setVerdict('off ground')" style="background:#7a4fa0">off the ground, held (l)</button>
  <button onclick="undo()">undo (u)</button><button onclick="clearPts()">clear (c)</button>
  <button onclick="toEllipse()">edit as ellipse (e)</button><button onclick="dropEllipse()">back to points (r)</button>
  <button onclick="fitView();draw()">fit (f)</button><button onclick="zoomBall()">zoom to ball (z)</button>
@@ -124,10 +140,11 @@ One click = centre only, two clicks = the ends of a diameter. "e" turns the shap
 centre square to move it, the long-axis handle (L) to stretch and ROTATE it, the short-axis handle (S) to widen it; "r" drops
 the hand-set ellipse and goes back to the clicked points. Drag a point to move it, shift+arrows nudge the last point by 1 px. Wheel = zoom,
 right-drag = pan; the view keeps its zoom when the time changes. Dashed orange = this camera's mark at an earlier time.
-Keys: 1-6 camera, &larr;/&rarr; time, space next camera, n next unreviewed, s not in view, h hidden, u undo, c clear, e ellipse, r points, f fit, z zoom to ball.
+Cyan dashed = the machine's mark: a = it is right (accepted, next time), m = next machine mark of this camera.
+Keys: 1-6 camera, &uarr;/&darr; previous/next camera (space = next), &larr;/&rarr; time, n next unreviewed, s not in view, S not in view for a range of frames, h hidden, l off the ground (held), u undo, c clear, e ellipse, r points, f fit, z zoom to ball.
 Marks are saved in this browser as you go; Export writes them to a file.</div>
 <script>
-const JOBS=__JOBS__; const KEY='ball_labels___SESSION__';
+const JOBS=__JOBS__; const KEY='ball_labels___SESSION__'; const MACHINE=__MACHINE__; const RANGES=__RANGES__;
 const $=id=>document.getElementById(id), cv=$('main'), ctx=cv.getContext('2d');
 let k=0, ci=0, labels={}, views={}, hover=null, drag=-1, last=-1, pan=null;
 const cams=JOBS.cams, NT=JOBS.clocks.length, cache=new Map();
@@ -179,13 +196,17 @@ function shapeOf(L){if(!L||L.verdict!=='ball')return null;
   const e=fitEllipse(L.pts);
   if(e&&e.a<8*e.b)return {c:[e.cx,e.cy],r:(e.a+e.b)/2,ell:e,method:'ellipse-'+L.pts.length,rms:e.rms};
   return fitCircle(L.pts);}
-function ghost(t,c){for(let d=1;d<=6;d++){const f=shapeOf(lab(t-d,c));if(f)return f;}return null;}
+function machineOf(t,c){const m=(MACHINE[cams[c].cam]||{})[String(t)];if(!m)return null;
+  return {c:[m.cx,m.cy],r:(m.a+m.b)/2,ell:{cx:m.cx,cy:m.cy,a:m.a,b:m.b,th:m.th},method:m.method,score:m.score};}
+function ghost(t,c){for(let d=1;d<=6;d++){const f=shapeOf(lab(t-d,c))||machineOf(t-d,c);if(f)return f;}return null;}
+function acceptMachine(){const m=machineOf(k,ci);if(!m)return;
+  labels[key(k,ci)]={pts:[],verdict:'ball',ell:Object.assign({},m.ell),src:'machine-checked'};save();go(k+1);}
 // ---- view
 function V(){return views[cams[ci].cam];}
 function fitView(){const c=cams[ci];views[c.cam]={z:Math.min(cv.width/c.w,cv.height/c.h),ox:0,oy:0};
   const v=V();v.ox=(cv.width-c.w*v.z)/2;v.oy=(cv.height-c.h*v.z)/2;}
 function centreOn(p,z){const v=V();if(z)v.z=z;v.ox=cv.width/2-p[0]*v.z;v.oy=cv.height/2-p[1]*v.z;}
-function zoomBall(){const f=shapeOf(lab(k,ci))||ghost(k,ci);if(!f)return;
+function zoomBall(){const f=shapeOf(lab(k,ci))||machineOf(k,ci)||ghost(k,ci);if(!f)return;
   const r=Math.max(f.r||25,15);centreOn(f.c,Math.min(cv.height/(r*10),12));draw();}
 function S2C(p){const v=V();return [p[0]*v.z+v.ox,p[1]*v.z+v.oy];}
 function toImg(e){const r=cv.getBoundingClientRect(),v=V();const x=(e.clientX-r.left)*cv.width/r.width,y=(e.clientY-r.top)*cv.height/r.height;
@@ -206,6 +227,7 @@ function draw(){const c=cams[ci],im=img(k,ci);if(!V())fitView();const v=V();
   const g=ghost(k,ci);if(g)shape(ctx,g,'#ff8c00',[6,5],2,S2C);
   const L=lab(k,ci),pts=L&&L.pts?L.pts:[];const f=shapeOf(L);
   if(f)shape(ctx,f,'#0f0',null,2,S2C);
+  const M=!L?machineOf(k,ci):null;if(M)shape(ctx,M,'#0ff',[8,4],2,S2C);
   const H=L&&L.ell?handles(f):null;
   if(H){for(const [nm,p0] of Object.entries(H)){const p=S2C(p0);ctx.fillStyle=nm==='C'?'#ff0':'#f0f';
     ctx.fillRect(p[0]-6,p[1]-6,12,12);ctx.fillStyle='#000';ctx.font='bold 10px sans-serif';ctx.fillText(nm,p[0]-3,p[1]+4);}}
@@ -222,8 +244,10 @@ function draw(){const c=cams[ci],im=img(k,ci);if(!V())fitView();const v=V();
   $('fitinfo').textContent=f?(f.method+(f.ell?` ${(2*f.ell.a).toFixed(0)}x${(2*f.ell.b).toFixed(0)}px ${(f.ell.th*180/Math.PI).toFixed(0)}deg`:(f.r?` r=${f.r.toFixed(1)}px`:''))
     +(f.rms!==undefined&&f.rms!==null?` fit rms ${f.rms.toFixed(1)}px`:'')):'';
   status();}
-const STAT={ball:['BALL MARKED','#2a6cc0'],'not visible':['NOT IN VIEW','#a33'],hidden:['THERE BUT HIDDEN','#a60']};
-function stOf(t,c){const L=lab(t,c);if(!L)return ['not reviewed','#555'];return STAT[L.verdict]||['not reviewed','#555'];}
+const STAT={ball:['BALL MARKED','#2a6cc0'],'not visible':['NOT IN VIEW','#a33'],hidden:['THERE BUT HIDDEN','#a60'],'off ground':['OFF THE GROUND (held)','#7a4fa0'],
+  machine:['MACHINE MARK - not checked','#0a8a8a'],checked:['MACHINE MARK ACCEPTED','#2a6cc0']};
+function stOf(t,c){const L=lab(t,c),M=machineOf(t,c);if(!L)return M?[STAT.machine[0]+(M.score!==undefined?' (score '+M.score.toFixed(2)+')':''),STAT.machine[1]]:['not reviewed','#555'];
+  if(L.src==='machine-checked')return STAT.checked;return STAT[L.verdict]||['not reviewed','#555'];}
 function status(){const [txt,col]=stOf(k,ci);const e=$('status');e.textContent=txt;e.style.background=col;
   $('clock').textContent=JOBS.clocks[k];$('ti').textContent=k+1;$('tn').textContent=NT;$('camname').textContent=cams[ci].cam;
   $('ndone').textContent=Object.keys(labels).length;$('ntot').textContent=NT*cams.length;}
@@ -232,16 +256,23 @@ function buildThumbs(){$('thumbs').innerHTML=cams.map((c,i)=>`<canvas class="th"
 function thumb(i){const c=cams[i],t=$('th'+i),g=t.getContext('2d'),im=img(k,i),s=Math.min(t.width/c.w,t.height/c.h);
   g.fillStyle='#000';g.fillRect(0,0,t.width,t.height);if(im.complete&&im.naturalWidth)g.drawImage(im,0,0,c.w*s,c.h*s);
   const f=shapeOf(lab(k,i));if(f)circle(g,[f.c[0]*s,f.c[1]*s],Math.max((f.r||10)*s,4),'#0f0',null,2);
+  const M=!lab(k,i)?machineOf(k,i):null;if(M)circle(g,[M.c[0]*s,M.c[1]*s],Math.max((M.r||10)*s,4),'#0ff',[3,2],2);
   const gh=ghost(k,i);if(!f&&gh)circle(g,[gh.c[0]*s,gh.c[1]*s],Math.max((gh.r||10)*s,4),'#ff8c00',[3,3],1);
-  g.fillStyle='#ff0';g.font='bold 13px sans-serif';g.fillText(c.cam,4,14);t.style.borderColor=stOf(k,i)[1];t.classList.toggle('active',i===ci);}
+  g.fillStyle='#ff0';g.font='bold 13px sans-serif';g.fillText(c.cam,4,14);
+  const LL=lab(k,i);if(LL&&LL.verdict!=='ball'){const txt=LL.verdict==='hidden'?'HIDDEN':LL.verdict==='off ground'?'OFF GROUND':'NOT IN VIEW';
+    g.font='bold 15px sans-serif';const tw=g.measureText(txt).width;g.fillStyle='rgba(0,0,0,.6)';g.fillRect(t.width/2-tw/2-4,t.height/2-12,tw+8,22);
+    g.fillStyle=LL.verdict==='hidden'?'#fb0':LL.verdict==='off ground'?'#c9f':'#f55';g.fillText(txt,t.width/2-tw/2,t.height/2+4);}
+  t.style.borderColor=stOf(k,i)[1];t.classList.toggle('active',i===ci);}
 function allThumbs(){cams.forEach((c,i)=>thumb(i));}
-function sel(){last=-1;const v=V(),g=ghost(k,ci);
+function sel(){last=-1;const v=V(),g=(!lab(k,ci)&&machineOf(k,ci))||ghost(k,ci);
   if(!v)fitView();
   else if(g){const p=S2C(g.c);if(p[0]<0||p[1]<0||p[0]>cv.width||p[1]>cv.height)centreOn(g.c);}
   draw();allThumbs();}
 function go(t){if(t<0||t>=NT)return;k=t;for(let c=0;c<cams.length;c++)img(Math.min(NT-1,k+1),c);sel();}
 function nextCam(){if(ci<cams.length-1)ci++;else{ci=0;if(k<NT-1)k++;}sel();}
+function prevCam(){if(ci>0)ci--;else{ci=cams.length-1;if(k>0)k--;}sel();}
 function nextOpen(){for(let t=k;t<NT;t++)for(let c=(t===k?ci+1:0);c<cams.length;c++)if(!lab(t,c)){k=t;ci=c;sel();return;}}
+function nextMachine(){for(let t=k+1;t<NT;t++)if(!lab(t,ci)&&machineOf(t,ci)){go(t);return;}}
 // ---- marking
 function save(){try{localStorage.setItem(KEY,JSON.stringify(labels));}catch(e){}}
 function setPts(p){const L=lab(k,ci),ell=L&&L.ell?L.ell:null;
@@ -251,7 +282,13 @@ function toEllipse(){const f=shapeOf(lab(k,ci))||ghost(k,ci);if(!f)return;
   const r=f.r||Math.max(10,15/V().z);setEll(f.ell?Object.assign({},f.ell,{rms:undefined}):{cx:f.c[0],cy:f.c[1],a:r,b:r,th:0});}
 function dropEllipse(){const L=lab(k,ci);if(!L||!L.ell)return;delete L.ell;if(!L.pts.length)delete labels[key(k,ci)];save();draw();thumb(ci);}
 let hdrag=null;
-function setVerdict(v){labels[key(k,ci)]={pts:[],verdict:v};save();nextCam();}
+function setVerdict(v){labels[key(k,ci)]={pts:[],verdict:v};save();draw();thumb(ci);}
+function rangeOut(){const s=prompt(`${cams[ci].cam}: the ball is NOT in view from frame - to frame (numbers as shown, inclusive; ball marks are kept)`,`${k+1}-${NT}`);
+  const m=s&&s.match(/(\d+)\s*-\s*(\d+)/);if(!m)return;
+  for(let t=Math.max(1,+m[1])-1;t<Math.min(NT,+m[2]);t++){const L=lab(t,ci);if(!L||L.verdict!=='ball')labels[key(t,ci)]={pts:[],verdict:'not visible',src:'operator-range'};}
+  save();sel();}
+function applyRanges(){for(const [cam,rs] of Object.entries(RANGES))for(const [a,b] of rs)for(let t=a-1;t<Math.min(b,NT);t++)
+    if(!labels[t+'|'+cam])labels[t+'|'+cam]={pts:[],verdict:'not visible',src:'operator-range'};}
 function curPts(){const L=lab(k,ci);return L&&L.verdict==='ball'?L.pts.map(p=>p.slice()):[];}
 function undo(){const p=curPts();p.pop();last=p.length-1;setPts(p);}
 function clearPts(){delete labels[key(k,ci)];save();last=-1;draw();thumb(ci);}
@@ -282,15 +319,22 @@ document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;
     q[last][1]+=e.key==='ArrowUp'?-1:e.key==='ArrowDown'?1:0;setPts(q);}e.preventDefault();return;}
   if(e.key>='1'&&e.key<=String(cams.length)){ci=+e.key-1;sel();}
   else if(e.key==='ArrowRight')go(k+1);else if(e.key==='ArrowLeft')go(k-1);
+  else if(e.key==='ArrowUp'){e.preventDefault();prevCam();}else if(e.key==='ArrowDown'){e.preventDefault();nextCam();}
   else if(e.key===' '){e.preventDefault();nextCam();}else if(e.key==='n')nextOpen();
-  else if(e.key==='s')setVerdict('not visible');else if(e.key==='h')setVerdict('hidden');
+  else if(e.key==='s')setVerdict('not visible');else if(e.key==='S')rangeOut();else if(e.key==='h')setVerdict('hidden');else if(e.key==='l')setVerdict('off ground');
   else if(e.key==='u')undo();else if(e.key==='c')clearPts();
   else if(e.key==='e')toEllipse();else if(e.key==='r')dropEllipse();
+  else if(e.key==='a')acceptMachine();else if(e.key==='m')nextMachine();
   else if(e.key==='f'){fitView();draw();}else if(e.key==='z')zoomBall();});
 function exportJson(){const out=[];for(const [kk,L] of Object.entries(labels)){const [t,cam]=kk.split('|');const f=shapeOf(L);
     const el=f&&f.ell?{cx:f.ell.cx,cy:f.ell.cy,a:f.ell.a,b:f.ell.b,theta_rad:f.ell.th}:null;
     out.push({k:+t,clock:JOBS.clocks[+t],cam:cam,verdict:L.verdict,pts:L.pts,centre:f?f.c:null,r:f?f.r:null,ellipse:el,
-              method:f?f.method:null,fit_rms:f&&f.rms!==undefined?f.rms:null,hand_ellipse:L.ell?{cx:L.ell.cx,cy:L.ell.cy,a:L.ell.a,b:L.ell.b,th:L.ell.th}:null});}
+              method:f?f.method:null,fit_rms:f&&f.rms!==undefined?f.rms:null,hand_ellipse:L.ell?{cx:L.ell.cx,cy:L.ell.cy,a:L.ell.a,b:L.ell.b,th:L.ell.th}:null,
+              src:L.src||null});}
+  for(const [cam,ms] of Object.entries(MACHINE))for(const [t,m] of Object.entries(ms)){if(labels[t+'|'+cam])continue;
+    out.push({k:+t,clock:JOBS.clocks[+t],cam:cam,verdict:'ball',pts:[],centre:[m.cx,m.cy],r:(m.a+m.b)/2,
+              ellipse:{cx:m.cx,cy:m.cy,a:m.a,b:m.b,theta_rad:m.th},method:'machine-unchecked',fit_rms:null,hand_ellipse:null,machine_score:m.score});}
+  for(const o of out){const L=labels[o.k+'|'+o.cam];if(L&&L.src==='machine-checked')o.method='machine-checked';}
   out.sort((a,b)=>a.k-b.k||a.cam.localeCompare(b.cam));
   const doc={session:JOBS.session,date:JOBS.date,window:JOBS.window,step:JOBS.step,space:'upright full-resolution pixels',cams:JOBS.cams,labels:out};
   const a=document.createElement('a');a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(doc,null,1));
@@ -298,9 +342,11 @@ function exportJson(){const out=[];for(const [kk,L] of Object.entries(labels)){c
 $('imp').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();
   rd.onload=()=>{const d=JSON.parse(rd.result);(d.labels||[]).forEach(L=>{labels[L.k+'|'+L.cam]=Object.assign({pts:L.pts||[],verdict:L.verdict},
     L.hand_ellipse?{ell:L.hand_ellipse}:{});});save();sel();};rd.readAsText(f);});
+document.addEventListener('click',e=>{if(e.target.tagName==='BUTTON')e.target.blur();});
 try{const s=localStorage.getItem(KEY);if(s)labels=JSON.parse(s);}catch(e){}
-buildThumbs();go(0);
+applyRanges();buildThumbs();go(0);
 </script></body></html>"""
 (OUT / "ball_gui.html").write_text(html.replace("__JOBS__", json.dumps(jobs)).replace("__DATE__", DATE)
-                                   .replace("__SESSION__", SESSION.name), encoding="utf-8")
+                                   .replace("__SESSION__", SESSION.name).replace("__MACHINE__", json.dumps(MACHINE))
+                                   .replace("__RANGES__", json.dumps(RANGES)), encoding="utf-8")
 print(f"\n{N} times x {len(cams)} cameras -> {OUT / 'ball_gui.html'}")

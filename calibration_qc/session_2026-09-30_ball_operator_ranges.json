@@ -1,0 +1,9 @@
+{
+ "note": "Operator statements in chat 2026-10-01: the ball is not in this camera's view on these frames. Numbers are the GUI's frame numbers (1-based, k + 1), inclusive.",
+ "not_in_view": {
+  "CH03": [[69, 261]],
+  "CH04": [[1, 243]],
+  "CH05": [[140, 261]],
+  "CH06": [[1, 165], [238, 261]]
+ }
+}

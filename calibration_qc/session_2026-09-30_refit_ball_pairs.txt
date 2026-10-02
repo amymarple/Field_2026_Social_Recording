@@ -1,0 +1,18 @@
+BALLS IN THE FIT: two cameras on the same ball, per fit (2026-10-01). Marks: session_2026-09-30_ball_labels.json (operator + accepted
+machine marks), to the ground at z = 105 mm (09-30 px -> 09-18 by landmark_drift). Clock offsets per camera (vs CH02) fitted by
+least squares on all balls for each fit (its warps fixed), ball velocity from the cameras' mean track; median over pairs of marks.
+w0.3 / w0.5 = refit_2026-10-01_balls_w0.3 / _w0.5, cone+ball refit = weight 1.
+
+  release          all pairs median 109 mm p90 241, without CH04 103 | CH01-CH02 115  CH01-CH03 123  CH01-CH04 284  CH01-CH05 100  CH01-CH06 89  CH02-CH03 85  CH02-CH04 211  CH02-CH05 81  CH02-CH06 73 | tau CH01 -0.31 CH03 +0.09 CH04 +0.85 CH05 +0.13 CH06 -0.13
+  cone refit       all pairs median 85 mm p90 195, without CH04 82 | CH01-CH02 101  CH01-CH03 94  CH01-CH04 294  CH01-CH05 81  CH01-CH06 54  CH02-CH03 44  CH02-CH04 196  CH02-CH05 51  CH02-CH06 62 | tau CH01 -0.32 CH03 +0.07 CH04 +0.76 CH05 +0.08 CH06 -0.15
+  w0.3             all pairs median 81 mm p90 195, without CH04 77 | CH01-CH02 96  CH01-CH03 84  CH01-CH04 295  CH01-CH05 81  CH01-CH06 51  CH02-CH03 39  CH02-CH04 197  CH02-CH05 50  CH02-CH06 60 | tau CH01 -0.31 CH03 +0.07 CH04 +0.76 CH05 +0.09 CH06 -0.15
+  w0.5             all pairs median 75 mm p90 195, without CH04 72 | CH01-CH02 88  CH01-CH03 74  CH01-CH04 293  CH01-CH05 77  CH01-CH06 46  CH02-CH03 34  CH02-CH04 201  CH02-CH05 47  CH02-CH06 56 | tau CH01 -0.31 CH03 +0.07 CH04 +0.77 CH05 +0.09 CH06 -0.15
+  cone+ball refit  all pairs median 63 mm p90 197, without CH04 58 | CH01-CH02 79  CH01-CH03 61  CH01-CH04 288  CH01-CH05 70  CH01-CH06 47  CH02-CH03 28  CH02-CH04 214  CH02-CH05 38  CH02-CH06 47 | tau CH01 -0.30 CH03 +0.08 CH04 +0.78 CH05 +0.10 CH06 -0.15
+
+assumed ball-centre height, cone refit:
+z=50 mm  cone refit       all pairs median 100 mm p90 217, without CH04 95 | CH01-CH02 
+z=80 mm  cone refit       all pairs median 86 mm p90 205, without CH04 81 | CH01-CH02 1
+z=105 mm  cone refit       all pairs median 85 mm p90 195, without CH04 82 | CH01-CH02 1
+z=130 mm  cone refit       all pairs median 97 mm p90 207, without CH04 93 | CH01-CH02 1
+z=160 mm  cone refit       all pairs median 117 mm p90 232, without CH04 115 | CH01-CH02
+z=200 mm  cone refit       all pairs median 158 mm p90 266, without CH04 151 | CH01-CH02
