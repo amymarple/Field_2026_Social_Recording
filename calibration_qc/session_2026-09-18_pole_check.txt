@@ -1,0 +1,94 @@
+PLUMB-LINE CHECK, release fit (plumb_check.py)
+== CH01 landmarks_CH01_20260918_135730.json: 28 landmark keys: BOX_A0, BOX_B0, BOX_C0, HOUSE_1_BASE_Z, HOUSE_1_LABEL, HOUSE_1_ROOF_X, HOUSE_1_ROOF_Y, HOUSE_2_BASE_Y, HOUSE_2_LABEL, HOUSE_2_ROOF_X, HOUSE_2_ROOF_Y, POLE_A0_L, POLE_A0_R, POLE_B0_L, POLE_B0_R, POLE_B1_L, POLE_B1_R, POLE_B2_L, POLE_B2_R, POLE_B3_L, POLE_B3_R, POLE_C0_L, POLE_C0_R, POLE_C1_L, POLE_C1_R, TOWER_1, WALLTOP_X0, WALLTOP_Y240
+   HOUSE_1_BASE_Z[0] 5 pts, span   6.4 deg, plane tilt from vertical  5.07 deg, curvature rms   1.4 arcmin, uv0 (1989,1728)
+   HOUSE_1_BASE_Z[1] 6 pts, span   7.0 deg, plane tilt from vertical  5.34 deg, curvature rms   1.3 arcmin, uv0 (2201,1773)
+   HOUSE_1_BASE_Z[2] 5 pts, span   7.0 deg, plane tilt from vertical  1.84 deg, curvature rms   1.4 arcmin, uv0 (2387,1319)
+   POLE_B0_L[0] 5 pts, span  11.8 deg, plane tilt from vertical  4.25 deg, curvature rms   3.0 arcmin, uv0 (756,988)
+   POLE_B1_L[0] 9 pts, span  33.1 deg, plane tilt from vertical  0.54 deg, curvature rms   9.2 arcmin, uv0 (940,544)
+   POLE_B1_R[0] 10 pts, span  32.4 deg, plane tilt from vertical  0.74 deg, curvature rms   9.9 arcmin, uv0 (1010,462)
+   POLE_B2_L[0] 8 pts, span  40.1 deg, plane tilt from vertical  1.81 deg, curvature rms   9.7 arcmin, uv0 (4479,14)
+   POLE_B2_R[0] 8 pts, span  41.0 deg, plane tilt from vertical  1.49 deg, curvature rms  11.8 arcmin, uv0 (4802,6)
+   POLE_B3_L[0] 5 pts, span  14.9 deg, plane tilt from vertical  1.69 deg, curvature rms   2.7 arcmin, uv0 (6996,829)
+   POLE_B3_R[0] 4 pts, span  14.9 deg, plane tilt from vertical  1.58 deg, curvature rms   2.5 arcmin, uv0 (7060,923)
+   POLE_C0_L[0] 4 pts, span   8.1 deg, plane tilt from vertical  6.05 deg, curvature rms   0.3 arcmin, uv0 (1428,168)
+   POLE_C0_R[0] 6 pts, span   8.0 deg, plane tilt from vertical  6.83 deg, curvature rms   0.9 arcmin, uv0 (1460,143)
+   POLE_C1_L[0] 4 pts, span   2.8 deg, plane tilt from vertical  3.77 deg, curvature rms   1.0 arcmin, uv0 (2302,0)
+   POLE_C1_R[0] 4 pts, span   2.1 deg, plane tilt from vertical  3.62 deg, curvature rms   1.1 arcmin, uv0 (2373,8)
+== CH02 landmarks_CH02_20260918_152230.json: 27 landmark keys: BOX_B2, BOX_B4, HOUSE_1_BASE_Z, HOUSE_1_LABEL, HOUSE_1_ROOF_X, HOUSE_1_ROOF_Y, HOUSE_2_BASE_Z, HOUSE_2_ROOF_X, HOUSE_2_ROOF_Y, POLE_A0_L, POLE_A0_R, POLE_A4_L, POLE_A4_R, POLE_B0_L, POLE_B0_R, POLE_B1_L, POLE_B1_R, POLE_B2_L, POLE_B2_R, POLE_B3_L, POLE_B3_R, POLE_B4_L, POLE_B4_R, TOWER_2, WALLTOP_X0, WALLTOP_Y0, WALLTOP_Y240
+   HOUSE_1_BASE_Z[0] 4 pts, span   7.4 deg, plane tilt from vertical  0.19 deg, curvature rms   2.8 arcmin, uv0 (6033,1223)
+   HOUSE_1_BASE_Z[1] 3 pts, span   7.1 deg, plane tilt from vertical  3.11 deg, curvature rms   0.5 arcmin, uv0 (6291,1666)
+   HOUSE_1_BASE_Z[2] 3 pts, span   3.8 deg, plane tilt from vertical  3.98 deg, curvature rms   0.2 arcmin, uv0 (6260,1777)
+   HOUSE_2_BASE_Z[0] 4 pts, span   5.6 deg, plane tilt from vertical  0.97 deg, curvature rms   1.0 arcmin, uv0 (1938,1764)
+   HOUSE_2_BASE_Z[1] 5 pts, span   5.6 deg, plane tilt from vertical  1.50 deg, curvature rms   1.7 arcmin, uv0 (2153,1785)
+   HOUSE_2_BASE_Z[2] 5 pts, span   6.5 deg, plane tilt from vertical  3.17 deg, curvature rms   1.8 arcmin, uv0 (2317,1326)
+   POLE_A0_L[0] 6 pts, span   7.3 deg, plane tilt from vertical  8.07 deg, curvature rms   3.1 arcmin, uv0 (6774,0)
+   POLE_A0_R[0] 5 pts, span   8.2 deg, plane tilt from vertical  7.42 deg, curvature rms   1.9 arcmin, uv0 (6832,4)
+   POLE_A4_L[0] 6 pts, span   8.5 deg, plane tilt from vertical  2.36 deg, curvature rms   2.1 arcmin, uv0 (1416,70)
+   POLE_A4_R[0] 5 pts, span   8.5 deg, plane tilt from vertical  5.19 deg, curvature rms   1.6 arcmin, uv0 (1373,120)
+   POLE_B0_L[0] 5 pts, span   5.3 deg, plane tilt from vertical  2.26 deg, curvature rms   2.7 arcmin, uv0 (7448,880)
+   POLE_B0_R[0] 4 pts, span   4.4 deg, plane tilt from vertical  0.69 deg, curvature rms   1.6 arcmin, uv0 (7461,944)
+   POLE_B1_L[0] 6 pts, span  28.3 deg, plane tilt from vertical  2.51 deg, curvature rms   9.0 arcmin, uv0 (7392,530)
+   POLE_B1_R[0] 8 pts, span  26.8 deg, plane tilt from vertical  2.33 deg, curvature rms   3.0 arcmin, uv0 (7413,664)
+   POLE_B2_L[0] 5 pts, span  33.0 deg, plane tilt from vertical  3.84 deg, curvature rms   5.0 arcmin, uv0 (4068,408)
+   POLE_B2_R[0] 7 pts, span  34.0 deg, plane tilt from vertical  4.06 deg, curvature rms   5.9 arcmin, uv0 (4378,336)
+   POLE_B3_L[0] 7 pts, span  33.7 deg, plane tilt from vertical  2.38 deg, curvature rms  13.4 arcmin, uv0 (740,576)
+   POLE_B3_R[0] 9 pts, span  34.8 deg, plane tilt from vertical  2.09 deg, curvature rms   9.7 arcmin, uv0 (818,478)
+   POLE_B4_L[0] 6 pts, span  12.8 deg, plane tilt from vertical  3.77 deg, curvature rms   1.2 arcmin, uv0 (612,942)
+   POLE_B4_R[0] 8 pts, span  12.9 deg, plane tilt from vertical  3.65 deg, curvature rms   2.6 arcmin, uv0 (644,892)
+== CH03 landmarks_CH03_20260918_154500.json: 16 landmark keys: NAILS, PATCH_X0_1, PATCH_Y240_1, PATCH_Y240_2, PATCH_Y240_3, POLE_A0_L, POLE_A0_R, POLE_B0_L, POLE_B0_R, POLE_C0_L, POLE_C0_R, SEAM_X0_1, SEAM_X0_2, WALLTOP_X0, WALLTOP_Y0, WALLTOP_Y240
+   POLE_A0_L[0] 5 pts, span   9.3 deg, plane tilt from vertical 10.10 deg, curvature rms   7.9 arcmin, uv0 (22,100)
+   POLE_A0_R[0] 5 pts, span  10.7 deg, plane tilt from vertical  9.52 deg, curvature rms  12.2 arcmin, uv0 (85,1)
+   POLE_C0_L[0] 3 pts, span   4.4 deg, plane tilt from vertical 15.34 deg, curvature rms   1.4 arcmin, uv0 (4266,8)
+   POLE_C0_R[0] 4 pts, span   4.1 deg, plane tilt from vertical 18.75 deg, curvature rms   1.8 arcmin, uv0 (4332,35)
+== CH04 landmarks_CH04_20260918_143230.json: 10 landmark keys: BUILDING, NAILS, PATCHES, POLE_A4_L, POLE_A4_R, POLE_B4_L, POLE_B4_R, SEAMS, WALLTOP_X480, WALLTOP_Y0
+   POLE_A4_L[0] 4 pts, span   7.8 deg, plane tilt from vertical  3.81 deg, curvature rms   3.6 arcmin, uv0 (4255,2)
+   POLE_A4_R[0] 4 pts, span   8.5 deg, plane tilt from vertical  4.96 deg, curvature rms   3.8 arcmin, uv0 (4328,4)
+
+POLES AT THE 10 FT GRID vs THE POLE-EDGE LABELS, release fit (pole_check.py)
+fit qc
+cam  pole  dist(m)   z(mm): diameter(mm) / axis lateral offset from design (mm)
+CH01 A0     6.4  z1500:   93/ +417  z1800:   89/ +457  z2100:   84/ +498
+CH01 B0     6.1  z1200:  145/  -75  z1500:  138/  -56  z1800:  148/  -30  z2100:  150/   -7
+CH01 B1     3.3  z 600:  144/ -182  z 900:  153/ -176  z1200:  153/ -174  z1500:  144/ -178  z1800:  154/ -183  z2100:  137/ -174
+CH01 B2     0.9  z 300:  132/ -181  z 600:  131/ -185  z 900:  130/ -191  z1200:  127/ -195  z1500:  125/ -203  z1800:  127/ -218
+CH01 B3     3.3  z 600:  151/  +26  z 900:  148/  +20  z1200:  148/   +8
+CH01 C0     8.2  z1200:  134/  +86  z1500:  132/ +119  z1800:  129/ +152  z2100:  126/ +186
+CH02 A0     7.3  z1200:  115/ -193  z1500:  114/ -238  z1800:  117/ -273
+CH02 A4     7.9  z1200:  138/  +25  z1500:  163/  +37  z1800:  180/  +57  z2100:  192/  +82
+CH02 B0     6.7  z1500:  144/ -179
+CH02 B1     3.6  z 600:  167/ -162  z 900:  172/ -167  z1200:  175/ -177  z1500:  178/ -190  z1800:  176/ -206  z2100:  165/ -226
+CH02 B2     1.0  z   0:  170/   +4  z 300:  169/  +22  z 600:  169/  +41  z 900:  170/  +60  z1200:  169/  +81  z1500:  166/ +103
+CH02 B3     3.1  z 600:  143/  +53  z 900:  151/  +61  z1200:  144/  +58  z1500:  139/  +63  z1800:  146/  +75  z2100:  153/  +95
+CH02 B4     6.0  z1200:  136/  +21  z1500:  145/  +36  z1800:  142/  +57  z2100:  146/  +75
+CH03 A0     4.2  z1200:  109/  -80  z1500:   99/ -130
+CH03 B0     3.1  z1200:  137/  +78
+CH03 C0     4.5  z1500:   91/ +119
+CH04 A4     4.8  z1500:  137/  +88  z1800:  134/ +117
+CH04 B4     3.0  z1200:  141/ +155
+
+diameter over all: median 144 mm (p10 114, p90 170); 1 ft = 305 mm
+
+pole  z(mm)  cams: triangulated - design (mm), max camera residual (mm)
+A0    1200  02+03   : ( +341,  +451)  residual max    0
+A0    1500  01+02+03: (  -39,  -381)  residual max  122
+A0    1800  01+02   : ( -817,  -700)  residual max    0
+A4    1500  02+04   : ( +289,  -146)  residual max    0
+A4    1800  02+04   : ( +340,  -157)  residual max    0
+B0    1200  01+03   : ( -125,   +91)  residual max    0
+B0    1500  01+02   : (-1762,  +279)  residual max    0
+B1     600  01+02   : ( -134,  +226)  residual max    0
+B1     900  01+02   : ( -154,  +226)  residual max    0
+B1    1200  01+02   : ( -177,  +229)  residual max    0
+B1    1500  01+02   : ( -195,  +239)  residual max    0
+B1    1800  01+02   : ( -215,  +249)  residual max    0
+B1    2100  01+02   : ( -269,  +255)  residual max    0
+B2     300  01+02   : ( +148,  +705)  residual max    0
+B2     600  01+02   : ( +155,  +646)  residual max    0
+B2     900  01+02   : ( +163,  +584)  residual max    0
+B2    1200  01+02   : ( +171,  +509)  residual max    0
+B2    1500  01+02   : ( +182,  +449)  residual max    0
+B3     600  01+02   : (  +59,   +43)  residual max    0
+B3     900  01+02   : (  +83,   +44)  residual max    0
+B3    1200  01+02   : (  +99,   +35)  residual max    0
+B4    1200  02+04   : (  -91,   +35)  residual max    0
+C0    1500  01+03   : ( +165,  -244)  residual max    0

@@ -735,3 +735,26 @@ CH04's drift transform is uncertain, and the panos see that end at the corners o
 horizontal error per mm of height error. What would settle it before teardown: the ball (or anything with a known
 height) held STILL for ~3 s at 10-15 spots across CH04's view and the panos' far end - a still object needs no
 clock - and a pass in +y as well as -y.
+
+### Poles, plumb lines and the pre-teardown survey (2026-10-01)
+
+Every observation the calibration has used lies on or near the ground (boards 6 mm, cones 50 mm, balls 105 mm),
+so the fit cannot tell a wrong lens model from a wrong pose or an uneven floor; the ground warp absorbs all three
+on the ground. The operator's rigid-landmark labels (pole edges, house corners on the 09-18 reference frames) test
+it above the ground (`plumb_check.py`, `pole_check.py`; output `session_2026-09-18_pole_check.txt`):
+
+* Plumb lines: the long pole edges in the panos (30-40 deg of view) bend by 5-13 arcmin rms (4-10 px) and stand
+  0.5-4 deg off vertical; CH03's corner poles A0 / C0 10-19 deg (image corners, unconstrained by any ground data),
+  CH04's A4 4-5 deg. A wooden pole may lean 1-2 deg and a label is good to 1-2 px; these are larger.
+* Pole size: from the left / right edge labels at the design distances, 144 mm across (p10 114, p90 170).
+* Pole positions: two cameras' lines of sight put B1, A4 and C0 about 30 cm from the 10 ft grid point, B3 and B4
+  about 10 cm (the operator: the grid is good to about a foot). Two-camera intersections have no redundancy and
+  are ill-conditioned where the sight lines are near parallel (B0 from both panos, B2 from either side). So the
+  design grid cannot serve as control; straightness and verticality can, without any measurement.
+
+`survey_sheet.py` -> `PRETEARDOWN_SURVEY_SHEET_2026-10-01.html` (repository root) is the field sheet for what
+must be measured before the teardown: tape bands at measured heights (~120 / ~200 cm) on the poles, pole
+circumference and lean, 44 pole-to-pole laser distances (17 between the nine poles the cameras see first), wall
+top height at 24 points, both houses (base size, corner heights, corners to the nearby B and A poles), camera
+lens heights, and 26 still-ball spots each seen by two or more cameras (a still ball needs no clock), plus a
++y push along T7. Entries are kept in the browser and copied out as text.
