@@ -888,9 +888,11 @@ at x 432-480). With the surveyed wall-top heights and pole positions these label
 lines the cameras must reproduce, where the ground support is thinnest); without them, a refit could only make the
 cameras agree with each other on them.
 
-Operator (2026-10-02): the west wall top is level, one height along its whole length. So on the wall CH01 (slope
-0 mm/ft) is right and CH02 (+19 mm/ft, up to 20 cm high at y 144-168 in) and CH03 beyond y 168 in (+12 mm/ft) are
-not. On the ground the vote goes the other way: per 60 x 60 in cell at the far west (x 0-60 in), CH02-CH03 48-52 mm
+Operator (2026-10-02): the west wall top is level, one height along its whole length; corrected the same evening
+after looking at it: it sags a little in the middle, otherwise level. CH01's profile has exactly that shape (1044
+mm at y 0-24 in, 995-1000 at y 96-144, 1035-1040 at y 192-240: a ~45 mm dip in the middle, no slope), so on the
+wall CH01 is right and CH02 (rising monotonically +19 mm/ft, up to 20 cm high at y 144-168 in) and CH03 beyond
+y 168 in (+12 mm/ft) are not; the drone model can measure the sag itself once it is tied to the paddock. On the ground the vote goes the other way: per 60 x 60 in cell at the far west (x 0-60 in), CH02-CH03 48-52 mm
 while CH01-CH02 97-125 and CH01-CH03 51-92 for y 0-180 in; CH01 sits +x of both (+22..+105 mm). So both panos are
 off at the far west end, in different image regions: CH01 on the ground, CH02 at wall height - the pano lens
 models are extrapolated beyond the boards there, and the level wall top is the first non-coplanar constraint on
