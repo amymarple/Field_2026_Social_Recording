@@ -33,6 +33,11 @@ are absent you are on an analysis PC or laptop clone. That changes three things 
   the drive on any computer; USING the released calibration (`paddock_map.load()`) also works from the
   committed copy alone. Git on the drive needs a one-time
   `git config --global --add safe.directory <drive>:/Field_2026_Social_Recording`.
+- **Lab PC (DESKTOP-HUA1FJN) - operator's fixed rule, 2026-10-02:** all calibration data, every new output,
+  download and tool go under `F:\calibration` (the large backup drive the analysis repo also reads); the user
+  environment variable `CALIB_ROOT=F:\calibration` points `qc_paths` there. `G:\calibration` (the portable SSD)
+  is no longer written - its `qc\` was synced to F: that day - and the `G:\Field_2026_Social_Recording` clone
+  holds code only. Check that `qc_paths.ROOT` is `F:\calibration` before a run.
 - The PreToolUse guard hook does not run: `.claude/settings.json` hard-codes the field-PC path, and
   the override flag lives in `C:\Users\Cornell\.claude\`. The hook's absence is never permission.
 
