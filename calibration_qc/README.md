@@ -895,3 +895,17 @@ while CH01-CH02 97-125 and CH01-CH03 51-92 for y 0-180 in; CH01 sits +x of both 
 off at the far west end, in different image regions: CH01 on the ground, CH02 at wall height - the pano lens
 models are extrapolated beyond the boards there, and the level wall top is the first non-coplanar constraint on
 them.
+
+### The 2026-09-30 drone photo (2026-10-02)
+
+The operator flew a Potensic Atom 2 over the paddock on 2026-09-30 with the cones in the 09-30 layout
+(`F:\calibration\drone\PTSC_0005/0008/0009.JPG`, 3840 x 2160, no EXIF; 0008 near-nadir, the others oblique).
+`drone_check.py` finds 42 cones in 0008 by colour, assigns them to the layout and fits a plane homography with one
+radial term: cones sit 2.4 in median (p90 4.5) off their design spots after the best plane fit. Column x = 276 is
+on F41M, V42, F43, V44 - only F41M moved (the README account had V42M moved too). Against the drone (its pixels
+mapped to the paddock by one homography fitted to all camera marks), each camera's labelled cone at z = 50 mm
+(`session_2026-09-30_drone_check.txt`): CH03 21 mm median (n 6), CH05 27, CH06 37, CH01 61 (middle 75), CH02 64
+(east end 85), CH04 74. An independent instrument puts the two panos and CH04 at 6-7 cm and the other three at 2-4,
+as the ball check did. One photo with unknown intrinsics and the sails over the corners limits it; a planned
+flight (nadir sets at two heights, overlap for 3D, the ChArUco board photographed by the drone for its lens) would
+give cone, pole, wall-top and camera positions to ~1 cm.

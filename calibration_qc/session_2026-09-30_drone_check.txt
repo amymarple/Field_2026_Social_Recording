@@ -1,0 +1,12 @@
+colour blobs: 74 {'red': 15, 'gold': 5, 'yellow': 35, 'lime': 12, 'blue': 7}
+drone: 42 cones located; 5.66 px/in; distortion k1 -0.074; fit residual median 13.4 px
+  cone vs design after the best plane fit: median 2.36 in, p90 4.45 in
+  column x = 276 found at: F41M, V42, F43, V44
+camera marks on drone-located cones: 72 (41 cones)
+each camera's cone position minus the drone's (paddock inches; drone frame fitted to all cameras):
+  CH01: n 30, median   61 mm, p90  132 mm; mean offset ( +14,   +1) mm | 120-360:  75 mm (+30, +2) n17 | x<120:  44 mm ( +6, -8) n7 | x>360:  70 mm (-21,+10) n6
+  CH02: n 20, median   64 mm, p90  112 mm; mean offset (  +0,   -4) mm | 120-360:  38 mm ( -3, -2) n10 | x<120:  59 mm (+15, +0) n5 | x>360:  85 mm ( -7,-12) n5
+  CH03: n 6, median   21 mm, p90   54 mm; mean offset (  +7,   -6) mm | x<120:  21 mm ( +7, -6) n6
+  CH04: n 5, median   74 mm, p90   86 mm; mean offset ( -19,  -11) mm | x>360:  74 mm (-19,-11) n5
+  CH05: n 5, median   27 mm, p90   77 mm; mean offset ( -18,  +14) mm | 120-360:  27 mm (-18,+14) n5
+  CH06: n 6, median   37 mm, p90   79 mm; mean offset ( -19,   +2) mm | 120-360:  24 mm ( -6, +6) n5 | x>360:  86 mm (-85,-15) n1
