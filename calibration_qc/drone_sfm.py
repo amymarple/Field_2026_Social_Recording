@@ -10,7 +10,7 @@ and altitude in XMP); SIFT features on the GPU, exhaustive matching on the GPU (
 connect that way; no vocabulary tree is downloaded), incremental mapping; every model under <out>\sparse\<i>.
 
 Usage: python drone_sfm.py --name <run> --videos <mp4> ... [--photos <jpg> ...] [--fps 1] [--width 1920]
-                           [--features 8192] [--stage all|frames|features|match|map|report]
+                           [--features 8192] [--mapper incremental|global] [--stage all|frames|features|match|map|report]
 Output: <qc root>\drone_sfm\<run>\images\, database.db, sparse\<i>\, SFM_REPORT.txt
 """
 import sys, shutil, subprocess, time
@@ -61,7 +61,10 @@ if STAGE in ("all", "map"):
     if SP.exists():
         shutil.rmtree(SP)
     SP.mkdir()
-    colmap("mapper", "--database_path", DB, "--image_path", IMG, "--output_path", SP)
+    if opt("--mapper", "incremental") == "global":                     # COLMAP 4's global mapper: much faster, try first on big sets
+        colmap("global_mapper", "--database_path", DB, "--image_path", IMG, "--output_path", SP)
+    else:                                                               # bundle adjustment on the GPU (default is CPU: 17 min of
+        colmap("mapper", "--database_path", DB, "--image_path", IMG, "--output_path", SP, "--Mapper.ba_use_gpu", 1)   # 414 frames, 2026-10-02)
 if STAGE in ("all", "map", "report"):
     import pycolmap
     L = [f"DRONE SfM  {OUT}; {len(images())} images; videos {', '.join(Path(v).name for v in VIDEOS) or '-'}; photos {len(PHOTOS)}; "
