@@ -45,7 +45,9 @@ Operator has unrestricted field control time. Governing docs:
 
 ## B. Field survey (independent of cameras — impossible after demolition)
 
-- [ ] All 15 pole positions MEASURED (not design), with method + uncertainty. Field sheet: [PRETEARDOWN_SURVEY_SHEET_2026-10-01.html](PRETEARDOWN_SURVEY_SHEET_2026-10-01.html) (poles, houses, wall top, camera mounts, still ball; `calibration_qc/survey_sheet.py`).
+- [ ] All 15 pole positions MEASURED (not design), with method + uncertainty. Field sheet:
+      [PRETEARDOWN_SURVEY_SHEET_2026-10-01.html](PRETEARDOWN_SURVEY_SHEET_2026-10-01.html) (poles, houses, wall top,
+      camera mounts, still ball; `calibration_qc/survey_sheet.py`). Field sheet: [PRETEARDOWN_SURVEY_SHEET_2026-10-01.html](PRETEARDOWN_SURVEY_SHEET_2026-10-01.html) (poles, houses, wall top, camera mounts, still ball; `calibration_qc/survey_sheet.py`).
 - [ ] Field edge lengths + both diagonals; wall height at ≥4 points.
 - [ ] Shelter exterior footprints AND interior dims, wall thickness, floor heights,
       poses in field coordinates.
