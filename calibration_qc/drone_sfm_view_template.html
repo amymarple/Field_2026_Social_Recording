@@ -1,0 +1,103 @@
+<title>Paddock Drone Model</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* One dark viewport (point clouds read on dark), a floating label card top-left and a control strip at the bottom;
+   the wall-flagging orange marks the drone path and the active control. */
+:root {
+  --night: #0c1014; --panel: rgba(12, 16, 20, 0.84); --ink: #e6ebee; --muted: #8f9da6; --line: #2a343c; --flag: #ff8a3d;
+  --f-display: "Archivo", "Arial Narrow", Arial, sans-serif; --f-data: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { margin: 0; background: var(--night); color: var(--ink); font-family: var(--f-display); overflow: hidden; }
+#view { position: fixed; inset: 0; display: block; width: 100%; height: 100%; touch-action: none; }
+.card { position: fixed; left: 12px; top: calc(12px + env(safe-area-inset-top, 0px)); max-width: min(360px, calc(100% - 24px));
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 4px; }
+.card h1 { margin: 0; font-size: 1.05rem; font-weight: 800; font-stretch: 85%; letter-spacing: .01em; }
+.card .meta { font-family: var(--f-data); font-size: .74rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.card .note { font-size: .78rem; color: var(--muted); line-height: 1.35; }
+.bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to top, var(--panel) 70%, transparent); display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.group { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+.bar button { font: 600 .85rem var(--f-display); font-stretch: 85%; color: var(--ink); background: transparent; border: 1px solid var(--line);
+  border-radius: 999px; padding: 7px 12px; min-height: 36px; cursor: pointer; }
+.bar button[aria-pressed="true"] { border-color: var(--flag); color: var(--flag); }
+.bar button:focus-visible, .bar input:focus-visible { outline: 2px solid var(--flag); outline-offset: 2px; }
+.bar label { font-size: .8rem; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.bar input[type=range] { width: 110px; accent-color: var(--flag); }
+.legend { font-family: var(--f-data); font-size: .72rem; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.legend i { display: inline-block; width: 120px; height: 8px; border-radius: 4px;
+  background: linear-gradient(to right, #30123b, #4686fb, #1ae4b6, #a2fc3c, #fabb39, #e4460a, #7a0403); }
+.msg { position: fixed; inset: 0; display: grid; place-items: center; color: var(--muted); font-family: var(--f-data); font-size: .85rem; pointer-events: none; }
+</style>
+
+<canvas id="view" aria-label="3-D point cloud of the paddock"></canvas>
+<div class="msg" id="msg">loading the model…</div>
+<div class="card">
+  <h1>Paddock Drone Model</h1>
+  <div class="meta" id="meta"></div>
+  <div class="note">Drone frames from inside the paddock, 1-2 m up. Floor levelled to 0, long side along x. Metres are approximate: the floor is scaled to 40 ft until surveyed points tie the model to the paddock. Drag to turn, pinch or scroll to zoom.</div>
+</div>
+<div class="bar">
+  <div class="group" role="group" aria-label="viewpoint">
+    <button id="v-top" type="button">From above</button>
+    <button id="v-side" type="button">Along the long side</button>
+    <button id="v-end" type="button">From one end</button>
+    <button id="v-free" type="button">Oblique</button>
+  </div>
+  <div class="group" role="group" aria-label="colour">
+    <button id="c-photo" type="button" aria-pressed="true">Photo colour</button>
+    <button id="c-height" type="button" aria-pressed="false">Height</button>
+  </div>
+  <button id="t-path" type="button" aria-pressed="true">Drone path</button>
+  <label for="size">Point size <input id="size" type="range" min="1" max="8" value="3"></label>
+  <span class="legend" id="legend" hidden>0 m <i></i> 2.5 m</span>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+const D = __DATA__;
+const $ = id => document.getElementById(id);
+$("meta").textContent = `run ${D.run} · ${D.frames} frames · ${D.n.toLocaleString()} points shown · reprojection ${D.reproj} px`;
+function b64(s, T) { const bin = atob(s), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i); return new T(u8.buffer); }
+const mm = b64(D.pos, Int16Array), rgb = b64(D.col, Uint8Array);
+const N = D.n, pos = new Float32Array(N * 3), photo = new Float32Array(N * 3), heat = new Float32Array(N * 3);
+const TURBO = [[48, 18, 59], [70, 134, 251], [26, 228, 182], [162, 252, 60], [250, 187, 57], [228, 70, 10], [122, 4, 3]];
+function ramp(t) { t = Math.min(1, Math.max(0, t)) * (TURBO.length - 1); const i = Math.min(TURBO.length - 2, Math.floor(t)), f = t - i;
+  return TURBO[i].map((c, k) => (c + (TURBO[i + 1][k] - c) * f) / 255); }
+for (let i = 0; i < N; i++) {
+  const x = mm[3 * i] / 1000, y = mm[3 * i + 1] / 1000, z = mm[3 * i + 2] / 1000;
+  pos[3 * i] = x; pos[3 * i + 1] = z; pos[3 * i + 2] = -y;                 // three.js is y-up
+  for (let k = 0; k < 3; k++) photo[3 * i + k] = rgb[3 * i + k] / 255;
+  const h = ramp(z / 2.5); heat[3 * i] = h[0]; heat[3 * i + 1] = h[1]; heat[3 * i + 2] = h[2];
+}
+const canvas = $("view");
+let renderer;
+try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true }); }
+catch (e) { $("msg").textContent = "This browser could not start WebGL, so the 3-D view cannot be drawn."; throw e; }
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0c1014);
+const camera = new THREE.PerspectiveCamera(55, 1, 0.05, 200);
+const controls = new THREE.OrbitControls(camera, canvas); controls.enableDamping = true; controls.dampingFactor = 0.12;
+const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+const colAttr = new THREE.BufferAttribute(photo.slice(), 3); geo.setAttribute("color", colAttr);
+const mat = new THREE.PointsMaterial({ size: 0.03, vertexColors: true, sizeAttenuation: true });
+scene.add(new THREE.Points(geo, mat));
+const grid = new THREE.GridHelper(16, 16, 0x3a4650, 0x1f272e); scene.add(grid);
+const pathGeo = new THREE.BufferGeometry().setFromPoints(D.path.map(p => new THREE.Vector3(p[0], p[2], -p[1])));
+const path = new THREE.Line(pathGeo, new THREE.LineBasicMaterial({ color: 0xff8a3d })); scene.add(path);
+const views = { top: [[0, 16, 0.01], [0, 0, 0]], side: [[0, 1.2, 12], [0, 0.8, 0]], end: [[13, 1.4, 0], [0, 0.8, 0]], free: [[8, 7, 9], [0, 0.6, 0]] };
+function go(k) { const [p, t] = views[k]; camera.position.set(...p); controls.target.set(...t); controls.update(); }
+for (const k of Object.keys(views)) $("v-" + k).addEventListener("click", () => go(k));
+function setColour(mode) { colAttr.array.set(mode === "height" ? heat : photo); colAttr.needsUpdate = true;
+  $("c-photo").setAttribute("aria-pressed", mode === "photo"); $("c-height").setAttribute("aria-pressed", mode === "height"); $("legend").hidden = mode !== "height"; }
+$("c-photo").addEventListener("click", () => setColour("photo")); $("c-height").addEventListener("click", () => setColour("height"));
+$("t-path").addEventListener("click", e => { path.visible = !path.visible; e.currentTarget.setAttribute("aria-pressed", path.visible); });
+$("size").addEventListener("input", e => { mat.size = 0.01 * +e.target.value; });
+function resize() { const w = window.innerWidth, h = window.innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+window.addEventListener("resize", resize); resize(); go("free"); $("msg").hidden = true;
+(function loop() { controls.update(); renderer.render(scene, camera); requestAnimationFrame(loop); })();
+</script>
