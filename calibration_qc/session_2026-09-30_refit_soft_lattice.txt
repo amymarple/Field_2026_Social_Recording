@@ -1,24 +1,24 @@
 REFIT OF THE GROUND CORRECTION WITH THE 2026-09-30 SUPPLEMENT  (bundle unchanged: G:\calibration\qc\camera_fit.npz)
-213 cone observations of 114 cones, 98 cord points (Y39/Y201); prior 4.0 in on the layout, cord weight 0.5; 09-30 pixels carried to 09-18 through landmark_drift.json
+214 cone observations of 114 cones, 102 cord points (Y39/Y201); prior 4.0 in on the layout, cord weight 0.5; 09-30 pixels carried to 09-18 through session_2026-09-30_drift_final.json
 
 1. without the supplement the joint fit differs from the release by at most 230.7 mm inside each camera's support (a different warp degree for CH03, CH04, CH05, CH06)
 2. HELD-OUT supplement cones (5 folds; each fold refitted without its cones):
-   two cameras on the same unseen cone   release: median   78 mm, p90  160, max  397   (n 61)
-                                         refit:   median   66 mm, p90  135, max  221
-   a camera's cone vs its design position release: median  100 mm, p90  210, max  300   (n 105)
-                                         refit:   median  114 mm, p90  203, max  294
-3. ALL supplement cones in (training): two cameras on the same cone median   52 mm, p90  106, max  178; vs design median  107 mm, p90  184, max  285
-   estimated cone positions vs design (the layout as the cameras see it): median  102 mm, p90  157, max  259
-   largest: T42M 259 mm, F63M 193 mm, V44 192 mm, T32M 189 mm, V62M 177 mm, T63M 164 mm, T62M 155 mm, T15 149 mm
-   CH01: correction moved by median   72 mm, max  206 mm (inside the release's support)
-   CH02: correction moved by median   40 mm, max  118 mm (inside the release's support)
-   CH03: correction moved by median   56 mm, max  242 mm (inside the release's support)
-   CH04: correction moved by median   62 mm, max  181 mm (inside the release's support)
-   CH05: correction moved by median   45 mm, max  147 mm (inside the release's support)
-   CH06: correction moved by median   49 mm, max  153 mm (inside the release's support)
-   CH01: 09-18 labels rms 3.40 in (release) -> 3.17 in (refit); 82 supplement cones, 27 cord points
+   two cameras on the same unseen cone   release: median   90 mm, p90  187, max  413   (n 62)
+                                         refit:   median   62 mm, p90  124, max  229
+   a camera's cone vs its design position release: median   92 mm, p90  205, max  301   (n 106)
+                                         refit:   median  109 mm, p90  190, max  295
+3. ALL supplement cones in (training): two cameras on the same cone median   51 mm, p90   84, max  184; vs design median  105 mm, p90  179, max  286
+   estimated cone positions vs design (the layout as the cameras see it): median   95 mm, p90  161, max  260
+   largest: T42M 260 mm, T32M 193 mm, V44 192 mm, F63M 187 mm, V62M 175 mm, T63M 168 mm, T62M 157 mm, T72M 150 mm
+   CH01: correction moved by median   72 mm, max  218 mm (inside the release's support)
+   CH02: correction moved by median   38 mm, max  145 mm (inside the release's support)
+   CH03: correction moved by median   81 mm, max  249 mm (inside the release's support)
+   CH04: correction moved by median   83 mm, max  195 mm (inside the release's support)
+   CH05: correction moved by median   43 mm, max  149 mm (inside the release's support)
+   CH06: correction moved by median   54 mm, max  152 mm (inside the release's support)
+   CH01: 09-18 labels rms 3.40 in (release) -> 3.19 in (refit); 82 supplement cones, 27 cord points
    CH02: 09-18 labels rms 2.74 in (release) -> 2.57 in (refit); 66 supplement cones, 23 cord points
-   CH03: 09-18 labels rms 0.74 in (release) -> 1.00 in (refit); 19 supplement cones, 19 cord points
-   CH04: 09-18 labels rms 1.65 in (release) -> 0.91 in (refit); 19 supplement cones, 23 cord points
+   CH03: 09-18 labels rms 0.74 in (release) -> 1.24 in (refit); 20 supplement cones, 21 cord points
+   CH04: 09-18 labels rms 1.65 in (release) -> 0.88 in (refit); 19 supplement cones, 25 cord points
    CH05: 09-18 labels rms 0.41 in (release) -> 0.32 in (refit); 13 supplement cones, 2 cord points
    CH06: 09-18 labels rms 0.26 in (release) -> 0.23 in (refit); 14 supplement cones, 4 cord points

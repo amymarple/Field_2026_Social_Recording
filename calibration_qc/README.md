@@ -800,3 +800,12 @@ leave-one-board-out, thin-plate field at three smoothings: held-out board residu
 7.0 px, worse at every smoothing, better on only 14-47 % of boards; the small and end cameras likewise. The residual
 is board-specific (neighbouring boards disagree; the plate poses already absorb each board's mean, 1.9 / 3.8 px
 median), not a fixed distortion the boards can teach. Not built.
+
+### Release 2026-10-02 revision b: the 09-30 transforms of CH03 and CH04 were wrong
+
+`landmark_drift.py`'s edge templates lock one corrugation period off on CH03/CH04's walls (CH03 ~25 px; CH04
+reported (-46, -26) px but did not move). `landmark_track_drift.py` replaces them (analysis repo `landmark_track` +
+the 09-18 IR -> colour step; CH04 through a pre-shift grid), checked by eye on overlays. Refitted with them
+(`session_2026-09-30_drift_final.json`): boards 39 / 87 -> 37 / 86 mm, held-out cones 66 / 135 -> 62 / 124,
+CH02-CH04 76 -> 53, CH02-CH03 44 -> 24, CH01-CH03 42 -> 71 mm. Adopted; details in `RELEASE_2026-10-02.md`. The CH04
+end's ~250 mm on the balls does not change with CH04's transform and is a property of the ball data there.

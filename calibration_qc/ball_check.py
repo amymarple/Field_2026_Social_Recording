@@ -34,7 +34,7 @@ def opt(name, default=None):
     return args[args.index(name) + 1] if name in args else default
 FIT = Path(opt("--fit", str(pm.FIT)))
 LABELS = Path(opt("--labels", str(HERE / "session_2026-09-30_ball_labels.json")))
-DRIFT = Path(opt("--drift", str(HERE / "session_2026-09-30_landmark_drift.json")))
+DRIFT = Path(opt("--drift", str(HERE / "session_2026-09-30_drift_final.json")))
 Z = float(opt("--z", "105"))
 OUT = Path(opt("--out", str(FIT.parent / "BALL_CHECK.txt")))
 STEP, REF = 2.0, "CH02"

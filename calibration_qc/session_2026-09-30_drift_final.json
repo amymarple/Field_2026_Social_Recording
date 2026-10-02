@@ -1,0 +1,126 @@
+{
+ "cameras": {
+  "CH01": {
+   "b_time": "16:35:10",
+   "dx_px": 7.153620617639543,
+   "dy_px": -0.4109105502787794,
+   "rot_deg": -0.03201344119294929,
+   "scale": 1.0000118864978838,
+   "centre_px": [
+    3840.0,
+    1080.0
+   ],
+   "ground_median_mm": 24.22643190578221,
+   "ground_max_mm": 61.543780771541556,
+   "note": "session-B pixel = centre + scale*R(rot)*(session-A pixel - centre) + (dx, dy)"
+  },
+  "CH02": {
+   "affine_30_to_18": [
+    [
+     0.999275976527043,
+     0.003569268267936147,
+     9.238689448051264
+    ],
+    [
+     -0.0024933678584559793,
+     0.9994064993954863,
+     11.546058043809634
+    ]
+   ],
+   "via": "0918",
+   "centre_px": [
+    3840.0,
+    1080.0
+   ],
+   "n_frames": 7,
+   "times": [
+    "16:35:10",
+    "16:34:40",
+    "16:31:30",
+    "16:27:00",
+    "16:23:00",
+    "16:15:00",
+    "15:55:00"
+   ],
+   "max_frame_deviation_px": 2.4759562753843056,
+   "ir_to_colour_0918_shift_px": [
+    0.903960885912511,
+    0.6658814683835317
+   ],
+   "note": "09-18 colour px = affine_30_to_18 @ [u30, v30, 1] (upright px)"
+  },
+  "CH03": {
+   "affine_30_to_18": [
+    [
+     0.9978833618985539,
+     -0.0005646763223002237,
+     -8.885777318626033
+    ],
+    [
+     -0.001632891956692752,
+     0.9924278682300495,
+     6.8172590155901265
+    ]
+   ],
+   "via": "0918",
+   "centre_px": [
+    2256.0,
+    1256.0
+   ],
+   "n_frames": 7,
+   "times": [
+    "16:35:10",
+    "16:34:40",
+    "16:31:30",
+    "16:27:00",
+    "16:23:00",
+    "16:15:00",
+    "15:55:00"
+   ],
+   "max_frame_deviation_px": 1.4534795666331775,
+   "ir_to_colour_0918_shift_px": [
+    0.5474033858458824,
+    -5.6021743399658135
+   ],
+   "note": "09-18 colour px = affine_30_to_18 @ [u30, v30, 1] (upright px)"
+  },
+  "CH04": {
+   "affine_30_to_18": [
+    [
+     0.9987642249145148,
+     0.004180689617303835,
+     2.050777775465401
+    ],
+    [
+     0.000896435454794779,
+     0.9984365827311641,
+     -2.2884664921687743
+    ]
+   ],
+   "via": "0918",
+   "centre_px": [
+    2256.0,
+    1256.0
+   ],
+   "n_frames": 6,
+   "times": [
+    "16:35:10",
+    "16:34:40",
+    "16:31:30",
+    "16:27:00",
+    "16:23:00",
+    "16:15:00",
+    "15:55:00"
+   ],
+   "max_frame_deviation_px": 5.695143820330941,
+   "ir_to_colour_0918_shift_px": [
+    0.031123541835313517,
+    -0.9914591732533609
+   ],
+   "note": "09-18 colour px = affine_30_to_18 @ [u30, v30, 1] (upright px)"
+  }
+ },
+ "a": "session_2026-09-18_13-54-34",
+ "b": "session_2026-09-30_15-49-39",
+ "note": "2026-09-30 upright px -> 2026-09-18 colour px, the transforms used by release 2026-10-02b. CH02, CH03, CH04: landmark_track_drift.py (affine_30_to_18; CH04 via the pre-shift grid). CH01: landmark_drift.py's similarity (dx/dy/rot/scale, forward 09-18 -> 09-30), which matches one of the two solutions landmark_track flips between and scored better on boards and cones. CH05/CH06: identity (absent)."
+}

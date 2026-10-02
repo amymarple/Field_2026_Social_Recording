@@ -263,7 +263,7 @@ Two Python trees of different vintage:
     review trail. Honest accuracy: held-out placements 76 mm median, 137 mm p90; whole-field 50 mm
     is not claimed.
     **2026-10-02:** `frame_correction.json` refitted with the 2026-09-30 cones, the 09-18 lattice cones as latent
-    points (bundle unchanged; boards between cameras 39 / 87 mm, was 71 / 153) - `calibration_qc/RELEASE_2026-10-02.md`
+    points (bundle unchanged; boards between cameras 37 / 86 mm, was 71 / 153) - `calibration_qc/RELEASE_2026-10-02.md`
     has the evidence and the open points; `ball_check.py` scores the ball sweep as a stand-in rat.
   - **Use it anywhere** (numpy/scipy/cv2 only, falls back to the repo copy when `E:` is absent):
     `sys.path.insert(0, "<repo>/calibration_qc"); from paddock_map import load; cams = load();
