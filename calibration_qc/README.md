@@ -909,3 +909,17 @@ mapped to the paddock by one homography fitted to all camera marks), each camera
 as the ball check did. One photo with unknown intrinsics and the sails over the corners limits it; a planned
 flight (nadir sets at two heights, overlap for 3D, the ChArUco board photographed by the drone for its lens) would
 give cone, pole, wall-top and camera positions to ~1 cm.
+
+### One camera per region, and the jump at each handoff (2026-10-02)
+
+An animal on the ground needs one camera at a time; several matter only where it is handed on. `handoff_map.py`
+gives each 40 x 40 in cell a primary camera - the one whose verified support covers it with the finest ground
+resolution at 60 mm (choosing by ball error instead was tried first and gives a CH01 / CH02 checkerboard: where
+only two cameras see a cell they get the same error) - and measures on the reviewed 20 Hz ball how far the two
+cameras put the same instant apart on each boundary where the primary changes (`HANDOFF_MAP.txt`,
+`<qc root>\handoff\handoff_map.png`). Regions: CH03 the west 80 in, CH04 the east 80 in, CH05 and CH06 around
+their houses, CH01 the y > 120 half and CH02 the y < 120 half of the rest (each pano covers the far half, at 2-3
+px/cm along the far walls). Jumps (median / p90 mm): CH02|CH03 26 / 129, CH02|CH06 30 / 50, CH01|CH05 33 / 67,
+CH02|CH04 40 / 63, CH02|CH05 42 / 84, CH01|CH04 45 / 112, CH01|CH06 56 / 113, CH01|CH03 58 / 100, CH01|CH02
+93 / 197 - the last on the boundary under the two panos (x 200-320 in), which only they see and where both
+disagree with everything (186 / 98 mm cells). CH04|CH06 has no ball pairs (not measured).
