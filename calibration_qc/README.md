@@ -767,3 +767,16 @@ bundle is the 2026-09-24 one, byte for byte. Boards between cameras 52 / 108 mm 
 `DOWNSTREAM_VALIDATION.txt` are regenerated (the latter's ensemble sections compare against the old method and
 are not valid for this release). Provenance, reproduction, the evidence and the open points for the audit:
 `RELEASE_2026-10-01.md`. The previous warp: git `c3b5cef`, and `<root>\qc\release_2026-09-24\`.
+
+## Release 2026-10-02: the 09-18 lattice cones as latent points
+
+Both audits (`AUDIT_ASTRA_2026-10-02.md`, `AUDIT_FABLE_2026-10-02.md`) pointed at the 2026-09-18 lattice being used
+as exact truth in six independent warps. `refit_supplement.py --soft-lattice 4` makes every 09-18 station one shared
+unknown position with a 4 in design prior (cords and wall foot stay exact lines); `--rel` pins the baseline warp.
+Boards between cameras 52 / 108 -> 39 / 87 mm (CH01-CH04 78 -> 38); the prior's value hardly matters (2 / 4 / 8 in:
+41 / 39 / 39). Adding the balls took the boards back to 46, so the balls are left out of the fit and scored instead
+by `ball_check.py` (the sweep as a stand-in rat: 81 mm with fitted clocks, CH04 end ~250 mm). Adopted by the
+operator; evidence, reproduction and open points in `RELEASE_2026-10-02.md`. Two corrections to earlier sections of
+this notebook, from the audits: the pole and plumb-line numbers for CH03/CH04 fed IR-frame labels into colour-mode
+rays (10-18 px mode shift; the pano numbers stand), and "model ceiling" was not shown - the lattice term was the
+larger removable part.

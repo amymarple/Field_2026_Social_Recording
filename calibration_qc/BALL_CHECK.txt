@@ -1,0 +1,52 @@
+BALL CHECK (the ball sweep as a stand-in rat; not used in the fit)  fit G:\calibration\qc\camera_fit.npz
+marks session_2026-09-30_ball_labels.json, ball centre at z = 105 mm, 09-30 px carried to 09-18 by session_2026-09-30_landmark_drift.json; 334 marks, 103 steps seen by 2+ cameras
+marks outside the camera's verified support: CH01 3, CH03 4, CH05 3, CH06 1
+
+WITHOUT clock offsets (file-name clocks)
+  all pairs: median   92 mm, p90  279, n 175
+  per camera (its distance to the other cameras on the same ball):
+    CH01: median  109 mm, p90  295, n 113
+    CH02: median   80 mm, p90  205, n 114
+    CH03: median   63 mm, p90  112, n 74
+    CH04: median  475 mm, p90  718, n 19
+    CH05: median   59 mm, p90  136, n 20
+    CH06: median   93 mm, p90  137, n 10
+  per pair:
+    CH01-CH02: median  117 mm, p90  205, n 52
+    CH01-CH03: median   92 mm, p90  121, n 34
+    CH01-CH04: median  538 mm, p90  731, n 12
+    CH01-CH05: median  119 mm, p90  195, n 9
+    CH01-CH06: median   93 mm, p90  122, n 6
+    CH02-CH03: median   42 mm, p90   90, n 40
+    CH02-CH04: median  358 mm, p90  613, n 7
+    CH02-CH05: median   51 mm, p90   83, n 11
+    CH02-CH06: median   93 mm, p90  125, n 4
+  by region:
+    60-400 in: median   85 mm, p90  172, n 73
+    x < 60 in: median   76 mm, p90  121, n 77
+    x > 400 in (CH04 end): median  435 mm, p90  712, n 25
+
+WITH clock offsets fitted to these balls (optimistic; CH04's is confounded with position): CH01 -0.32 s, CH03 +0.08 s, CH04 +0.74 s, CH05 +0.09 s, CH06 -0.16 s vs CH02
+  all pairs: median   81 mm, p90  212, n 175
+  per camera (its distance to the other cameras on the same ball):
+    CH01: median   93 mm, p90  221, n 113
+    CH02: median   74 mm, p90  170, n 114
+    CH03: median   63 mm, p90  109, n 74
+    CH04: median  248 mm, p90  634, n 19
+    CH05: median   58 mm, p90  109, n 20
+    CH06: median   50 mm, p90   94, n 10
+  per pair:
+    CH01-CH02: median   96 mm, p90  176, n 52
+    CH01-CH03: median   87 mm, p90  121, n 34
+    CH01-CH04: median  289 mm, p90  587, n 12
+    CH01-CH05: median   77 mm, p90  114, n 9
+    CH01-CH06: median   57 mm, p90   99, n 6
+    CH02-CH03: median   43 mm, p90   84, n 40
+    CH02-CH04: median  231 mm, p90  522, n 7
+    CH02-CH05: median   55 mm, p90   88, n 11
+    CH02-CH06: median   50 mm, p90   65, n 4
+  by region:
+    60-400 in: median   70 mm, p90  129, n 72
+    x < 60 in: median   78 mm, p90  117, n 78
+    x > 400 in (CH04 end): median  245 mm, p90  576, n 25
+

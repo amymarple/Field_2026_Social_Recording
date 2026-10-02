@@ -366,7 +366,9 @@ for c in names:
 # write: bundle copy + frame_correction.json in the release schema
 shutil.copy2(pm.FIT, OUT / "camera_fit.npz")
 out = dict(fit_sha256=hashlib.sha256((OUT / "camera_fit.npz").read_bytes()).hexdigest(),
-           note=REL["note"] + " | refitted jointly with the 2026-09-30 supplement (refit_supplement.py)",
+           note=REL["note"].split(" | ")[0] + " | refitted jointly with the 2026-09-30 supplement (refit_supplement.py)"
+                + (f"; 09-18 lattice cones latent, prior {SOFT18} in" if SOFT18 > 0 else "") + (f"; balls weight {BALL_W}" if ball_obs else ""),
+           soft_lattice_in=SOFT18 if SOFT18 > 0 else None, baseline_warp=str(opt("--rel", Path(pm.FIT).parent / "frame_correction.json")),
            fit=str(OUT / "camera_fit.npz"), ridge_in=RIDGE, deg_pano=REL["deg_pano"], held_out_groups=[],
            balls=dict(labels=str(BALLS), weight=BALL_W, n_marks=len(ball_obs), clock_offset_s={c: float(t) for c, t in TAU.items()},
                       reference=TAU_REF) if ball_obs else None,

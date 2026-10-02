@@ -1,6 +1,6 @@
 ensemble: 27 calibrations (20 bootstrap, 6 named variants, the default)
 positions: 197665 SYNTHETIC samples (50 % uniform, 30 % wall-following, 20 % shelter-centred) - plug real tracks in with --positions
-  primary camera share: CH01 16%, CH02 15%, CH03 19%, CH04 18%, CH05 16%, CH06 16%
+  primary camera share: CH01 16%, CH02 14%, CH03 19%, CH04 19%, CH05 16%, CH06 16%
   region share: centre 37%, camera seam 18%, long-wall edge 21%, short-wall end 18%, corner 7%
 
 ====================================================================================================
@@ -10,44 +10,44 @@ DOWNSTREAM VALIDATION OF THE CALIBRATION FOR 10 cm PLACE-FIELD BINS
 1. CROSS-CAMERA HANDOFF CONTINUITY
    (a) empirical, from the boards the warp never used: the same corner mapped by two cameras.
    pair             n  median    p90    p95   mean vector (dx, dy) mm
-   CH01-CH04      401     78mm   120   140   (+73, +21)
-   CH01-CH05      327     41mm    79    95   (+36, -1)
-   CH01-CH06      326     45mm    98   107   (-4, -17)
-   CH01-CH02      290     27mm   103   107   (+36, -5)
-   CH02-CH05      280     43mm    76    85   (-31, +25)
-   CH02-CH06      273     38mm    53    56   (-30, +5)
-   CH02-CH04      255     83mm   135   138   (+45, +54)
-   CH01-CH03      195     36mm    88   101   (+29, -27)
-   CH02-CH03       88     60mm    71    74   (-23, -56)
-   all shared corners: median 48 mm, p90 105, p95 119 mm
-   by region (median mm): centre 45 (n=2080)  long-wall edge 82 (n=146)  short-wall end 40 (n=159)  corner 74 (n=50)
+   CH01-CH04      401     38mm    63    71   (+24, +16)
+   CH01-CH06      299     26mm   104   121   (-13, -22)
+   CH01-CH02      290     28mm    90    95   (+20, +2)
+   CH02-CH06      274     23mm    43    48   (-12, +12)
+   CH02-CH05      263     47mm    72    79   (-40, +21)
+   CH01-CH05      245     35mm    63    74   (+9, -0)
+   CH02-CH04      243     76mm    96   101   (+2, +52)
+   CH01-CH03      195     42mm   106   122   (+43, -25)
+   CH02-CH03       88     44mm    55    58   (-8, -43)
+   all shared corners: median 38 mm, p90 84, p95 96 mm
+   by region (median mm): centre 37 (n=1980)  long-wall edge 45 (n=140)  short-wall end 41 (n=141)  corner 55 (n=37)
    (b) modelled, from the ensemble: the jump between the two cameras nearest a seam sample.
-   ensemble seam jump over 25684 seam samples: median 75 mm, p90 164, p95 209 mm (the default's own two cameras agree by construction; this is the spread between legitimate warps)
+   ensemble seam jump over 26710 seam samples: median 77 mm, p90 159, p95 207 mm (the default's own two cameras agree by construction; this is the spread between legitimate warps)
    NOTE: the trajectory-extrapolation form E_seam = |x(t+) - x_hat(t+|t-)| needs tracked animals;
    handoff_residual() in this file computes it from a track (t, cam, u, v) once tracking exists.
 
 2. SPATIAL-BIN ASSIGNMENT FLIP RATE (10 cm bins)
-   whole arena: 59.2 % of samples change bin under another legitimate calibration
-   by region: centre 44.7%  camera seam 56.5%  long-wall edge 71.3%  short-wall end 65.8%  corner 92.2%
-   of which: samples more than 3 cm from every bin edge flip 50.3 %; samples that move by MORE than one bin: 10.84 %
+   whole arena: 71.1 % of samples change bin under another legitimate calibration
+   by region: centre 67.7%  camera seam 74.9%  long-wall edge 73.2%  short-wall end 63.6%  corner 93.1%
+   of which: samples more than 3 cm from every bin edge flip 65.4 %; samples that move by MORE than one bin: 13.51 %
    -> the flips are bin-boundary flips of a few centimetres, not relocations: a displacement d moves a fraction ~ d / 100 mm of samples across an edge per axis
-   the ensemble's own displacement: median 53 mm, p90 158 mm
-   by region (median displacement, mm): centre 28  camera seam 44  long-wall edge 71  short-wall end 54  corner 143
+   the ensemble's own displacement: median 73 mm, p90 175 mm
+   by region (median displacement, mm): centre 59  camera seam 86  long-wall edge 71  short-wall end 54  corner 170
 
 3. OCCUPANCY-MAP ROBUSTNESS (10 cm bins, gaussian smoothing sigma = 1 bin, identical for every member)
-   vs the default, over 26 members: Pearson r median 0.9894 (min 0.9374), Spearman 0.9668 (min 0.9019),
-   normalised |dO| median 0.061 (max 0.120), JSD median 0.00206 bits (max 0.01109)
-   per-bin occupancy CV across members (bins with occupancy): centre 0.049  long-wall edge 0.083  short-wall end 0.051  corner 0.126
+   vs the default, over 26 members: Pearson r median 0.9887 (min 0.9352), Spearman 0.9692 (min 0.9026),
+   normalised |dO| median 0.062 (max 0.119), JSD median 0.00209 bits (max 0.01105)
+   per-bin occupancy CV across members (bins with occupancy): centre 0.049  long-wall edge 0.084  short-wall end 0.050  corner 0.130
 
 4. PLACE-FIELD ROBUSTNESS (300 simulated place cells; spikes from the TRUE positions; rate maps under every member)
-   peak bin:       unchanged for 47.4 % of cell x member; moves one bin for 43.2 %, more for 9.44 %
-   peak shift:     median 100 mm, p90 141 mm (a peak is a bin index: 0 or >= 100 mm)
-   centroid shift: median 47 mm, p90 126 mm, max 901 mm
-   rate-map spatial correlation: median 0.9832, p10 0.9045
-   field area change: median 6.7 %, p90 22.2 %
-   spatial information change: median 0.108 bits/spike (SI itself: median 7.59)
+   peak bin:       unchanged for 38.2 % of cell x member; moves one bin for 49.2 %, more for 12.59 %
+   peak shift:     median 100 mm, p90 200 mm (a peak is a bin index: 0 or >= 100 mm)
+   centroid shift: median 71 mm, p90 153 mm, max 581 mm
+   rate-map spatial correlation: median 0.9648, p10 0.8679
+   field area change: median 8.0 %, p90 25.0 %
+   spatial information change: median 0.120 bits/spike (SI itself: median 7.59)
    place-cell classification (SI > 0.5 bits/spike) changes for 0.00 % of cells per member
-   centroid shift by field location (median mm): centre 40  long-wall edge 71  short-wall end 56  corner 104
+   centroid shift by field location (median mm): centre 70  long-wall edge 78  short-wall end 62  corner 102
 
 5. ERROR MAGNITUDE AND VECTOR BIAS VS ARENA POSITION
    (a) leave-one-TYPE-out landmarks: each constraint type evaluated through a warp fitted WITHOUT any of that type
@@ -58,22 +58,22 @@ DOWNSTREAM VALIDATION OF THE CALIBRATION FOR 10 cm PLACE-FIELD BINS
    wall  (n= 54): |error| median 84 mm, p90 280 mm;  mean vector (dx, dy) = (-153, +70) mm;  by region: long-wall edge 73 (dx +nan)  short-wall end 135 (dx -153)
    (b) boards: each camera's reading of a shared corner relative to the mean of the cameras that saw it (bias per camera per region, mm)
    camera                  centre           camera seam        long-wall edge        short-wall end                corner
-   CH01        ( -20,  +3) n=1176                          ( -31,  +1) n=  62    (  -9,  -6) n= 106    ( -22, -19) n=  15
-   CH02        (  +9,  -9) n= 810                          ( -23,  -6) n=  84    (  +9, -11) n=  77    ( -16,  -3) n=  35
-   CH03        ( +12, -12) n= 184                          (  +2, -32) n=  62    ( -11, -17) n=  22    ( -14, -32) n=  15
-   CH04        ( +36, +14) n= 424                          ( +44, +29) n=  84    (  +4, +16) n= 113    ( +31, +25) n=  35
-   CH05        (  +5,  +5) n= 483                                                                                        
-   CH06        (  -8,  -4) n= 543                                                                                        
-   (c) ensemble displacement of the samples, mean vector by region (mm): centre (+4, +5)  camera seam (+5, +12)  long-wall edge (+21, +27)  short-wall end (-5, -19)  corner (-6, +30)
+   CH01        (  -9,  +3) n=1086                          ( -17,  +4) n=  62    (  +4,  -7) n=  92    (  -6, -11) n=  10
+   CH02        ( +10,  -8) n= 800                          ( -12,  -8) n=  78    (  +9,  -9) n=  73    (  -9,  -1) n=  27
+   CH03        ( +18, -11) n= 189                          (  +8, -27) n=  57    (  -5, -16) n=  22    (  -5, -27) n=  15
+   CH04        (  +9, +12) n= 444                          ( +18, +23) n=  83    ( -10, +17) n=  95    ( +17, +24) n=  22
+   CH05        (  -7,  +5) n= 384                                                                                        
+   CH06        (  -7,  -4) n= 517                                                                                        
+   (c) ensemble displacement of the samples, mean vector by region (mm): centre (+18, +30)  camera seam (+17, +39)  long-wall edge (+25, +32)  short-wall end (-3, -18)  corner (-4, +23)
 
 6. DISTANCE-TO-FEATURE ROBUSTNESS (change of the distance under another member, mm)
-   nearest wall       |dd| median 22 mm, p90 92 mm;  by region: centre 16  camera seam 27  long-wall edge 28  short-wall end 18  corner 89
-   house 4 (approx)   |dd| median 24 mm, p90 101 mm;  by region: centre 16  camera seam 29  long-wall edge 31  short-wall end 19  corner 92
-   house 7 (approx)   |dd| median 25 mm, p90 95 mm;  by region: centre 15  camera seam 30  long-wall edge 49  short-wall end 15  corner 97
+   nearest wall       |dd| median 34 mm, p90 113 mm;  by region: centre 33  camera seam 48  long-wall edge 38  short-wall end 22  corner 96
+   house 4 (approx)   |dd| median 40 mm, p90 129 mm;  by region: centre 40  camera seam 52  long-wall edge 35  short-wall end 25  corner 104
+   house 7 (approx)   |dd| median 40 mm, p90 119 mm;  by region: centre 36  camera seam 55  long-wall edge 52  short-wall end 22  corner 108
    (shelter positions are approximate, +-0.5 m; the distance CHANGE barely depends on them)
 
 ANALYSIS FITNESS (priority: place-field stability > occupancy stability > handoff continuity > raw landmark error)
-   place fields:  centroid shift median 47 mm / p90 126 mm, peak bin unchanged 47 %, classification change 0.0 %  -> about one bin at p90
-   occupancy:     r >= 0.937, JSD <= 0.0111 bits across every legitimate calibration
-   handoff:       boards say 48 mm median / 105 mm p90 between cameras; ensemble seam jump 75 mm median
-   bin flips:     59.2 % overall; corner 92%  short-wall end 66%  camera seam 56%
+   place fields:  centroid shift median 71 mm / p90 153 mm, peak bin unchanged 38 %, classification change 0.0 %  -> about one bin at p90
+   occupancy:     r >= 0.935, JSD <= 0.0110 bits across every legitimate calibration
+   handoff:       boards say 38 mm median / 84 mm p90 between cameras; ensemble seam jump 77 mm median
+   bin flips:     71.1 % overall; corner 93%  short-wall end 64%  camera seam 75%
