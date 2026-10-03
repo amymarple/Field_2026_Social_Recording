@@ -54,6 +54,8 @@ aside h2 { font-size: .74rem; letter-spacing: .08em; text-transform: uppercase; 
     <div class="hint">Same names as in your landmark GUI (TOWER_1, TOWER_2). Top = centre of the lid, base = where it stands on the ground. These tell the two ends of the paddock apart.</div></div>
   <div><h2>Ground lines (click several points along each)</h2><div class="row" id="cords"></div>
     <div class="hint">Spread 3-6 clicks along the part you can see; the ends do not matter. Along the length: Y39 is 39 in from the row-A wall, Y201 39 in from the row-C wall. Across: the T cords at x 24, 96, 168, 240, 312, 384, 456 in (X240 runs under the middle poles A2-B2-C2; X24 next to the west wall), plus X60 / X420 if they were laid. Wall foot = where the wall sheet meets the ground; wall top = the upper edge of the sheet (its height is what we want to measure, e.g. the dip in the west wall). Label only lines you can name for sure.</div></div>
+  <div><h2>Top frame beams (click along each)</h2><div class="row" id="beams"></div>
+    <div class="hint">The beams joining the pole tops, which the rig cameras are mounted on: row A / B / C run along the length over the poles of that row, col 0-4 run across over the poles of that column (col 0 = west wall). Click along the middle of the beam, 3-6 points per beam you can see.</div></div>
   <div><h2>Frames (model · frame)</h2><div class="frames" id="frames"></div></div>
 </aside>
 <script>
@@ -67,9 +69,10 @@ function btn(name, text) { return `<button type="button" data-lm="${name}">${tex
 $("poles").innerHTML = ["C", "B", "A"].map(r => `<span class="rl">${r}</span>` + [0, 1, 2, 3, 4].map(c =>
   `<div class="cell">${btn(`${r}${c} top`, `${r}${c} top`)}${btn(`${r}${c} foot`, `${r}${c} foot`)}</div>`).join("")).join("");
 $("cams").innerHTML = LM.filter(n => n.startsWith("CH")).map(n => btn(n, n.replace(" lens", ""))).join("");
-const isLine = n => n.startsWith("cord ") || n.startsWith("wall ");
+const isLine = n => n.startsWith("cord ") || n.startsWith("wall ") || n.startsWith("beam ");
 $("other").innerHTML = LM.filter(n => !n.startsWith("CH") && !/^[ABC]\d /.test(n) && !isLine(n)).map(n => btn(n, n)).join("");
-$("cords").innerHTML = LM.filter(isLine).map(n => btn(n, n)).join("");
+$("cords").innerHTML = LM.filter(n => isLine(n) && !n.startsWith("beam ")).map(n => btn(n, n)).join("");
+$("beams").innerHTML = LM.filter(n => n.startsWith("beam ")).map(n => btn(n, n.replace("beam ", ""))).join("");
 $("frames").innerHTML = FRAMES.map((f, i) => `<button type="button" data-f="${i}">${f.model}·${f.name.split(/[\\/]/).pop().replace(/\.jpg$/i, "")}</button>`).join("");
 function fit() { const r = cv.getBoundingClientRect(); cv.width = r.width * devicePixelRatio; cv.height = r.height * devicePixelRatio;
   if (img.naturalWidth) { const s = Math.min(cv.width / img.naturalWidth, cv.height / img.naturalHeight); view = { s, ox: (cv.width - img.naturalWidth * s) / 2, oy: (cv.height - img.naturalHeight * s) / 2 }; } draw(); }
