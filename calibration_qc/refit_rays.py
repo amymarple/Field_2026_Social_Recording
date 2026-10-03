@@ -24,7 +24,7 @@ wrong frames out); the west wall top cut by CH01 / CH02 / CH03 against each othe
 centres against the tape. Each check is computed the same way for the release (bundle + object-space warp).
 
 Usage: python refit_rays.py --out <dir> [--deg 3] [--sig-coef 0.03] [--no-centres] [--old-drone] [--walltop]
-                              [--walltop-hold X0] [--wt-w 0.5] [--folds 5]
+                              [--walltop-hold X0] [--wt-w 0.5] [--seam-w-deg 0] [--folds 5]
 Output: <out>\RAYMAP.json (coefficients, dC), REFIT_RAYS.txt
 """
 import sys, json, itertools, collections, time
@@ -41,6 +41,7 @@ def opt(name, default=None):
     return args[args.index(name) + 1] if name in args else default
 OUT = Path(opt("--out")); OUT.mkdir(parents=True, exist_ok=True)
 rm.DEG = int(opt("--deg", "3"))
+rm.SEAM_W = float(opt("--seam-w-deg", "0")) * np.pi / 180      # stitch blend band of the panos (0 = step)
 SIG_COEF = float(opt("--sig-coef", "0.03"))
 USE_CENTRES = "--no-centres" not in args
 FOLDS = int(opt("--folds", "5"))
@@ -51,7 +52,7 @@ HERE = Path(__file__).resolve().parent
 S18, Q18 = qc_paths.resolve(None)
 S30, Q30 = qc_paths.resolve("2026-09-30")
 cams = pm.load(pm.FIT, correct=False)
-rel = pm.load(pm.FIT)                                                   # the release (bundle + object-space warp)
+rel = pm.load(pm.FIT, rays=None)                                        # release 10-02b (bundle + object-space warp)
 names = sorted(cams)
 drift = json.loads((HERE / "session_2026-09-30_drift_final.json").read_text(encoding="utf-8"))["cameras"]
 POS = {**fd.LATTICE, **fd.SUPPLEMENT}
@@ -293,6 +294,7 @@ IDS = sorted({o[5] for o in OBS if o[3] == "cone"})
 t0 = time.time()
 RC, PJ, sol = fit(ALL, IDS)
 L = [f"RAY-SPACE GROUND CORRECTION  bundle {pm.FIT} (unchanged); degree {rm.DEG}, coefficient prior {SIG_COEF}, "
+     f"seam {'step' if rm.SEAM_W == 0 else f'ramp over {np.degrees(rm.SEAM_W):.0f} deg'}; "
      f"centre constraints {('tape + triangulated drone lenses' if TRI else 'tape + drone (distances, heights)') if USE_CENTRES else 'none'}; "
      f"wall tops {('in the fit (weight ' + str(WT_W) + (', ' + WT_HOLD + ' held out' if WT_HOLD else '') + ')') if USE_WALLTOP else 'not in the fit'}",
      f"{len(OBS)} labels ({collections.Counter(o[3] for o in OBS)}), {len(IDS)} latent cones; fit {time.time() - t0:.0f} s, "
@@ -478,6 +480,13 @@ for k, fold in enumerate(folds):
 L.append(f"CHECK held-out 09-30 cones ({FOLDS}-fold, two cameras on the same unseen cone, mm): ray fit {np.median(pair_ray):.0f} / "
          f"{np.percentile(pair_ray, 90):.0f} (n {len(pair_ray)}); release {np.median(pair_rel):.0f} / {np.percentile(pair_rel, 90):.0f} IN its fit "
          f"(10-02b was fitted on these cones; its own 5-fold held-out figure is 62 / 124, RELEASE_2026-10-02.md)")
+seam = []                                                                # check 5: the pano's ground position across its stitch seam
+for c in rm.PANO:
+    W, Hh = qc_paths.upright_size(S18, c); vs = np.linspace(0.55, 0.95, 9) * Hh
+    a_ = RC[c].to_paddock(np.c_[np.full(9, W / 2 - 1.0), vs], 60.0); b_ = RC[c].to_paddock(np.c_[np.full(9, W / 2 + 1.0), vs], 60.0)
+    j = np.hypot(*(a_ - b_).T)
+    seam.append(f"{c} max {np.nanmax(j):.0f} mm, median {np.nanmedian(j):.0f} mm over v 0.55-0.95 H")
+L.append("CHECK stitch seam, ground jump at z 60 mm between the columns either side of u = W / 2: " + "; ".join(seam))
 (OUT / "RAYMAP.json").write_text(json.dumps(dict(note="raymap.py ray-space correction on the release bundle; refit_rays.py",
                                                  bundle=str(pm.FIT), fit_sha256=__import__('hashlib').sha256(Path(pm.FIT).read_bytes()).hexdigest(), deg=rm.DEG, sig_coef=SIG_COEF, centres=USE_CENTRES,
                                                  cameras={c: RC[c].todict() for c in names}), indent=1), encoding="utf-8")

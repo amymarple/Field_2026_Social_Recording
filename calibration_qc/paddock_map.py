@@ -212,10 +212,10 @@ class RayCamera(Camera):
     (CH01) / ~14 cm (CH02) at the far rows, so in that band two pixels map to one ground point and the inverse returns
     one of them."""
 
-    def __init__(self, base, coef, dC, deg, support_in=None):
+    def __init__(self, base, coef, dC, deg, support_in=None, seam_w=0.0):
         super().__init__(base.name, base.model, base.intr, base.rvec, base.tvec, base.stored_size, correction=None)
         import raymap
-        self._rc = raymap.RayCam(base, coef, dC, deg)
+        self._rc = raymap.RayCam(base, coef, dC, deg, seam_w)
         self.centre = self._rc.centre
         self.support_in = None if support_in is None else np.asarray(support_in, float)
 
@@ -268,6 +268,21 @@ class RayCamera(Camera):
               (uv[:, 1] >= margin) & (uv[:, 1] < H - margin))
         return ok[0] if np.ndim(xy) == 1 else ok
 
+    # the matrix form, kept exact: a corrected pinhole is still a pinhole (K, R, the shifted centre) whose
+    # "undistorted" pixels are K times the corrected normalised coordinates; dist() is the bundle's lens only
+    def undistort(self, uv, space="upright"):
+        if self.model != "pinhole":
+            return np.asarray(uv, float).reshape(-1, 2)
+        b = self.rays(uv, space) @ self.R.T                              # corrected rays in camera coordinates
+        f, cx, cy = self.intr[:3]
+        return np.stack([f * b[:, 0] / b[:, 2] + cx, f * b[:, 1] / b[:, 2] + cy], 1)
+
+    def homography(self, z_mm=0.0):
+        if self.model != "pinhole":
+            return None
+        t = -self.R @ self.centre
+        return self.K() @ np.stack([self.R[:, 0], self.R[:, 1], self.R[:, 2] * z_mm + t], 1)
+
     def __repr__(self):
         return Camera.__repr__(self).replace("<", "<ray ", 1)
 
@@ -317,20 +332,25 @@ def physical_to_fit(xy_mm, corr):
     return p * MM_PER_IN
 
 
-def load(fit=FIT, session=None, correct=True, rays=None):
+def load(fit=FIT, session=None, correct=True, rays="release"):
     """-> {name: Camera}. Frame sizes come from the videos via qc_paths, never hardcoded.
-    correct=True applies <fit dir>/frame_correction.json when it exists (per-camera warp to the lattice).
-    rays=<RAYMAP json> (or "candidate" for RAYMAP_2026-10-03_candidate.json next to this file) returns RayCameras:
-    the ray-space correction instead of the ground warp - an opt-in candidate, not the release."""
+    correct=False: the raw bundle (no correction of any kind).
+    correct=True and rays="release" (the default): <fit dir>/ray_correction.json when it exists - the ray-space
+    correction (RayCamera) - else <fit dir>/frame_correction.json, the ground warp (per-camera warp to the lattice).
+    rays=None: the ground warp even where a ray correction exists (release 10-02b, for comparisons).
+    rays=<RAYMAP json> or "candidate" (RAYMAP_2026-10-03_candidate.json next to this file): that ray correction."""
     import json
-    if rays is not None:
+    if correct and rays == "release":
+        rays = Path(fit).parent / "ray_correction.json"
+        rays = rays if rays.exists() else None
+    if correct and rays is not None:
         rp = Path(__file__).resolve().parent / "RAYMAP_2026-10-03_candidate.json" if rays == "candidate" else Path(rays)
         rj = json.loads(rp.read_text(encoding="utf-8"))
         import hashlib
         have = hashlib.sha256(Path(fit).read_bytes()).hexdigest()
         if rj.get("fit_sha256") not in (None, have):
             raise SystemExit(f"{rp} was fitted on a different bundle (sha {rj['fit_sha256'][:12]} vs {have[:12]})")
-        rel = load(fit, session, correct=True)
+        rel = load(fit, session, correct=True, rays=None)
         out = {}
         for cam, c in rel.items():
             r = rj["cameras"].get(cam)
@@ -339,7 +359,7 @@ def load(fit=FIT, session=None, correct=True, rays=None):
             sup = None if c.correction is None else c.correction.get("support")
             sup_in = None if sup is None else fit_to_physical(np.asarray(sup, float) * MM_PER_IN, c.correction) / MM_PER_IN
             out[cam] = RayCamera(Camera(c.name, c.model, c.intr, c.rvec, c.tvec, c.stored_size), r["coef"], r["dC_mm"],
-                                 r["deg"], support_in=sup_in)
+                                 r["deg"], support_in=sup_in, seam_w=r.get("seam_w", 0.0))
         return out
     z = np.load(Path(fit), allow_pickle=False)
     if float(np.abs(z["cam_tvec"]).max()) < 100:

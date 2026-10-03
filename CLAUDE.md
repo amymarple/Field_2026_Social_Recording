@@ -263,13 +263,17 @@ Two Python trees of different vintage:
   `calibration_qc/README.md` is the dated lab notebook of every decision.
   - **Committed release artefacts**: `camera_fit.npz` (poses, lens models, plate poses, frame
     sizes), `frame_correction.json` (per-camera ground warp, sha-bound to the fit — `load()` refuses
-    a stale one), `fit_manifest.json` (provenance). `CALIBRATION_REPORT_2026-09-24_rev2.md` is the
+    a stale one), `ray_correction.json` (the ray-space correction `load()` uses since 2026-10-03, also sha-bound),
+    `fit_manifest.json` (provenance). `CALIBRATION_REPORT_2026-09-24_rev2.md` is the
     acceptance document; `AUDIT_CALIBRATION_2026-09-24*.md` / `AUDIT_RESPONSE_2026-09-24.md` the
     review trail. Honest accuracy: held-out placements 76 mm median, 137 mm p90; whole-field 50 mm
     is not claimed.
     **2026-10-02:** `frame_correction.json` refitted with the 2026-09-30 cones, the 09-18 lattice cones as latent
     points (bundle unchanged; boards between cameras 37 / 86 mm, was 71 / 153) - `calibration_qc/RELEASE_2026-10-02.md`
     has the evidence and the open points; `ball_check.py` scores the ball sweep as a stand-in rat.
+    **2026-10-03 (current):** `paddock_map.load()` applies `ray_correction.json` - a ray-space correction (`raymap.py`,
+    `refit_rays.py`) with camera centres from the tape and drone, drone wall tops, sha-bound to the fit;
+    `load(rays=None)` gives 10-02b. Handoff jumps 51 -> 46 mm, CH01|CH02 93 -> 59; `calibration_qc/RELEASE_2026-10-03.md`.
   - **Use it anywhere** (numpy/scipy/cv2 only, falls back to the repo copy when `E:` is absent):
     `sys.path.insert(0, "<repo>/calibration_qc"); from paddock_map import load; cams = load();
     cams["CH01"].to_paddock((u, v), z_mm=0, units="in")`. `to_paddock` returns NaN outside the

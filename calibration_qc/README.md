@@ -1042,3 +1042,9 @@ ball pairs 51 -> 45 mm; the largest p90 197 -> 123 mm. RayCamera inverts the cor
 panos the two lens halves overlap at the stitch seam (u = W / 2: the ground position steps back ~12 / 14 cm across
 it at the far rows), so there two pixels map to one point and to_paddock_inv returns one of them. The release is
 unchanged; the candidate is opt-in.
+
+**Promoted 2026-10-03** (operator: "D可以"; asked whether the seam is blended): the hard switch between the lens halves
+left a 24-26 cm fold at the stitch seam; `raymap.SEAM_W` blends the halves linearly over a band instead (1-10 deg all
+score the same within 1 mm; 3 deg taken; `refit_rays.py --seam-w-deg`). That fit is the release, `ray_correction.json`,
+which `paddock_map.load()` now applies (RayCamera; `load(rays=None)` = 10-02b). Boards 39 / 80, ball 56 / 102, held-out
+cones 55 / 99, handoffs pair-weighted 46 mm (10-02b: 51), CH01|CH02 59 / 98. `RELEASE_2026-10-03.md`.

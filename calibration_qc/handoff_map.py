@@ -19,7 +19,7 @@ right. One 3 x 3 majority pass removes single-cell islands. (3) Jump at a bounda
 distance between A's and B's positions for the same instant, over ball pairs whose midpoint lies in a cell on
 either side of that boundary.
 
---rays <RAYMAP json | candidate> maps through paddock_map's ray-space cameras instead of the release (2026-10-03).
+--rays <RAYMAP json | candidate | warp>: a ray correction, or the ground warp (release 10-02b); default the release.
 
 Usage: python handoff_map.py [--cell 40] [--rule res|err] [--fit <camera_fit.npz>] [--rays candidate] [--track <dir>] [--out <dir>]
 Output: <out>\HANDOFF_MAP.txt, handoff_map.png, handoff_map.json  (default out: <qc root>\handoff)
@@ -42,8 +42,8 @@ DRIFT = HERE / "session_2026-09-30_drift_final.json"
 CELL, MIN_N, Z, Z_RAT, GAP, IN = float(opt("--cell", "40")), 25, 105.0, 60.0, 0.25, 25.4
 CAMS = ["CH01", "CH02", "CH03", "CH04", "CH05", "CH06"]
 RULE = opt("--rule", "res")
-RAYS = opt("--rays")
-cams = pm.load(FIT, rays=RAYS)
+RAYS = opt("--rays", "release")
+cams = pm.load(FIT, rays=None if RAYS == "warp" else RAYS)
 drift = json.loads(DRIFT.read_text(encoding="utf-8"))["cameras"]
 H = json.loads((TRACK / "held20.json").read_text(encoding="utf-8"))
 flags_p = TRACK / "ball20_flags.json"
@@ -140,7 +140,7 @@ for b in range(NY):
             if a2 < NX and b2 < NY and prim[b, a] and prim[b2, a2] and prim[b, a] != prim[b2, a2]:
                 key = tuple(sorted((prim[b, a], prim[b2, a2])))
                 bnd[key] |= {(a, b), (a2, b2)}
-L = [f"HANDOFF MAP  fit {FIT}{'; RAY-SPACE cameras ' + RAYS if RAYS else ''}; reviewed 20 Hz ball at z = {Z:.0f} mm (held and wrong frames out); cells {CELL:.0f} in; primary by {RULE}",
+L = [f"HANDOFF MAP  fit {FIT}{'; cameras: ' + RAYS}; reviewed 20 Hz ball at z = {Z:.0f} mm (held and wrong frames out); cells {CELL:.0f} in; primary by {RULE}",
      "", "primary camera per cell (x along the length, west x 0 on the left; rows from y 240 at the top to y 0):"]
 for b in reversed(range(NY)):
     L.append(f"  y {b * CELL:3.0f}-{min(240, (b + 1) * CELL):3.0f} " + " ".join(f"{(prim[b, a] or '----')[2:]:>2s}:{why.get((a, b), '-'):>4s}" for a in range(NX)))

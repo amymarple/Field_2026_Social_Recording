@@ -158,7 +158,7 @@ pair_after = {f"{a}-{b}": float(pc[(a, b)].sum() / max((vis1[a] & vis1[b]).sum()
 gx, gy = np.meshgrid(np.arange(1.5, 480, STEP), np.arange(1.5, 240, STEP))
 G = np.stack([gx.ravel(), gy.ravel()], 1)
 see = {c: cams[c].sees(G, z_mm=Z_RAT, units="in", margin=10) for c in names}
-hull0 = {c: np.asarray(cams[c].correction["support"], float) for c in names}
+hull0 = {c: np.asarray(cams[c].support_in if hasattr(cams[c], "support_in") else cams[c].correction["support"], float) for c in names}
 mids = [cands[k][:2] for k in cands]
 mids_t = [cands[k][:2] for k in cands if cands[k][2] == "T cord"]
 SCEN = [("today", [], []),
