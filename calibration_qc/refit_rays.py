@@ -479,7 +479,7 @@ L.append(f"CHECK held-out 09-30 cones ({FOLDS}-fold, two cameras on the same uns
          f"{np.percentile(pair_ray, 90):.0f} (n {len(pair_ray)}); release {np.median(pair_rel):.0f} / {np.percentile(pair_rel, 90):.0f} IN its fit "
          f"(10-02b was fitted on these cones; its own 5-fold held-out figure is 62 / 124, RELEASE_2026-10-02.md)")
 (OUT / "RAYMAP.json").write_text(json.dumps(dict(note="raymap.py ray-space correction on the release bundle; refit_rays.py",
-                                                 bundle=str(pm.FIT), deg=rm.DEG, sig_coef=SIG_COEF, centres=USE_CENTRES,
+                                                 bundle=str(pm.FIT), fit_sha256=__import__('hashlib').sha256(Path(pm.FIT).read_bytes()).hexdigest(), deg=rm.DEG, sig_coef=SIG_COEF, centres=USE_CENTRES,
                                                  cameras={c: RC[c].todict() for c in names}), indent=1), encoding="utf-8")
 (OUT / "REFIT_RAYS.txt").write_text("\n".join(L) + "\n", encoding="utf-8")
 print("\n".join(L)); print("->", OUT)

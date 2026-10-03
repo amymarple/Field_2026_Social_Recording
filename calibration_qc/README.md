@@ -1031,3 +1031,14 @@ point above the ground elsewhere in an image is as uncertain as before. The wall
 drone heights from 10-02 (the west wall was seen sagging); the drone datum rests on four taped heights; the scale
 is the board's until the pole survey. Candidate: D (`RAYMAP_2026-10-03_candidate.json`, `REFIT_RAYS_2026-10-03.txt`),
 not wired into `paddock_map.load()`; the committed release is unchanged.
+
+Handoffs with candidate D (`paddock_map.load(rays="candidate")`, `handoff_map.py --rays candidate`;
+`HANDOFF_MAP_ray_D_2026-10-03.txt` against the release's `HANDOFF_MAP.txt`; same reviewed 20 Hz ball, z 105 mm),
+jump at each boundary where the primary camera changes, median / p90 mm: CH01|CH02 93 / 197 -> 57 / 98, CH01|CH03
+58 / 100 -> 45 / 64, CH02|CH03 26 / 129 -> 30 / 101, CH02|CH04 40 / 63 -> 28 / 56, CH02|CH05 42 / 84 -> 40 / 64,
+CH02|CH06 30 / 50 -> 25 / 33, CH01|CH05 33 / 67 -> 34 / 62, CH01|CH06 56 / 113 -> 61 / 123, CH01|CH04 45 / 112 ->
+85 / 106 (4 cells at the far east end, where the ball's clock is the weak part, RELEASE_2026-10-02.md). Weighted by
+ball pairs 51 -> 45 mm; the largest p90 197 -> 123 mm. RayCamera inverts the corrected rays numerically; on the
+panos the two lens halves overlap at the stitch seam (u = W / 2: the ground position steps back ~12 / 14 cm across
+it at the far rows), so there two pixels map to one point and to_paddock_inv returns one of them. The release is
+unchanged; the candidate is opt-in.

@@ -202,6 +202,76 @@ class Camera:
                 f"h={self.centre[2]/1000:.2f}m>")
 
 
+class RayCamera(Camera):
+    """A camera whose RAYS carry the ray-space correction of raymap.py (refit_rays.py, 2026-10-03) instead of the
+    release's ground warp: the correction is fitted on the ground labels with the centres held by the tape and the
+    drone, and above the ground by the drone's wall tops, so it holds at any height where those data reach. There is
+    no fit <-> physical warp (correction None); the verified support is the release's polygon carried into the
+    physical frame. to_paddock_inv / sees invert the corrected rays numerically (Newton on the pixel). On the panos
+    the two lens halves overlap at the stitch seam (u = W / 2): crossing it the ground position steps back ~12 cm
+    (CH01) / ~14 cm (CH02) at the far rows, so in that band two pixels map to one ground point and the inverse returns
+    one of them."""
+
+    def __init__(self, base, coef, dC, deg, support_in=None):
+        super().__init__(base.name, base.model, base.intr, base.rvec, base.tvec, base.stored_size, correction=None)
+        import raymap
+        self._rc = raymap.RayCam(base, coef, dC, deg)
+        self.centre = self._rc.centre
+        self.support_in = None if support_in is None else np.asarray(support_in, float)
+
+    def rays(self, uv, space="upright"):
+        p = np.asarray(uv, float).reshape(-1, 2)
+        if space == "stored":
+            p = self.stored_to_upright(p)
+        return self._rc.rays(p)
+
+    def in_support(self, xy_mm):
+        """Is a PHYSICAL ground point inside the polygon where this camera's mapping was verified?"""
+        if self.support_in is None or len(self.support_in) < 3:
+            return np.isfinite(np.asarray(xy_mm, float).reshape(-1, 2)).all(1)
+        saved = self.correction
+        self.correction = {"support": self.support_in.tolist()}
+        try:
+            return Camera.in_support(self, xy_mm)
+        finally:
+            self.correction = saved
+
+    def _ground(self, uv, z_mm):
+        d = self.rays(uv)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            s = (z_mm - self.centre[2]) / d[:, 2]
+        X = self.centre + s[:, None] * d
+        X[~(s > 0)] = np.nan
+        return X[:, :2]
+
+    def to_paddock_inv(self, xy, z_mm=0.0, space="upright", units="mm"):
+        q = np.asarray(xy, float).reshape(-1, 2) * (MM_PER_IN if units == "in" else 1.0)
+        uv = Camera.to_paddock_inv(self, q, z_mm=z_mm)                  # the uncorrected bundle pose: a start
+        for _ in range(12):
+            f = self._ground(uv, z_mm) - q
+            fu = (self._ground(uv + [1.0, 0], z_mm) - q - f); fv = (self._ground(uv + [0, 1.0], z_mm) - q - f)
+            det = fu[:, 0] * fv[:, 1] - fu[:, 1] * fv[:, 0]
+            det = np.where(np.abs(det) < 1e-12, np.nan, det)
+            du = (f[:, 0] * fv[:, 1] - f[:, 1] * fv[:, 0]) / det
+            dv = (fu[:, 0] * f[:, 1] - fu[:, 1] * f[:, 0]) / det
+            uv = uv - np.stack([du, dv], 1)
+        bad = ~(np.hypot(*(self._ground(uv, z_mm) - q).T) < 0.5)        # not converged -> NaN, never a guess
+        uv[bad] = np.nan
+        if space == "stored":
+            uv = self.upright_to_stored(uv)
+        return uv[0] if np.ndim(xy) == 1 else uv
+
+    def sees(self, xy, z_mm=0.0, units="mm", margin=0):
+        uv = np.atleast_2d(self.to_paddock_inv(np.atleast_2d(np.asarray(xy, float)), z_mm=z_mm, units=units))
+        W, H = self.upright_size
+        ok = (np.isfinite(uv).all(1) & (uv[:, 0] >= margin) & (uv[:, 0] < W - margin) &
+              (uv[:, 1] >= margin) & (uv[:, 1] < H - margin))
+        return ok[0] if np.ndim(xy) == 1 else ok
+
+    def __repr__(self):
+        return Camera.__repr__(self).replace("<", "<ray ", 1)
+
+
 # ---------------------------------------------------------------- fit frame <-> physical lattice
 # Per-camera 2-D polynomial warp measured on the ground from the operator's cones, cords and wall
 # foot (frame_correction.py): xy_lattice = xy_fit + [T @ cx, T @ cy], T = monomials of degree <= deg
@@ -247,10 +317,30 @@ def physical_to_fit(xy_mm, corr):
     return p * MM_PER_IN
 
 
-def load(fit=FIT, session=None, correct=True):
+def load(fit=FIT, session=None, correct=True, rays=None):
     """-> {name: Camera}. Frame sizes come from the videos via qc_paths, never hardcoded.
-    correct=True applies <fit dir>/frame_correction.json when it exists (per-camera warp to the lattice)."""
+    correct=True applies <fit dir>/frame_correction.json when it exists (per-camera warp to the lattice).
+    rays=<RAYMAP json> (or "candidate" for RAYMAP_2026-10-03_candidate.json next to this file) returns RayCameras:
+    the ray-space correction instead of the ground warp - an opt-in candidate, not the release."""
     import json
+    if rays is not None:
+        rp = Path(__file__).resolve().parent / "RAYMAP_2026-10-03_candidate.json" if rays == "candidate" else Path(rays)
+        rj = json.loads(rp.read_text(encoding="utf-8"))
+        import hashlib
+        have = hashlib.sha256(Path(fit).read_bytes()).hexdigest()
+        if rj.get("fit_sha256") not in (None, have):
+            raise SystemExit(f"{rp} was fitted on a different bundle (sha {rj['fit_sha256'][:12]} vs {have[:12]})")
+        rel = load(fit, session, correct=True)
+        out = {}
+        for cam, c in rel.items():
+            r = rj["cameras"].get(cam)
+            if r is None:
+                continue
+            sup = None if c.correction is None else c.correction.get("support")
+            sup_in = None if sup is None else fit_to_physical(np.asarray(sup, float) * MM_PER_IN, c.correction) / MM_PER_IN
+            out[cam] = RayCamera(Camera(c.name, c.model, c.intr, c.rvec, c.tvec, c.stored_size), r["coef"], r["dC_mm"],
+                                 r["deg"], support_in=sup_in)
+        return out
     z = np.load(Path(fit), allow_pickle=False)
     if float(np.abs(z["cam_tvec"]).max()) < 100:
         raise SystemExit(f"{fit} has translations in metres - re-run fit_cameras.py")

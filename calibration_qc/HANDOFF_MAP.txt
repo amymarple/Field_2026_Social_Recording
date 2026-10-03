@@ -1,4 +1,4 @@
-HANDOFF MAP  fit G:\calibration\qc\camera_fit.npz; reviewed 20 Hz ball at z = 105 mm (held and wrong frames out); cells 40 in; primary by res
+HANDOFF MAP  fit F:\calibration\qc\camera_fit.npz; reviewed 20 Hz ball at z = 105 mm (held and wrong frames out); cells 40 in; primary by res
 
 primary camera per cell (x along the length, west x 0 on the left; rows from y 240 at the top to y 0):
   y 200-240 03: 113 03:  90 01:  r3 01:  r3 01:  r3 01:  r3 01:  r3 01:  r3 01:  r3 01:  r3 04: 102 04:  71

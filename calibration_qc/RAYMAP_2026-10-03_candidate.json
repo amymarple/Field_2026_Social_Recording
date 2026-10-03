@@ -281,5 +281,7 @@
     -19.389655927714877
    ]
   }
- }
+ },
+ "fit_sha256": "6e4b54e9264a3675e810d52d5b02aa03fe8af3cf2618282a08935b7c9840f3db",
+ "variant": "D: degree 4, coefficient prior 0.05, tape + triangulated drone lens centres, drone wall tops weight 1.0"
 }
