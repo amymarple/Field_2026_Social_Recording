@@ -984,3 +984,50 @@ is locally accurate to the millimetre. Scale 993.1 mm per model unit against 100
 design 10 ft pole grid: the grid assumption makes the model 1.2 % too large (150 mm over 40 ft). Either the poles
 stand ~1.2 % closer than 10 ft (~118.5 in) or the model drifts along its length; the operator's tape survey of the
 pole spacing decides. Until then the board's scale is the trusted one.
+
+### Ray-space correction with taped / drone camera centres and drone wall tops (2026-10-03)
+
+AUDIT_FABLE_SOTA_2026-10-03.md, recommendation 1: correct each camera's RAY instead of warping the ground point it
+hits (`raymap.py`: per camera a polynomial in azimuth / elevation for the panos plus a step either side of the
+stitch seam, extra distortion terms for the pinholes, and a centre shift), fitted by `refit_rays.py` on the
+release's ground labels (cones as latent points, cords, wall feet) with the bundle unchanged. Ground-only fits
+(degree 2-5, priors 0.03-0.10) improved the boards and the ball but put the wall tops 100-250 mm too high and
+inconsistent between cameras: nothing near the ground constrains the rays above it. Two additions:
+
+1. **Lens positions from many drone frames.** `drone_cam_frames.py` picks frames per camera by visibility (8 each,
+   the widest spread of viewing directions; the first landmark page had spread its frames in time, so CH04's lens
+   had one click); the operator clicked 111 lenses in 42 frames (`session_2026-10-02_drone_lens_labels.json`).
+   `drone_lens_triangulate.py` meets all rays of a lens (12-30 frames, 3-7 px rms, bootstrap sd <= 8 mm;
+   `DRONE_LENS_TRI_2026-10-03.txt`). Five clicks carry a swapped name (0016_0195 CH01 / CH02; 0017_0018 "CH02" is
+   CH01, "CH05" is CH06) and are left out, not renamed. Against the tape: a common (+3.2, -3.9) in and -79 mm in
+   height, then 2.5 in rms horizontally and 22 mm rms in height. The height offset is a datum: the drone's floor
+   plane runs on the grass tops. So the refit takes absolute heights from the tape only, and from the drone every
+   pair's horizontal distance (board scale) and height difference. CH04: the drone never came within 3.5 m of it,
+   not even between the 1-fps frames; its 12 clicks are from 4-6 m and one side. `drone_recover_mp4.py` rebuilt the
+   unfinalised PTSC_0018 (bit-exact on PTSC_0017): it is post-landing footage, no close-ups.
+2. **Wall tops from the drone.** `drone_walltop.py` cuts the drone wall-top clicks with the design wall planes and
+   puts them on the tape's ground (board scale, +106 mm datum): 950-1130 mm along all four walls
+   (`DRONE_WALLTOP_2026-10-03.txt`; this supersedes the 872-1045 mm of the anchor's depth method above, which sat on
+   the grass-top datum). `refit_rays.py --walltop` makes the operator's 09-18 wall-top polylines in the cameras
+   (analysis repo, 2026c labels) meet the wall plane at that height.
+
+Degree 4, coefficient prior 0.05 (mm; two cameras on the same point unless stated):
+
+| check | release 10-02b | A: centres | B: + wall tops (w 0.5) | C: B with X0 held out | **D: + wall tops (w 1.0)** |
+|---|---|---|---|---|---|
+| boards 09-18/19, median / p90 | 37 / 81 | 36 / 65 | 38 / 76 | 35 / 71 | 39 / 80 |
+| 20 Hz ball at 105 mm, median / p90 | 59 / 113 | 53 / 110 | 55 / 107 | 55 / 109 | 55 / 102 |
+| ball CH01-CH02, median | 79 | 70 | 71 | 71 | 68 |
+| 09-30 cones, 5-fold held out, median / p90 | 62 / 124 (its own folds) | 51 / 103 | 55 / 93 | 57 / 108 | 55 / 100 |
+| west wall top, spread CH01 / CH02 / CH03 per bin, median / max | 120 / 199 | 93 / 148 | 43 / 54 | 99 / 206 | 19 / 34 |
+| wall tops minus drone, range over cameras and walls | -141 ... +158 | -280 ... +202 | -29 ... +27 | X0 held out: +91 / +178 / +101 | -8 ... +6 |
+
+What it says. On the ground every ray variant matches or beats the release (the release's 51 / 84 on the cones in
+REFIT_RAYS is in its own fit; its held-out figure is 62 / 124). Above the ground the wall tops come right only
+where wall-top data are in the fit: with the west wall held out (C) it stays 90-180 mm high - the correction is local
+in the image and three walls do not carry to the fourth. So D's wall-top agreement is a fit, not a validation; a
+point above the ground elsewhere in an image is as uncertain as before. The wall tops pull CH04 to 2.220 m (tape
+2.286) and CH02 to 2.293 (2.337), beyond the tape's 30 mm. Caveats: the wall-top labels are from 09-18 and the
+drone heights from 10-02 (the west wall was seen sagging); the drone datum rests on four taped heights; the scale
+is the board's until the pole survey. Candidate: D (`RAYMAP_2026-10-03_candidate.json`, `REFIT_RAYS_2026-10-03.txt`),
+not wired into `paddock_map.load()`; the committed release is unchanged.
