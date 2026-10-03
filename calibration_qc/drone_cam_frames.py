@@ -11,8 +11,14 @@ triangulates a point). Frames the operator already labelled are left out.
 The page is the landmark GUI with a dashed ring where the current estimate puts each lens: a guide, never a label
 (the estimate can be 20-30 cm off). A contact sheet of the crops around every ring is written for review.
 
+Target positions: the triangulated lenses (camera_centres 'drone_tri') where they exist - the first run used the
+single-click estimate, 22 cm too high for CH04, which put CH04 just above the frame in the operator's close-ups.
+--sparse picks a model folder with extra registered frames (drone_register_frames.py; the anchor is the --model's),
+--cams / --prefix restrict the cameras and the frames, --out-name names the page folder.
+
 Usage: python drone_cam_frames.py --name 2026-10-02_all [--model 1] [--per 8] [--max-range 3.5]
-Output: <run>\landmark_gui_cams\drone_landmarks.html (+ frames\, cam_frames.json, contact_sheet.jpg)
+                                  [--sparse 1_ch04 --cams CH04 --prefix d1002_ch04/ --out-name landmark_gui_ch04]
+Output: <run>\<out-name>\drone_landmarks.html (+ frames\, cam_frames.json, contact_sheet.jpg)
 """
 import sys, json, shutil
 from pathlib import Path
@@ -29,18 +35,27 @@ def opt(name, default=None):
     return args[args.index(name) + 1] if name in args else default
 RUN = qc_paths.QC_ROOT / "drone_sfm" / opt("--name", "2026-10-02_all")
 MODEL, PER, MAX_RANGE, MARGIN = opt("--model", "1"), int(opt("--per", "8")), float(opt("--max-range", "3.5")), 80
-OUT = RUN / "landmark_gui_cams"; (OUT / "frames").mkdir(parents=True, exist_ok=True)
-rec = pycolmap.Reconstruction(str(RUN / "sparse" / MODEL))
+SPARSE, PREFIX = opt("--sparse", MODEL), opt("--prefix", "")
+CAMS = opt("--cams", "").split(",") if opt("--cams") else None
+OUT = RUN / opt("--out-name", "landmark_gui_cams"); (OUT / "frames").mkdir(parents=True, exist_ok=True)
+rec = pycolmap.Reconstruction(str(RUN / "sparse" / SPARSE))
 A = json.loads((RUN / "anchor" / "anchor.json").read_text(encoding="utf-8"))[MODEL]
 s, Rm, t = A["scale"], Rotation.from_rotvec(A["rotvec"]).as_matrix(), np.asarray(A["t"])
 cc = json.loads((qc_paths.QC_ROOT / "camera_centres_2026-10-03.json").read_text(encoding="utf-8"))
-target = {c: np.array([v["x_m"], v["y_m"], v["z_m"]]) for c, v in cc["drone"].items()}
+target = {}
+for key in ("drone_tri", "drone"):
+    for c, v in cc.get(key, {}).items():
+        target.setdefault(c, np.array([v["x_m"], v["y_m"], v["z_m"]]))
 for c, v in cc["tape"].items():
     target.setdefault(c, np.array([v["x_in"] * 0.0254, v["y_in"] * 0.0254, v["h_m"]]))
-done = set()
-lab = RUN / "landmark_gui" / "drone_landmarks.json"
-if lab.exists():
-    done = {f["name"] for f in json.loads(lab.read_text(encoding="utf-8"))["frames"]}
+done = {}                                                                # camera -> frames whose lens is already clicked
+for lab in (Path(__file__).resolve().parent / "session_2026-10-02_drone_landmarks.json",
+            RUN / "landmark_gui_cams" / "drone_landmarks_cams.json"):
+    if lab.exists():
+        for f in json.loads(lab.read_text(encoding="utf-8"))["frames"]:
+            for k in f["points"]:
+                if k.endswith(" lens"):
+                    done.setdefault(k[:4], set()).add(f["name"])
 
 seen = {c: [] for c in target}                                           # camera -> (frame, range m, uv, unit dir lens->drone)
 for im in rec.images.values():
@@ -62,9 +77,13 @@ for im in rec.images.values():
 
 pick, report = {}, []
 for c in sorted(seen):
-    cand = [x for x in seen[c] if x[1] <= MAX_RANGE and x[0] not in done]
+    if CAMS and c not in CAMS:
+        continue
+    seen[c] = [x for x in seen[c] if x[0].startswith(PREFIX)]
+    cand = [x for x in seen[c] if x[1] <= MAX_RANGE and x[0] not in done.get(c, ())]
+    near = len(cand)
     if len(cand) < PER:                                                  # CH04: the drone never came within 3.5 m of it
-        cand = [x for x in seen[c] if x[0] not in done]
+        cand = [x for x in seen[c] if x[0] not in done.get(c, ())]
     chosen = []
     if cand:
         chosen.append(min(cand, key=lambda x: x[1]))
@@ -74,7 +93,7 @@ for c in sorted(seen):
             chosen.append(rest[int(np.argmax(sep))])
     pick[c] = chosen
     spread = max((np.degrees(np.arccos(np.clip(x[3] @ y[3], -1, 1))) for x in chosen for y in chosen), default=0)
-    report.append(f"{c}: {len(seen[c])} frames see it within 6 m, {len(cand)} within {MAX_RANGE} m and not yet labelled; "
+    report.append(f"{c}: {len(seen[c])} frames see it within 6 m, {near} within {MAX_RANGE} m and not yet labelled; "
                   f"picked {len(chosen)} at {', '.join(f'{x[1]:.1f}' for x in chosen)} m, directions spread over {spread:.0f} deg")
 
 names = sorted({x[0] for L in pick.values() for x in L})
@@ -91,7 +110,7 @@ for n in names:
 task = ("Rig camera lenses only. A dashed yellow ring marks where the current estimate puts a lens (it can be 20-30 cm "
         "off, so look around it). Click the centre of the lens: for CH01 / CH02 (Duo 3, two lenses) the point midway "
         "between the two lenses. Skip a frame where the lens is hidden or you are not sure which camera it is.")
-gui.build(OUT, frames, RUN.name, hints=hints, page_id="_cams", task=task, title="Rig Camera Lenses")
+gui.build(OUT, frames, RUN.name, hints=hints, page_id="_" + OUT.name, task=task, title="Rig Camera Lenses")
 (OUT / "cam_frames.json").write_text(json.dumps({c: [dict(frame=x[0], range_m=round(x[1], 2), u=round(float(x[2][0]), 1),
                                                           v=round(float(x[2][1]), 1)) for x in L] for c, L in pick.items()}, indent=1),
                                      encoding="utf-8")
