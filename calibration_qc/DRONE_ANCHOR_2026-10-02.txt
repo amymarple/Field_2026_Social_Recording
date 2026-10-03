@@ -1,0 +1,101 @@
+DRONE MODELS ANCHORED TO THE PADDOCK  run 2026-10-02_anchor; labels: 402 landmarks in 21 frames; poles on the design 10 ft grid, radius 0.15 m
+
+model 1: 120 frames, 596 labelled clicks with a 3-D point; scale 1.3387 m per model unit
+  fit residuals (horizontal, mm; median / p90 / n): beam 116 / 876 / 255; cord 51 / 101 / 185; foot 67 / 160 / 26; top 61 / 129 / 53; wallfoot 228 / 589 / 38
+  floor sample z: median +1 mm, spread (p10-p90) 221 mm
+  CHECK CH01 lens: drone (6.082, 2.132, 2.449) m; calibration (6.179, 2.028, 2.352); difference 172 mm (dx -97, dy +104, dz +97), clicks 4
+  CHECK CH02 lens: drone (6.365, 3.982, 2.385) m; calibration (6.216, 4.031, 2.409); difference 159 mm (dx +150, dy -49, dz -24), clicks 4
+  CHECK CH03 lens: drone (2.889, 3.120, 2.387) m; calibration (3.121, 3.165, 2.293); difference 254 mm (dx -232, dy -44, dz +94), clicks 4
+  CHECK CH04 lens: drone (9.445, 2.989, 2.401) m; calibration (9.162, 3.213, 2.405); difference 362 mm (dx +284, dy -224, dz -3), clicks 4
+  CHECK CH05 lens: drone (3.609, 3.155, 2.386) m; calibration (3.621, 3.157, 2.315); difference 72 mm (dx -11, dy -2, dz +71), clicks 4
+  CHECK CH06 lens: drone (8.692, 3.023, 2.386) m; calibration (8.584, 3.265, 2.311); difference 275 mm (dx +108, dy -242, dz +74), clicks 4
+  A0 top: (6, 8) in, height 1910 mm, n 4
+  A1 top: (120, -1) in, height 2502 mm, n 4
+  A2 top: (243, -5) in, height 2393 mm, n 4
+  A3 top: (357, -4) in, height 2299 mm, n 3
+  A4 top: (480, 1) in, height 2375 mm, n 2
+  B0 top: (1, 119) in, height 2483 mm, n 4
+  B1 top: (122, 124) in, height 2423 mm, n 4
+  B2 top: (247, 120) in, height 2397 mm, n 4
+  B3 top: (362, 119) in, height 2407 mm, n 4
+  B4 top: (478, 117) in, height 2385 mm, n 2
+  C0 top: (-0, 233) in, height 2546 mm, n 4
+  C1 top: (115, 238) in, height 2489 mm, n 4
+  C2 top: (239, 239) in, height 2384 mm, n 4
+  C3 top: (358, 235) in, height 2360 mm, n 4
+  C4 top: (474, 237) in, height 2275 mm, n 2
+  HOUSE_1 roof peak: (147, 120) in, height 692 mm, n 4
+  HOUSE_2 roof peak: (343, 115) in, height 546 mm, n 4
+  TOWER_1 top: (225, 221) in, height 131 mm, n 4
+  TOWER_2 top: (294, 7) in, height 161 mm, n 3
+  beam col 0: (-2, 103) in, height 2439 mm, n 25
+  beam col 1: (119, 131) in, height 1587 mm, n 27
+  beam col 2: (245, 114) in, height 2372 mm, n 32
+  beam col 3: (362, 113) in, height 2357 mm, n 31
+  beam col 4: (481, 115) in, height 2278 mm, n 11
+  beam row A: (227, -2) in, height 672 mm, n 43
+  beam row B: (188, 124) in, height 2305 mm, n 46
+  beam row C: (231, 254) in, height 1392 mm, n 40
+
+model 2: 231 frames, 395 labelled clicks with a 3-D point; scale 1.0495 m per model unit
+  fit residuals (horizontal, mm; median / p90 / n): beam 235 / 2894 / 70; cord 69 / 151 / 199; foot 148 / 373 / 28; top 83 / 657 / 27
+  floor sample z: median -2 mm, spread (p10-p90) 96 mm
+  CHECK CH01 lens: drone (6.117, 2.171, 2.337) m; calibration (6.179, 2.028, 2.352); difference 157 mm (dx -62, dy +143, dz -15), clicks 1
+  CHECK CH02 lens: drone (6.284, 3.986, 2.292) m; calibration (6.216, 4.031, 2.409); difference 142 mm (dx +68, dy -45, dz -116), clicks 2
+  CHECK CH03 lens: drone (2.844, 3.165, 2.201) m; calibration (3.121, 3.165, 2.293); difference 292 mm (dx -277, dy +1, dz -92), clicks 3
+  CHECK CH05 lens: drone (3.509, 3.155, 2.312) m; calibration (3.621, 3.157, 2.315); difference 112 mm (dx -112, dy -2, dz -3), clicks 2
+  CHECK CH06 lens: drone (8.772, 3.074, 2.276) m; calibration (8.584, 3.265, 2.311); difference 270 mm (dx +188, dy -191, dz -36), clicks 1
+  CHECK wall top X0: height 905 mm median over 19 clicks; along-wall profile (in: mm) -261: 109, 6: 929, 7: 905, 7: 911, 37: 873, 77: 861, 98: 876, 107: 960, 127: 941, 132: 887, 146: 893, 158: 888, 161: 895, 190: 937, 194: 921, 214: 947, 235: 999, 237: 977, 265: 867
+  CHECK wall top X480: height 1340 mm median over 2 clicks; along-wall profile (in: mm) 117: 1223, 122: 1457
+  CHECK wall top Y0: height 961 mm median over 19 clicks; along-wall profile (in: mm) -176: 865, 5: 909, 6: 923, 6: 917, 22: 924, 38: 941, 50: 938, 68: 897, 80: 961, 118: 1438, 120: 986, 120: 999, 131: 994, 152: 973, 178: 942, 179: 976, 355: 1025, 360: 1273, 423: 1054
+  CHECK wall top Y240: height 959 mm median over 12 clicks; along-wall profile (in: mm) 0: 999, 2: 1029, 70: 965, 123: 961, 146: 970, 150: 962, 177: 957, 202: 949, 223: 958, 250: 946, 311: 916, 346: 885
+  A0 top: (4, 8) in, height 2446 mm, n 4
+  A1 top: (116, -2) in, height 2520 mm, n 3
+  A3 top: (354, 2) in, height 2539 mm, n 1
+  B0 top: (9, 121) in, height 2412 mm, n 4
+  B1 top: (135, 127) in, height 2404 mm, n 4
+  B2 top: (251, 122) in, height 2446 mm, n 3
+  B4 top: (474, 119) in, height 2510 mm, n 1
+  C0 top: (4, 234) in, height 2476 mm, n 3
+  C1 top: (115, 241) in, height 2529 mm, n 2
+  C2 top: (244, 241) in, height 2399 mm, n 2
+  HOUSE_1 roof peak: (113, 116) in, height 720 mm, n 2
+  HOUSE_2 roof peak: (340, 118) in, height 762 mm, n 3
+  TOWER_1 top: (228, 224) in, height 214 mm, n 4
+  TOWER_2 top: (295, 8) in, height 288 mm, n 1
+  beam col 0: (13, 123) in, height 2393 mm, n 15
+  beam col 1: (121, 147) in, height 2475 mm, n 12
+  beam col 2: (132, 134) in, height 2458 mm, n 7
+  beam col 3: (325, 123) in, height 2409 mm, n 3
+  beam row A: (104, 11) in, height 2422 mm, n 11
+  beam row B: (100, 124) in, height 2438 mm, n 14
+  beam row C: (105, 239) in, height 2465 mm, n 8
+
+model 3: 157 frames, 116 labelled clicks with a 3-D point; scale 0.8928 m per model unit
+  fit residuals (horizontal, mm; median / p90 / n): beam 111 / 1548 / 27; cord 56 / 141 / 37; foot 32 / 108 / 11; top 78 / 166 / 10; wallfoot 2776 / 2790 / 3
+  floor sample z: median -5 mm, spread (p10-p90) 77 mm
+  CHECK CH01 lens: drone (6.046, 2.181, 2.335) m; calibration (6.179, 2.028, 2.352); difference 203 mm (dx -132, dy +154, dz -17), clicks 1
+  CHECK CH03 lens: drone (2.828, 3.107, 2.279) m; calibration (3.121, 3.165, 2.293); difference 299 mm (dx -293, dy -58, dz -14), clicks 1
+  CHECK CH05 lens: drone (3.766, 3.246, 2.370) m; calibration (3.621, 3.157, 2.315); difference 179 mm (dx +146, dy +88, dz +55), clicks 2
+  CHECK CH06 lens: drone (8.757, 3.096, 2.307) m; calibration (8.584, 3.265, 2.311); difference 242 mm (dx +173, dy -168, dz -4), clicks 1
+  CHECK wall top X0: height 1008 mm median over 6 clicks; along-wall profile (in: mm) -8: 999, -7: 1002, -5: 1048, -3: 1019, -1: 1013, 1: 966
+  CHECK wall top X480: height 895 mm median over 9 clicks; along-wall profile (in: mm) 7: 978, 49: 908, 101: 895, 142: 882, 175: 851, 204: 939, 213: 846, 244: 895, 535: 334
+  CHECK wall top Y240: height 851 mm median over 5 clicks; along-wall profile (in: mm) 360: 931, 476: 867, 478: 851, 627: 227, 1329: -1002
+  A2 top: (237, -4) in, height 2456 mm, n 1
+  A3 top: (358, -1) in, height 2436 mm, n 1
+  A4 top: (478, 6) in, height 2417 mm, n 2
+  B2 top: (245, 120) in, height 2497 mm, n 1
+  B3 top: (362, 121) in, height 2459 mm, n 1
+  B4 top: (463, 118) in, height 2385 mm, n 2
+  C3 top: (358, 240) in, height 2439 mm, n 1
+  C4 top: (475, 242) in, height 2297 mm, n 1
+  HOUSE_1 roof peak: (143, 119) in, height 819 mm, n 1
+  HOUSE_2 roof peak: (341, 118) in, height 743 mm, n 1
+  TOWER_2 top: (305, 6) in, height 187 mm, n 1
+  beam col 0: (67, 165) in, height 2434 mm, n 3
+  beam col 1: (132, 141) in, height 2512 mm, n 8
+  beam col 4: (442, 19) in, height 2286 mm, n 1
+  beam row A: (310, 1) in, height 2499 mm, n 2
+  beam row B: (174, 122) in, height 2531 mm, n 7
+  beam row C: (106, 199) in, height 2525 mm, n 6
+
