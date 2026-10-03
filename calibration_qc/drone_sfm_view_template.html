@@ -38,6 +38,7 @@ body { margin: 0; background: var(--night); color: var(--ink); font-family: var(
 <div class="card">
   <h1>Paddock Drone Model</h1>
   <div class="meta" id="meta"></div>
+  <div class="note" id="anch" hidden>In paddock metres, tied to the paddock by your landmark labels. Grey: design pole grid and outline; blue dots: taped camera positions; orange dots: the drone's camera positions.</div>
   <div class="note">Drone frames from inside the paddock, 1-2 m up. Floor levelled to 0, long side along x. Metres are approximate: the floor is scaled to 40 ft until surveyed points tie the model to the paddock. Drag to turn, pinch or scroll to zoom.</div>
 </div>
 <div class="bar">
@@ -61,6 +62,7 @@ body { margin: 0; background: var(--night); color: var(--ink); font-family: var(
 <script>
 const D = __DATA__;
 const $ = id => document.getElementById(id);
+if (D.anchored) $("anch").hidden = false;
 $("meta").textContent = `run ${D.run} · ${D.frames} frames · ${D.n.toLocaleString()} points shown · reprojection ${D.reproj} px`;
 function b64(s, T) { const bin = atob(s), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i); return new T(u8.buffer); }
 const mm = b64(D.pos, Int16Array), rgb = b64(D.col, Uint8Array);
@@ -89,6 +91,15 @@ scene.add(new THREE.Points(geo, mat));
 const grid = new THREE.GridHelper(16, 16, 0x3a4650, 0x1f272e); scene.add(grid);
 const pathGeo = new THREE.BufferGeometry().setFromPoints(D.path.map(p => new THREE.Vector3(p[0], p[2], -p[1])));
 const path = new THREE.Line(pathGeo, new THREE.LineBasicMaterial({ color: 0xff8a3d })); scene.add(path);
+if (D.anchored) {                                                       // design poles (grey), outline, taped (blue) and drone (orange) cameras
+  const lm = new THREE.LineBasicMaterial({ color: 0x8f9da6 });
+  for (const [x, y] of D.poles) scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x, 0, -y), new THREE.Vector3(x, 2.45, -y)]), lm));
+  const o = D.outline.concat([D.outline[0]]).map(([x, y]) => new THREE.Vector3(x, 0.01, -y));
+  scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(o), new THREE.LineBasicMaterial({ color: 0xe6ebee })));
+  const dot = (p, col) => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.06, 12, 8), new THREE.MeshBasicMaterial({ color: col })); m.position.set(p[0], p[2], -p[1]); scene.add(m); };
+  D.tape.forEach(p => dot(p, 0x5fb4ff)); D.drone_cams.forEach(p => dot(p, 0xff8a3d));
+  grid.visible = false;
+}
 const views = { top: [[0, 16, 0.01], [0, 0, 0]], side: [[0, 1.2, 12], [0, 0.8, 0]], end: [[13, 1.4, 0], [0, 0.8, 0]], free: [[8, 7, 9], [0, 0.6, 0]] };
 function go(k) { const [p, t] = views[k]; camera.position.set(...p); controls.target.set(...t); controls.update(); }
 for (const k of Object.keys(views)) $("v-" + k).addEventListener("click", () => go(k));

@@ -967,3 +967,12 @@ inches. So the bundle's camera centres are off by ~25 cm while its ground mappin
 orientation); it matters above the ground (the panos' wall tops, an animal's height), and the tape / drone
 positions can hold the centres in a refit. Heights: drone - tape -25 / +2 / +44 / +115 mm (CH04 from one piece;
 the bundle also puts CH04 12 cm above the tape).
+
+All six inside-paddock videos together (`2026-10-02_all`: 0011 / 0015, the passes looking out over the walls,
+bridge the pieces; same strict matching, 1 fps, mapping 104 min on the CPU) give ONE model of 647 of 661 frames
+(300k points, 1.02 px) plus the 09-30 high pass as its own model. The operator's labels are matched by frame name,
+so they anchored it without relabelling (`DRONE_ANCHOR_2026-10-02_all.txt`; cords 63 mm, feet 117 mm median): its
+beams lie on the design pole grid and its walls on the outline, one orientation. West wall top (30 clicks): ~1000 mm
+at both ends, 872-897 mm between y 37 and 97 in, 900-970 mm in the middle - the dip the operator saw, deeper (~10 cm)
+and further towards row A than CH01's 45 mm. View: `drone_sfm_view.py --anchored` (paddock metres, design poles,
+taped and drone camera positions drawn in).

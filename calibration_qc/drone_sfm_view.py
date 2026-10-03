@@ -4,7 +4,9 @@ long axis along x, and scaled so the floor is 40 ft long - an APPROXIMATE metric
 the model to the paddock. Writes a self-contained HTML viewer (three.js, rotate / zoom with mouse or fingers) and a
 binary PLY for desktop point-cloud software (CloudCompare, MeshLab).
 
-Usage: python drone_sfm_view.py [--name 2026-10-02] [--model 1] [--max-err 1.5]
+Usage: python drone_sfm_view.py [--name 2026-10-02] [--model 1] [--max-err 1.5] [--anchored]
+       (--anchored: the model in true paddock metres from drone_landmark_anchor.py, with the design pole grid, the
+        paddock outline, the taped camera positions and the drone's camera positions drawn in)
 Output: <qc root>\drone_sfm\<run>\paddock_3d.html, paddock_points.ply
 """
 import sys, json, base64
@@ -20,6 +22,7 @@ def opt(name, default=None):
     return args[args.index(name) + 1] if name in args else default
 RUN = qc_paths.QC_ROOT / "drone_sfm" / opt("--name", "2026-10-02")
 MODEL, MAX_ERR, FLOOR_M = opt("--model", "1"), float(opt("--max-err", "1.5")), 480 * 0.0254
+ANCH = "--anchored" in args                                             # use drone_landmark_anchor.py's paddock-frame points
 rec = pycolmap.Reconstruction(str(RUN / "sparse" / MODEL))
 pts = [p for p in rec.points3D.values() if p.error < MAX_ERR]
 P = np.array([p.xyz for p in pts]); C = np.array([p.color for p in pts], np.uint8)
@@ -55,6 +58,20 @@ s = FLOOR_M / L
 X *= s; K *= s
 m = (X[:, 2] > -0.6) & (X[:, 2] < 3.5) & (np.abs(X[:, 0]) < 9) & (np.abs(X[:, 1]) < 7)    # the paddock and its walls
 X, C = X[m], C[m]
+EXTRA = {}
+if ANCH:                                                                 # true paddock metres, centred on the paddock middle
+    from scipy.spatial.transform import Rotation
+    A = json.loads((RUN / "anchor" / "anchor.json").read_text(encoding="utf-8"))[MODEL]
+    Z = np.load(RUN / "anchor" / "paddock_points_all.npz")
+    X, C = Z[f"m{MODEL}_xyz"].astype(float), Z[f"m{MODEL}_rgb"]
+    Rm = Rotation.from_rotvec(A["rotvec"]).as_matrix()
+    K = A["scale"] * cam @ Rm.T + np.asarray(A["t"])
+    mid = np.array([240 * 0.0254, 120 * 0.0254, 0.0]); X = X - mid; K = K - mid; s = 1.0
+    poles = [[c * 120 * 0.0254 - mid[0], r * 120 * 0.0254 - mid[1]] for r in range(3) for c in range(5)]
+    tape = {"CH01": (236, 92, 2.362), "CH02": (249, 160, 2.337), "CH03": (112, 128, 2.235), "CH04": (369, 123, 2.286)}
+    EXTRA = dict(poles=poles, outline=[[-mid[0], -mid[1]], [mid[0], -mid[1]], [mid[0], mid[1]], [-mid[0], mid[1]]],
+                 tape=[[v[0] * 0.0254 - mid[0], v[1] * 0.0254 - mid[1], v[2]] for v in tape.values()],
+                 drone_cams=[[float(v[0] - mid[0]), float(v[1] - mid[1]), float(v[2])] for k, v in A["landmarks"].items() if k.endswith(" lens")])
 print(f"{len(pts)} points with error < {MAX_ERR}px, {len(X)} near the paddock; floor length {L:.2f} model units -> scale {s:.3f} m/unit")
 # PLY (levelled, approximate metres)
 Xk = X.astype(np.float32)
@@ -68,7 +85,8 @@ with open(RUN / "paddock_points.ply", "wb") as f:
 data = dict(n=len(X), pos=base64.b64encode(np.round(X * 1000).astype("<i2").tobytes()).decode(),
             col=base64.b64encode(C.astype(np.uint8).tobytes()).decode(),
             path=np.round(K, 3).tolist(), frames=len(ims), points_total=len(rec.points3D),
-            reproj=round(rec.compute_mean_reprojection_error(), 2), run=RUN.name, scale=round(s, 4))
+            reproj=round(rec.compute_mean_reprojection_error(), 2), run=RUN.name, scale=round(s, 4), anchored=ANCH, **EXTRA)
 html = (Path(__file__).resolve().parent / "drone_sfm_view_template.html").read_text(encoding="utf-8")
-(RUN / "paddock_3d.html").write_text(html.replace("__DATA__", json.dumps(data)), encoding="utf-8")
-print("->", RUN / "paddock_3d.html", "and", RUN / "paddock_points.ply")
+OUTH = RUN / ("paddock_3d_anchored.html" if ANCH else "paddock_3d.html")
+OUTH.write_text(html.replace("__DATA__", json.dumps(data)), encoding="utf-8")
+print("->", OUTH, "and", RUN / "paddock_points.ply")

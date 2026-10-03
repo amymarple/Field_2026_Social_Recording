@@ -16,6 +16,7 @@ The camera lenses, wall tops, towers and roofs are NOT in the fit: they are the 
 design 10 ft grid until the operator's tape survey replaces it.
 
 Usage: python drone_landmark_anchor.py --name 2026-10-02_anchor --labels <drone_landmarks.json> [--models 1,2,3]
+       (labels are matched by frame name, so labels made on one run's frames anchor any other run that registered them)
 Output: <run>\anchor\ANCHOR_REPORT.txt, anchor.json (transforms, landmark positions), paddock_points_<m>.ply
 """
 import sys, json, collections
@@ -87,7 +88,7 @@ for m in MODELS:
     P = np.array(list(P3.values())); n, f0, F = floor_plane(P, C)
     obs = []                                                             # (landmark, kind, model point)
     for fr in LAB["frames"]:
-        if fr["model"] != m or fr["name"] not in imgs:
+        if fr["name"] not in imgs:                                      # labels belong to frames: any model of this run that has it
             continue
         im = imgs[fr["name"]]; cam = rec.cameras[im.camera_id]; T = im.cam_from_world()
         Rm, tv = T.rotation.matrix(), T.translation; Cc = im.projection_center()
