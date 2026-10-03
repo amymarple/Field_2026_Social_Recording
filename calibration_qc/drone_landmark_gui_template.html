@@ -43,6 +43,7 @@ aside h2 { font-size: .74rem; letter-spacing: .08em; text-transform: uppercase; 
 </header>
 <div id="stage"><canvas id="cv"></canvas></div>
 <aside>
+  <div class="hint" id="task" style="color:var(--ink)" hidden></div>
   <div class="hint">Pick a landmark, then click it in the photo (a line takes several clicks). Drag a placed point to move it; Shift + arrows nudge the selected point; to fix a wrong name select the point, pick the right name and press R. Click a placed point to select it, Delete removes it. Wheel zooms, drag pans, Z resets the view, &larr; &rarr; change frame. Only label what you are sure of; two frames per landmark in the same model are enough.</div>
   <div><h2>Active</h2><div id="sel">none</div>
     <div class="row" style="margin-top:6px"><button type="button" id="rename">Rename selected to active (R)</button></div></div>
@@ -60,7 +61,7 @@ aside h2 { font-size: .74rem; letter-spacing: .08em; text-transform: uppercase; 
   <div><h2>Frames (model · frame)</h2><div class="frames" id="frames"></div></div>
 </aside>
 <script>
-const FRAMES = __FRAMES__, RUN = __RUN__, LM = __LM__, KEY = "drone_landmarks_" + RUN;
+const FRAMES = __FRAMES__, RUN = __RUN__, LM = __LM__, HINTS = __HINTS__, PAGE = __PAGE__, KEY = "drone_landmarks_" + RUN + PAGE;
 const $ = id => document.getElementById(id), cv = $("cv"), g = cv.getContext("2d");
 let fi = 0, active = null, selected = null, img = new Image(), view = { s: 1, ox: 0, oy: 0 }, drag = null;
 let labels = {}; try { labels = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { labels = {}; }
@@ -86,6 +87,13 @@ function draw() {
   g.setTransform(view.s, 0, 0, view.s, view.ox, view.oy); g.drawImage(img, 0, 0);
   g.setTransform(1, 0, 0, 1, 0, 0);
   const P = pts(); g.font = `${13 * devicePixelRatio}px "IBM Plex Mono", monospace`;
+  for (const [n, [u, v]] of Object.entries(HINTS[cur().name] || {})) {   // where the current estimate puts a landmark: a guide, never a label
+    if (P[n]) continue;
+    const x = u * view.s + view.ox, y = v * view.s + view.oy, r = Math.max(18 * devicePixelRatio, 60 * view.s);
+    g.strokeStyle = "#ffd23d"; g.lineWidth = 2 * devicePixelRatio; g.setLineDash([6 * devicePixelRatio, 5 * devicePixelRatio]);
+    g.beginPath(); g.arc(x, y, r, 0, 7); g.stroke(); g.setLineDash([]);
+    g.fillStyle = "#ffd23d"; g.fillText(n + " ?", x + r + 4, y + 4 * devicePixelRatio);
+  }
   for (const [n, val] of Object.entries(P)) {
     if (isLine(n)) {                                                     // a cord: polyline through its clicks
       const xy = val.map(([u, v]) => [u * view.s + view.ox, v * view.s + view.oy]);
@@ -172,6 +180,7 @@ function rename() {                                                     // give 
   else { P[n].splice(+i, 1); if (!P[n].length) delete P[n]; P[active] = (P[active] || []).concat([q]); selected = `${active}#${P[active].length - 1}`; }
   save(); refresh();
 }
+if (__TASK__) { $("task").textContent = __TASK__; $("task").hidden = false; }
 $("rename").onclick = rename;
 $("prev").onclick = () => load(fi - 1); $("next").onclick = () => load(fi + 1);
 $("export").onclick = () => {

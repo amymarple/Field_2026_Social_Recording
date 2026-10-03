@@ -20,21 +20,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import qc_paths                                                          # noqa: E402
 import pycolmap                                                          # noqa: E402
 
-args = sys.argv[1:]
-def opt(name, default=None):
-    return args[args.index(name) + 1] if name in args else default
-RUN = qc_paths.QC_ROOT / "drone_sfm" / opt("--name", "2026-10-02_anchor")
-MODELS, PER = opt("--models", "1,2,3").split(","), int(opt("--per-model", "10"))
-OUT = RUN / "landmark_gui"; (OUT / "frames").mkdir(parents=True, exist_ok=True)
-frames = []
-for m in MODELS:
-    rec = pycolmap.Reconstruction(str(RUN / "sparse" / m))
-    names = sorted(im.name for im in rec.images.values())
-    pick = [names[round(i * (len(names) - 1) / max(1, PER - 1))] for i in range(min(PER, len(names)))]
-    for n in dict.fromkeys(pick):
-        flat = n.replace("/", "__").replace("\\", "__")
-        shutil.copy2(RUN / "images" / n, OUT / "frames" / flat)
-        frames.append(dict(model=m, name=n, file=f"frames/{flat}"))
 POLES = [f"{r}{c}" for r in "CBA" for c in range(5)]
 LM = ([f"{p} foot" for p in POLES] + [f"{p} top" for p in POLES] + [f"CH0{i} lens" for i in range(1, 7)]
       + ["TOWER_1 top", "TOWER_1 base", "TOWER_2 top", "TOWER_2 base", "HOUSE_1 roof peak", "HOUSE_2 roof peak", "PC box top"]
@@ -42,7 +27,33 @@ LM = ([f"{p} foot" for p in POLES] + [f"{p} top" for p in POLES] + [f"CH0{i} len
       + ["wall foot X0", "wall foot X480", "wall foot Y0", "wall foot Y240"]                               # points along them
       + ["wall top X0", "wall top X480", "wall top Y0", "wall top Y240"]
       + [f"beam row {r}" for r in "ABC"] + [f"beam col {c}" for c in range(5)])   # the top frame the rig cameras hang on
-page = (Path(__file__).resolve().parent / "drone_landmark_gui_template.html").read_text(encoding="utf-8")
-(OUT / "drone_landmarks.html").write_text(page.replace("__FRAMES__", json.dumps(frames)).replace("__RUN__", json.dumps(RUN.name))
-                                         .replace("__LM__", json.dumps(LM)), encoding="utf-8")
-print(f"{len(frames)} frames from models {', '.join(MODELS)} ->", OUT / "drone_landmarks.html")
+
+
+def build(out, frames, run_name, hints=None, page_id="", task="", title=None):
+    """write the labelling page for frames (dicts model / name / file relative to out)."""
+    page = (Path(__file__).resolve().parent / "drone_landmark_gui_template.html").read_text(encoding="utf-8")
+    if title:
+        page = page.replace("Drone Landmark Labels", title)
+    page = (page.replace("__FRAMES__", json.dumps(frames)).replace("__RUN__", json.dumps(run_name)).replace("__LM__", json.dumps(LM))
+            .replace("__HINTS__", json.dumps(hints or {})).replace("__PAGE__", json.dumps(page_id)).replace("__TASK__", json.dumps(task)))
+    (out / "drone_landmarks.html").write_text(page, encoding="utf-8")
+
+
+if __name__ == "__main__":
+    args = sys.argv[1:]
+    def opt(name, default=None):
+        return args[args.index(name) + 1] if name in args else default
+    RUN = qc_paths.QC_ROOT / "drone_sfm" / opt("--name", "2026-10-02_anchor")
+    MODELS, PER = opt("--models", "1,2,3").split(","), int(opt("--per-model", "10"))
+    OUT = RUN / "landmark_gui"; (OUT / "frames").mkdir(parents=True, exist_ok=True)
+    frames = []
+    for m in MODELS:
+        rec = pycolmap.Reconstruction(str(RUN / "sparse" / m))
+        names = sorted(im.name for im in rec.images.values())
+        pick = [names[round(i * (len(names) - 1) / max(1, PER - 1))] for i in range(min(PER, len(names)))]
+        for n in dict.fromkeys(pick):
+            flat = n.replace("/", "__").replace("\\", "__")
+            shutil.copy2(RUN / "images" / n, OUT / "frames" / flat)
+            frames.append(dict(model=m, name=n, file=f"frames/{flat}"))
+    build(OUT, frames, RUN.name)
+    print(f"{len(frames)} frames from models {', '.join(MODELS)} ->", OUT / "drone_landmarks.html")

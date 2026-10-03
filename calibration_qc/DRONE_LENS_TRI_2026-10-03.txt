@@ -1,0 +1,16 @@
+LENS TRIANGULATION  run 2026-10-02_all model 1: 129 lens clicks from 2 label files; anchor scale 1.0053 m per unit, board scale x0.9878 of it
+
+camera  frames  rms px  dropped               paddock (x, y) in   z mm   sd x/y/z mm     tape (x, y) in   h mm   d_tape mm (x y z)     previous drone d mm   bundle d mm
+CH01     20      3.4   1  ( 240.1,  86.7)   2285     3/  2/  1   (  236,   92)   2362    +103  -134   -77        63                 113   rays over 157 deg
+        left out: 0016_0195 853px
+CH02     22      4.7   2  ( 250.1, 155.7)   2254     3/  1/  1   (  249,  160)   2337     +28  -110   -83        94                 184   rays over 149 deg
+        left out: 0017_0018 1233px, 0016_0195 827px
+CH03     17      6.7   0  ( 113.1, 124.6)   2187     3/  3/  2   (  112,  128)   2235     +28   -88   -48       106                 154   rays over 155 deg
+CH04     12      7.4   2  ( 375.6, 120.4)   2178     8/  4/  1   (  369,  123)   2286    +167   -67  -108       252                 319   rays over 163 deg
+        left out: 0015_0001 18px, 0016_0147 17px
+CH05     30      5.0   1  ( 143.1, 124.3)   2255     4/  2/  2                                                  118                 115   rays over 167 deg
+        left out: 0017_0018 infpx
+CH06     22      4.0   0  ( 345.4, 120.9)   2253     4/  1/  2                                                   57                 233   rays over 165 deg
+
+against the tape (CH01, CH02, CH03, CH04): common offset (+3.2, -3.9) in, -79 mm height; after it 2.5 in rms horizontal, 22 mm rms height
+  frame-free: horizontal distances between cameras, drone - tape (mm): CH01-CH02 +12, CH01-CH03 +85, CH01-CH04 +78, CH02-CH03 -5, CH02-CH04 +121, CH03-CH04 +138

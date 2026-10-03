@@ -1,0 +1,10 @@
+DRONE WALL-TOP PROFILES  run 2026-10-02_all model 1: clicks cut with the design wall planes; board scale x0.9878; datum +106 mm (taped minus triangulated lens heights, CH01, CH02, CH03, CH04)
+
+wall top X0: 32 clicks; along (in): height mm (n, sd)
+   6: 1007 (2, 3); 30: 997 (2, 1); 66: 979 (2, 0); 78: 972 (3, 4); 102: 983 (3, 4); 126: 990 (3, 5); 150: 1012 (2, 10); 162: 1004 (2, 3); 186: 1055 (2, 5); 198: 1061 (2, 26); 210: 1072 (3, 17); 234: 1103 (2, 10)
+wall top X480: 13 clicks; along (in): height mm (n, sd)
+   6: 1122 (2, 6); 138: 992 (2, 1); 210: 949 (2, 8)
+wall top Y0: 22 clicks; along (in): height mm (n, sd)
+   6: 1015 (3, 4); 54: 1036 (2, 2); 126: 1080 (2, 2); 210: 1071 (2, 17)
+wall top Y240: 29 clicks; along (in): height mm (n, sd)
+   -18: 1128 (2, 15); 78: 1089 (2, 12); 90: 1088 (2, 3); 150: 1068 (2, 3); 174: 1060 (2, 2); 366: 993 (2, 21); 426: 927 (2, 4); 474: 943 (2, 0)
