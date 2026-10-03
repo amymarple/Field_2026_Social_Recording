@@ -976,3 +976,11 @@ beams lie on the design pole grid and its walls on the outline, one orientation.
 at both ends, 872-897 mm between y 37 and 97 in, 900-970 mm in the middle - the dip the operator saw, deeper (~10 cm)
 and further towards row A than CH01's 45 mm. View: `drone_sfm_view.py --anchored` (paddock metres, design poles,
 taped and drone camera positions drawn in).
+
+The operator laid the ChArUco plate on the ground and filmed it for scale. `drone_board_scale.py` runs the
+calibration's own detector (`board_detect.detect`) on the model's frames: 23 frames decode (PTSC_0016 / 0017), all 88
+corners are triangulated from >= 3 frames and fit the printed 720 x 540 mm pattern to 1.6 mm rms - the drone model
+is locally accurate to the millimetre. Scale 993.1 mm per model unit against 1005.3 from the landmark anchor on the
+design 10 ft pole grid: the grid assumption makes the model 1.2 % too large (150 mm over 40 ft). Either the poles
+stand ~1.2 % closer than 10 ft (~118.5 in) or the model drifts along its length; the operator's tape survey of the
+pole spacing decides. Until then the board's scale is the trusted one.
