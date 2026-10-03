@@ -52,8 +52,8 @@ aside h2 { font-size: .74rem; letter-spacing: .08em; text-transform: uppercase; 
     <div class="hint">From the calibration: CH03 and CH05 near pole B1, CH01 and CH02 at B2 (CH01 on the row-A side, CH02 on the row-C side), CH06 and CH04 near B3.</div></div>
   <div><h2>Water towers, houses, PC box</h2><div class="row" id="other"></div>
     <div class="hint">Same names as in your landmark GUI (TOWER_1, TOWER_2). Top = centre of the lid, base = where it stands on the ground. These tell the two ends of the paddock apart.</div></div>
-  <div><h2>Ground cords (click several points along it)</h2><div class="row" id="cords"></div>
-    <div class="hint">The two long blue cords on the ground: Y39 runs 39 in from the row-A wall, Y201 39 in from the row-C wall. Spread 3-6 clicks along the part you can see; the ends do not matter.</div></div>
+  <div><h2>Ground lines (click several points along each)</h2><div class="row" id="cords"></div>
+    <div class="hint">Spread 3-6 clicks along the part you can see; the ends do not matter. Along the length: Y39 is 39 in from the row-A wall, Y201 39 in from the row-C wall. Across: the T cords at x 24, 96, 168, 240, 312, 384, 456 in (X240 runs under the middle poles A2-B2-C2; X24 next to the west wall), plus X60 / X420 if they were laid. Wall foot = where the wall sheet meets the ground. Label only lines you can name for sure.</div></div>
   <div><h2>Frames (model · frame)</h2><div class="frames" id="frames"></div></div>
 </aside>
 <script>
@@ -67,7 +67,7 @@ function btn(name, text) { return `<button type="button" data-lm="${name}">${tex
 $("poles").innerHTML = ["C", "B", "A"].map(r => `<span class="rl">${r}</span>` + [0, 1, 2, 3, 4].map(c =>
   `<div class="cell">${btn(`${r}${c} top`, `${r}${c} top`)}${btn(`${r}${c} foot`, `${r}${c} foot`)}</div>`).join("")).join("");
 $("cams").innerHTML = LM.filter(n => n.startsWith("CH")).map(n => btn(n, n.replace(" lens", ""))).join("");
-const isLine = n => n.startsWith("cord ");
+const isLine = n => n.startsWith("cord ") || n.startsWith("wall foot");
 $("other").innerHTML = LM.filter(n => !n.startsWith("CH") && !/^[ABC]\d /.test(n) && !isLine(n)).map(n => btn(n, n)).join("");
 $("cords").innerHTML = LM.filter(isLine).map(n => btn(n, n)).join("");
 $("frames").innerHTML = FRAMES.map((f, i) => `<button type="button" data-f="${i}">${f.model}·${f.name.split(/[\\/]/).pop().replace(/\.jpg$/i, "")}</button>`).join("");
