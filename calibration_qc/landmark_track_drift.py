@@ -25,7 +25,10 @@ error is kept (`grid` below; checked by eye on 16:35:10: the labels land on the 
 nails, and the rival +52 px solution does not). Result: CH04 did not move between 09-18 and 09-30 beyond a few px;
 landmark_drift's (-46, -26) px for CH04, and its CH03 transform (~25 px off, same corrugation lock), were wrong.
 
-Usage: python landmark_track_drift.py [--out <json>] [--times 16:35:10,16:34:40,...]
+Any later session works the same way (--b <session dir> --times ... --out ...; 2026-10-03: 09-19 -> 09-18,
+session_2026-09-19_drift.json - the 09-19 make-up plates T11/T12/T6x, CH01 moved +7.8 px / -0.10 deg overnight).
+
+Usage: python landmark_track_drift.py [--b <session>] [--out <json>] [--times 16:35:10,16:34:40,...]
 Output: <root>\qc\2026-09-30\landmark_track_drift.json (cameras: {cam: {affine_30_to_18: 2x3, ...}}) and the report
 beside it; refit_supplement.py / ball_check.py read it with --drift.
 """
@@ -48,6 +51,8 @@ S18 = Path(opt("--a", str(qc_paths.CALIB_ROOT / "session_2026-09-18_13-54-34") i
                else r"G:\calibration\session_2026-09-18_13-54-34"))
 S30 = Path(opt("--b", r"F:\calibration\session_2026-09-30_15-49-39"))
 LM = Path(opt("--landmarks", r"D:\Documents\GitHub\Field2026_Social_analysis\cv\configs\landmarks\2026c"))
+import re as _re
+DATE_B = date(*map(int, _re.search(r"(\d{4})-(\d{2})-(\d{2})", S30.name).groups()))
 TIMES = opt("--times", "16:35:10,16:34:40,16:31:30,16:27:00,16:23:00,16:15:00,15:55:00").split(",")
 OUT = Path(opt("--out", str(qc_paths.QC_ROOT / "2026-09-30" / "landmark_track_drift.json")))
 RUNS = Path("D:/Field2026_analysis_out/2026c")
@@ -125,8 +130,8 @@ for cam, via in (("CH01", None), ("CH02", None), ("CH03", None), ("CH03", "0904"
                         best = dict(r, A=A[:2].tolist())
             return best or {"A": None, "status": "no ok fit"}
     Ms = []
-    for t in (TIMES if cam != "CH01" else TIMES + [f"16:{m:02d}:00" for m in range(20, 36)]):
-        r = track(frame(S30, cam, t), date(2026, 9, 30))
+    for t in (TIMES + [f"16:{m:02d}:00" for m in range(20, 36)] if cam == "CH01" and DATE_B == date(2026, 9, 30) and "--times" not in args else TIMES):
+        r = track(frame(S30, cam, t), DATE_B)
         if r.get("A") is None:
             L.append(f"   09-30 {t}: no fit"); continue
         M = G @ np.linalg.inv(H(r["A"]))

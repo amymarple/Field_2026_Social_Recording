@@ -1050,3 +1050,16 @@ which `paddock_map.load()` now applies (RayCamera; `load(rays=None)` = 10-02b). 
 rigid objects (the plate, the houses) are exact - so the release leaves the tape's horizontal distances out
 (`--no-tape-dist`; every check moves <= 3 mm) and keeps the taped heights for the datum. Boards 39 / 80, ball 55 / 102,
 held-out cones 54 / 100, handoffs pair-weighted 45 mm (10-02b: 51), CH01|CH02 60 / 100. `RELEASE_2026-10-03.md`.
+
+**Revision b, 2026-10-03: the plates in the ray fit.** The operator: only the plate and the houses are exact. A rigid
+plate at T64 (a 09-19 make-up station) had CH01 vs CH04 at 71 mm under revision a. `refit_rays.py --boards`: every
+plate pose (64) free on z = 6 mm, its corners on the printed pattern - which is MIRRORED seen from above (y runs down
+the print; the first run forced the mirror image and was rejected) - in every camera that saw it; the 09-19 plates
+carried into the 09-18 pixels by the overnight drift measured with landmark_track_drift.py (CH01 +7.8 px, -0.10 deg;
+`session_2026-09-19_drift.json`; the bundle never applied it). Plates held out by station 32 / 62 mm (10-02b 38 / 82),
+ball 40 / 87 (rev a 55 / 102), held-out cones 45 / 77, handoffs 36 mm (rev a 45), CH01|CH04 44 / 79. That fit is now
+`ray_correction.json`; RELEASE_2026-10-03.md "Revision b". The Fable audit (results only,
+`F:\calibration\qcudit\AUDIT_FABLE_PHYSLIMIT_2026-10-03.md`): not at the physical limit but close (~40 mm median per
+pair for a rat keypoint); relief explains part of the residual - checked on the ball: the CH03 pairs (west end) lose
+10-19 mm of their variable part with the drone terrain, CH01|CH02 and CH01|CH04 do not.
+

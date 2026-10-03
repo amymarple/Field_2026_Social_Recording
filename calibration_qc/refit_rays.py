@@ -14,6 +14,14 @@ coordinates rescaled by the ground plate, drone_board_scale.py). Soft-L1, f_scal
 With the lenses triangulated over many drone frames (camera_centres 'drone_tri', drone_lens_triangulate.py) every
 pair's distance also comes from the drone (sigma 15 mm + 0.5 %) and every pair's height DIFFERENCE (sigma 20 mm; the
 drone's floor runs on the grass tops, so only the tape gives absolute heights).
+--boards puts the 09-18/19 ChArUco plates in (operator, 2026-10-03: the plate and the houses are the only exact
+references): every plate pose gets a free (x, y, theta) on z = 6 mm and its corners - the printed pattern, mirrored in y
+(its coordinates are left-handed seen from above) - must land on it in every camera that saw it (every B_STEP-th corner,
+weight B_W; 3 = 0.5 in, the plates' own shape scatter). The 09-19 make-up plates are carried to the 09-18 pixels first
+(session_2026-09-19_drift.json). Check 1 then holds plates out by station (B_FOLDS folds) and scores the plate shape.
+--ground-datum (with --boards): one vertical datum, the ground the plates lie on, which is also the drone's floor (the
+grass tops); the drone wall tops keep their own heights (no tape offset) and the tape heights enter as differences only
+- the taped heights are from the soil, ~8 cm below (the plate fit puts every camera 2-8 cm under its taped height).
 --walltop adds the first data above the ground: the operator's wall-top polylines in the cameras (analysis repo,
 2026c landmarks, as walltop_check.py) must meet the wall's design plane at the drone's wall-top height there
 (drone_walltop.py, on the tape's ground; weight WT_W); --walltop-hold <wall> leaves one wall out for the check.
@@ -24,7 +32,8 @@ wrong frames out); the west wall top cut by CH01 / CH02 / CH03 against each othe
 centres against the tape. Each check is computed the same way for the release (bundle + object-space warp).
 
 Usage: python refit_rays.py --out <dir> [--deg 3] [--sig-coef 0.03] [--no-centres] [--old-drone] [--walltop]
-                              [--walltop-hold X0] [--wt-w 0.5] [--seam-w-deg 0] [--no-tape-dist] [--folds 5]
+                              [--walltop-hold X0] [--wt-w 0.5] [--seam-w-deg 0] [--no-tape-dist] [--boards [--board-w 3]
+                              [--board-step 7] [--board-folds 4] [--ground-datum]] [--folds 5]
 Output: <out>\RAYMAP.json (coefficients, dC), REFIT_RAYS.txt
 """
 import sys, json, itertools, collections, time
@@ -45,6 +54,7 @@ rm.SEAM_W = float(opt("--seam-w-deg", "0")) * np.pi / 180      # stitch blend ba
 SIG_COEF = float(opt("--sig-coef", "0.03"))
 USE_CENTRES = "--no-centres" not in args
 FOLDS = int(opt("--folds", "5"))
+USE_BOARDS, B_W, B_STEP, B_FOLDS = "--boards" in args, float(opt("--board-w", "3")), int(opt("--board-step", "7")), int(opt("--board-folds", "4"))
 USE_WALLTOP, WT_HOLD, WT_W = "--walltop" in args, opt("--walltop-hold"), float(opt("--wt-w", "0.5"))
 WALLS = {"X0": (0, 0.0), "X480": (0, 480 * 25.4), "Y0": (1, 0.0), "Y240": (1, 240 * 25.4)}   # axis, design plane (mm)
 SIGMA_LAYOUT, CORD_W, OBS_SIGMA, CONE_Z, IN = 4.0, 0.5, 1.5, fcorr.CONE_Z, 25.4
@@ -107,7 +117,10 @@ for cam in names:
                     OBS.append((cam, u, 0.0, "y", float(k[1:]), k + "@0930", CORD_W))
 LM = Path(r"D:\Documents\GitHub\Field2026_Social_analysis\cv\configs\landmarks\2026c")
 IR2COL = {"CH01": (0.68, -0.39), "CH02": (0.90, 0.67), "CH03": (0.55, -5.60), "CH04": (0.03, 0.0)}   # 09-18 IR -> colour px
-WT = json.loads((qc_paths.QC_ROOT / "drone_sfm" / "2026-10-02_all" / "walltop_profile.json").read_text(encoding="utf-8"))["walls"]
+_WTJ = json.loads((qc_paths.QC_ROOT / "drone_sfm" / "2026-10-02_all" / "walltop_profile.json").read_text(encoding="utf-8"))
+WT = _WTJ["walls"]
+if "--ground-datum" in args:                                             # one ground for everything: the plates' / drone floor's
+    WT = {w: [[a, z - _WTJ["datum_mm"], *r] for a, z, *r in v] for w, v in WT.items()}   # (the tape's soil datum is ~8 cm lower)
 
 
 def wall_pts(c, wall, step=10):
@@ -170,6 +183,10 @@ TRI = {} if "--old-drone" in args else {c: np.array([v["x_m"], v["y_m"], v["z_m"
 DIST, HDIFF = [], []
 if TRI:                                                                  # tape heights; drone distances and height differences
     HEIGHT = {c: (TAPE[c][2], 30.0) for c in names if c in TAPE}
+    if "--ground-datum" in args:                                         # the tape's heights are from the soil: differences only
+        HEIGHT = {}
+        for a, b in itertools.combinations([c for c in names if c in TAPE], 2):
+            HDIFF.append((a, b, TAPE[a][2] - TAPE[b][2], 30.0))
     for a, b in itertools.combinations(names, 2):
         if a in TAPE and b in TAPE and "--no-tape-dist" not in args:      # a long tape run sags / bends (operator)
             DIST.append((a, b, np.hypot(*(TAPE[a][:2] - TAPE[b][:2])), 30.0))
@@ -183,6 +200,64 @@ else:
             DIST.append((a, b, np.hypot(*(TAPE[a][:2] - TAPE[b][:2])), 30.0))
         elif a in DRONE and b in DRONE:
             DIST.append((a, b, np.hypot(*(DRONE[a][:2] - DRONE[b][:2])), 60.0))
+
+
+# ---------------------------------------------------------------- the ChArUco plates (rigid; operator: the exact references)
+# every board view of 09-18/19 (the bundle's own placements, same filters as check 1); corners subsampled (index % B_STEP).
+# The printed pattern's coordinates (obj_mm) are left-handed seen from above (y runs down the print): MIRROR y.
+FLIP = np.array([1.0, -1.0])
+import fit_data as _fd
+DRIFT19 = json.loads((HERE / "session_2026-09-19_drift.json").read_text(encoding="utf-8"))["cameras"]
+
+
+def placements19():
+    """the bundle's plate views, the 09-19 make-up session carried into the 09-18 pixels (landmark_track_drift.py)."""
+    out = []
+    for p_ in _fd.all_placements():
+        d_ = DRIFT19.get(p_["cam"]) if str(p_["session"]) == "2026-09-19" else None
+        if d_:
+            A_ = np.asarray(d_["affine_30_to_18"], float); p_ = dict(p_); p_["px"] = np.asarray(p_["px"], float) @ A_[:, :2].T + A_[:, 2]
+        out.append(p_)
+    return out
+
+
+_zf = np.load(pm.FIT, allow_pickle=False)
+_DROP = {tuple(s_.split("|")[:4]) for s_ in _zf["dropped_views"]} if "dropped_views" in _zf else set()
+PB = [p_ for p_ in placements19() if not p_["bad"] and not p_["weak"] and (p_["cam"], p_["session"], p_["station"], p_["win"]) not in _DROP]
+BKEYS = sorted({(p_["session"], p_["station"], p_["win"]) for p_ in PB})
+BCAM = {c: dict(px=[], obj=[], key=[]) for c in names}
+for p_ in PB:
+    k_ = np.arange(len(p_["ids"])) % B_STEP == 0
+    BCAM[p_["cam"]]["px"].append(np.asarray(p_["px"], float)[k_]); BCAM[p_["cam"]]["obj"].append(np.asarray(p_["obj_mm"], float)[k_] * FLIP / IN)
+    BCAM[p_["cam"]]["key"] += [(p_["session"], p_["station"], p_["win"])] * int(k_.sum())
+for c in names:
+    b_ = BCAM[c]
+    b_["px"] = np.concatenate(b_["px"]) if b_["px"] else np.zeros((0, 2)); b_["obj"] = np.concatenate(b_["obj"]) if b_["obj"] else np.zeros((0, 2))
+    b_["key"] = np.array([BKEYS.index(k_) for k_ in b_["key"]], int)
+    b_["q"] = rm.base_coords(cams[c], b_["px"]) if len(b_["px"]) else np.zeros((0, 2)); b_["T"] = rm.terms(c, b_["q"]) if len(b_["q"]) else None
+
+
+def plate_init():
+    """each plate pose (x, y in, theta) from the release's mapping of its corners (rigid 2-D Procrustes, all its views)."""
+    out = np.zeros((len(BKEYS), 3))
+    for i, key in enumerate(BKEYS):
+        A_, B_ = [], []
+        for p_ in PB:
+            if (p_["session"], p_["station"], p_["win"]) == key:
+                g_ = rel[p_["cam"]].to_paddock(np.asarray(p_["px"], float), z_mm=6.0, units="in")
+                if not np.isfinite(g_).all(1).any():
+                    g_ = cams[p_["cam"]].to_paddock(np.asarray(p_["px"], float), z_mm=6.0, units="in")
+                ok_ = np.isfinite(g_).all(1); A_.append(np.asarray(p_["obj_mm"], float)[ok_] * FLIP / IN); B_.append(g_[ok_])
+        A_, B_ = np.concatenate(A_), np.concatenate(B_)
+        am, bm = A_.mean(0), B_.mean(0); U_, _, Vt_ = np.linalg.svd((B_ - bm).T @ (A_ - am))
+        R_ = U_ @ np.diag([1, np.sign(np.linalg.det(U_ @ Vt_))]) @ Vt_
+        th = np.arctan2(R_[1, 0], R_[0, 0]); out[i] = [*(bm - R_ @ am), th]
+    return out
+
+
+def plate_xy(pp, obj):
+    ct, st = np.cos(pp[:, 2]), np.sin(pp[:, 2])
+    return np.stack([pp[:, 0] + ct * obj[:, 0] - st * obj[:, 1], pp[:, 1] + st * obj[:, 0] + ct * obj[:, 1]], 1)
 
 
 def map_obs(rc, idx, q, T):
@@ -202,26 +277,33 @@ def map_obs(rc, idx, q, T):
     return X
 
 
-def unpack(x, ids):
+def unpack(x, ids, nb=0):
     o, coef, dC = 0, {}, {}
     for c in names:
         coef[c] = x[o:o + 2 * NT[c]].reshape(2, NT[c]); o += 2 * NT[c]
         dC[c] = x[o:o + 3]; o += 3
-    P = x[o:o + 2 * len(ids)].reshape(-1, 2)
-    return coef, dC, P
+    P = x[o:o + 2 * len(ids)].reshape(-1, 2); o += 2 * len(ids)
+    return coef, dC, P, x[o:o + 3 * nb].reshape(-1, 3)
 
 
-def fit(use, ids):
-    """use: boolean mask over OBS; ids: the latent cone ids. -> (RayCams, P per id, solution)"""
+def fit(use, ids, bkeys=None):
+    """use: boolean mask over OBS; ids: the latent cone ids; bkeys: plate poses in the fit (indices into BKEYS)."""
+    bkeys = (list(range(len(BKEYS))) if USE_BOARDS else []) if bkeys is None else list(bkeys)
+    bx = {k: i for i, k in enumerate(bkeys)}; nb = len(bkeys)
+    bsel = {c: np.isin(BCAM[c]["key"], bkeys) for c in names}
+    bpi = {c: np.array([bx[k] for k in BCAM[c]["key"][bsel[c]]], int) for c in names}
     jx = {j: i for i, j in enumerate(ids)}
     design = np.array([POS[j.replace("@0918", "")] for j in ids], float).reshape(-1, 2)
-    nx = sum(2 * NT[c] + 3 for c in names) + 2 * len(ids)
-    x0 = np.zeros(nx); x0[-2 * len(ids):] = design.ravel() if ids else []
+    nx = sum(2 * NT[c] + 3 for c in names) + 2 * len(ids) + 3 * nb
+    x0 = np.zeros(nx); o0 = sum(2 * NT[c] + 3 for c in names)
+    x0[o0:o0 + 2 * len(ids)] = design.ravel() if ids else []
+    if nb:
+        x0[o0 + 2 * len(ids):] = PINIT[bkeys].ravel()
     per = {c: [i for i in Q[c] if use[i]] for c in names}
     loc = {c: np.array([Q[c].index(i) for i in per[c]], int) for c in names}
 
     def resid(x):
-        coef, dC, P = unpack(x, ids)
+        coef, dC, P, PP = unpack(x, ids, nb)
         r = []
         for c in names:
             if not len(per[c]):
@@ -252,6 +334,12 @@ def fit(use, ids):
                 r.append((np.hypot(*(C[a][:2] - C[b][:2])) - d) * OBS_SIGMA / s)
             for a, b, d, s in HDIFF:
                 r.append((C[a][2] - C[b][2] - d) * OBS_SIGMA / s)
+        for c in names:                                                  # the plates: corners at z 6 mm on a rigid board
+            if nb and bsel[c].any():
+                rc = rm.RayCam(cams[c], coef[c], dC[c])
+                X = rc.to_plane_q(BCAM[c]["q"][bsel[c]], 6.0, BCAM[c]["T"][bsel[c]])
+                g = np.nan_to_num(X[:, :2] / IN, nan=1e4)
+                r += list(((g - plate_xy(PP[bpi[c]], BCAM[c]["obj"][bsel[c]])) * B_W).ravel())
         return np.array(r, float)
 
     # sparsity: a camera's parameters touch its own label rows, its prior rows and the centre rows
@@ -283,19 +371,27 @@ def fit(use, ids):
             J[row, cols[a][-3:-1]] = True; J[row, cols[b][-3:-1]] = True; row += 1
         for a, b, _, _ in HDIFF:
             J[row, cols[a][-1]] = True; J[row, cols[b][-1]] = True; row += 1
+    bcol = pcol + 2 * len(ids)
+    for c in names:
+        if nb and bsel[c].any():
+            for pi in bpi[c]:
+                for k in range(2):
+                    J[row, cols[c]] = True; J[row, bcol + 3 * pi:bcol + 3 * pi + 3] = True; row += 1
     assert row == len(r0), (row, len(r0))
     sol = least_squares(resid, x0, jac_sparsity=J, loss="soft_l1", f_scale=3.0, x_scale="jac", max_nfev=200)
-    coef, dC, P = unpack(sol.x, ids)
+    coef, dC, P, PP = unpack(sol.x, ids, nb)
     return {c: rm.RayCam(cams[c], coef[c], dC[c]) for c in names}, dict(zip(ids, P)), sol
 
 
+PINIT = plate_init() if USE_BOARDS else None
 ALL = np.ones(len(OBS), bool)
 IDS = sorted({o[5] for o in OBS if o[3] == "cone"})
 t0 = time.time()
 RC, PJ, sol = fit(ALL, IDS)
 L = [f"RAY-SPACE GROUND CORRECTION  bundle {pm.FIT} (unchanged); degree {rm.DEG}, coefficient prior {SIG_COEF}, "
      f"seam {'step' if rm.SEAM_W == 0 else f'ramp over {np.degrees(rm.SEAM_W):.0f} deg'}; "
-     f"centre constraints {(('tape heights + triangulated drone lenses' if '--no-tape-dist' in args else 'tape + triangulated drone lenses') if TRI else 'tape + drone (distances, heights)') if USE_CENTRES else 'none'}; "
+     f"{'ground datum = plates / drone floor; ' if '--ground-datum' in args else ''}centre constraints {(('tape heights + triangulated drone lenses' if '--no-tape-dist' in args else 'tape + triangulated drone lenses') if TRI else 'tape + drone (distances, heights)') if USE_CENTRES else 'none'}; "
+     f"boards {('in the fit (weight ' + str(B_W) + ', every ' + str(B_STEP) + 'th corner, ' + str(len(BKEYS)) + ' plate poses)') if USE_BOARDS else 'not in the fit'}; "
      f"wall tops {('in the fit (weight ' + str(WT_W) + (', ' + WT_HOLD + ' held out' if WT_HOLD else '') + ')') if USE_WALLTOP else 'not in the fit'}",
      f"{len(OBS)} labels ({collections.Counter(o[3] for o in OBS)}), {len(IDS)} latent cones; fit {time.time() - t0:.0f} s, "
      f"cost {sol.cost:.0f}, status {sol.status}", ""]
@@ -321,7 +417,7 @@ L.append("  heights (m): " + ", ".join(f"{c} release {cams[c].centre[2] / 1000:.
 L.append("")
 
 # ---------------------------------------------------------------- check 1: boards (two cameras on the same corner, z 6 mm)
-P = [p for p in fd.all_placements() if not p["bad"] and not p["weak"]]
+P = [p for p in placements19() if not p["bad"] and not p["weak"]]
 _z = np.load(pm.FIT, allow_pickle=False)
 DROP = {tuple(s.split("|")[:4]) for s in _z["dropped_views"]} if "dropped_views" in _z else set()
 P = [p for p in P if (p["cam"], p["session"], p["station"], p["win"]) not in DROP]
@@ -344,10 +440,44 @@ def board_check(mapfn):
 
 rel_map = lambda c, uv, z: rel[c].to_paddock(uv, z_mm=z)
 ray_map = lambda c, uv, z: RC[c].to_paddock(uv, z)
-L.append("CHECK boards (mm, median / p90 of two cameras on the same corner):")
+
+
+def shape_check(mapfn, views):
+    """per view: rms of the mapped corners about the best rigid 2-D fit of the printed plate (mm) - scale and shape."""
+    out = []
+    for p_ in views:
+        g_ = mapfn(p_["cam"], np.asarray(p_["px"], float), 6.0); ok_ = np.isfinite(g_).all(1)
+        if ok_.sum() < 8:
+            continue
+        A_, B_ = np.asarray(p_["obj_mm"], float)[ok_] * FLIP, g_[ok_]
+        am, bm = A_.mean(0), B_.mean(0); U_, _, Vt_ = np.linalg.svd((B_ - bm).T @ (A_ - am))
+        R_ = U_ @ np.diag([1, np.sign(np.linalg.det(U_ @ Vt_))]) @ Vt_
+        out.append(np.sqrt(((B_ - bm - (A_ - am) @ R_.T) ** 2).sum(1).mean()))
+    return np.array(out)
+
+
+L.append("CHECK boards (mm, median / p90 of two cameras on the same corner)" + (" - boards IN the fit:" if USE_BOARDS else ":"))
 for nm, f in (("release", rel_map), ("ray fit", ray_map)):
     a, d = board_check(f)
     L.append(f"  {nm:8s} all {np.median(a):.0f} / {np.percentile(a, 90):.0f} (n {len(a)}); " + ", ".join(f"{k} {np.median(v):.0f}" for k, v in sorted(d.items()) if len(v) >= 20))
+for nm, f in (("release", rel_map), ("ray fit", ray_map)):
+    sc = shape_check(f, P)
+    L.append(f"  plate shape, rms about the rigid printed pattern ({nm}): median {np.median(sc):.1f} mm, p90 {np.percentile(sc, 90):.1f} (n {len(sc)} views)")
+if USE_BOARDS and B_FOLDS > 1:                                           # honest version: plates held out by station
+    stations = sorted({k[1] for k in BKEYS}); rngb = np.random.default_rng(1); permb = rngb.permutation(stations)
+    pa, ps, pr = [], [], []
+    for k in range(B_FOLDS):
+        hold = set(permb[k::B_FOLDS]); keep = [i for i, key in enumerate(BKEYS) if key[1] not in hold]
+        RCb, _, _ = fit(ALL, IDS, keep)
+        Ph = [p_ for p_ in P if p_["station"] in hold]
+        P_save = P; P = Ph
+        a_, _ = board_check(lambda c, uv, z: RCb[c].to_paddock(uv, z)); pa.append(a_)
+        a2, _ = board_check(rel_map); pr.append(a2)
+        P = P_save
+        ps.append(shape_check(lambda c, uv, z: RCb[c].to_paddock(uv, z), Ph))
+    pa, pr, ps = np.concatenate(pa), np.concatenate(pr), np.concatenate(ps)
+    L.append(f"  HELD OUT by station ({B_FOLDS} folds): ray fit {np.median(pa):.0f} / {np.percentile(pa, 90):.0f} (n {len(pa)}), "
+             f"release on the same corners {np.median(pr):.0f} / {np.percentile(pr, 90):.0f}; held-out plate shape median {np.median(ps):.1f} mm, p90 {np.percentile(ps, 90):.1f}")
 
 # ---------------------------------------------------------------- check 2: the reviewed 20 Hz ball at 105 mm
 TR = qc_paths.QC_ROOT / "2026-09-30" / "ball" / "track20"
