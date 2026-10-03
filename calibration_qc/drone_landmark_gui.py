@@ -39,7 +39,8 @@ POLES = [f"{r}{c}" for r in "CBA" for c in range(5)]
 LM = ([f"{p} foot" for p in POLES] + [f"{p} top" for p in POLES] + [f"CH0{i} lens" for i in range(1, 7)]
       + ["TOWER_1 top", "TOWER_1 base", "TOWER_2 top", "TOWER_2 base", "HOUSE_1 roof peak", "HOUSE_2 roof peak", "PC box top"]
       + ["cord Y39", "cord Y201"] + [f"cord X{x}" for x in (24, 96, 168, 240, 312, 384, 456, 60, 420)]   # lines: any number of
-      + ["wall foot X0", "wall foot X480", "wall foot Y0", "wall foot Y240"])                              # points along them
+      + ["wall foot X0", "wall foot X480", "wall foot Y0", "wall foot Y240"]                               # points along them
+      + ["wall top X0", "wall top X480", "wall top Y0", "wall top Y240"])
 page = (Path(__file__).resolve().parent / "drone_landmark_gui_template.html").read_text(encoding="utf-8")
 (OUT / "drone_landmarks.html").write_text(page.replace("__FRAMES__", json.dumps(frames)).replace("__RUN__", json.dumps(RUN.name))
                                          .replace("__LM__", json.dumps(LM)), encoding="utf-8")
