@@ -1046,5 +1046,7 @@ unchanged; the candidate is opt-in.
 **Promoted 2026-10-03** (operator: "D可以"; asked whether the seam is blended): the hard switch between the lens halves
 left a 24-26 cm fold at the stitch seam; `raymap.SEAM_W` blends the halves linearly over a band instead (1-10 deg all
 score the same within 1 mm; 3 deg taken; `refit_rays.py --seam-w-deg`). That fit is the release, `ray_correction.json`,
-which `paddock_map.load()` now applies (RayCamera; `load(rays=None)` = 10-02b). Boards 39 / 80, ball 56 / 102, held-out
-cones 55 / 99, handoffs pair-weighted 46 mm (10-02b: 51), CH01|CH02 59 / 98. `RELEASE_2026-10-03.md`.
+which `paddock_map.load()` now applies (RayCamera; `load(rays=None)` = 10-02b). The operator: a long tape run sags, only
+rigid objects (the plate, the houses) are exact - so the release leaves the tape's horizontal distances out
+(`--no-tape-dist`; every check moves <= 3 mm) and keeps the taped heights for the datum. Boards 39 / 80, ball 55 / 102,
+held-out cones 54 / 100, handoffs pair-weighted 45 mm (10-02b: 51), CH01|CH02 60 / 100. `RELEASE_2026-10-03.md`.

@@ -24,7 +24,7 @@ wrong frames out); the west wall top cut by CH01 / CH02 / CH03 against each othe
 centres against the tape. Each check is computed the same way for the release (bundle + object-space warp).
 
 Usage: python refit_rays.py --out <dir> [--deg 3] [--sig-coef 0.03] [--no-centres] [--old-drone] [--walltop]
-                              [--walltop-hold X0] [--wt-w 0.5] [--seam-w-deg 0] [--folds 5]
+                              [--walltop-hold X0] [--wt-w 0.5] [--seam-w-deg 0] [--no-tape-dist] [--folds 5]
 Output: <out>\RAYMAP.json (coefficients, dC), REFIT_RAYS.txt
 """
 import sys, json, itertools, collections, time
@@ -171,7 +171,7 @@ DIST, HDIFF = [], []
 if TRI:                                                                  # tape heights; drone distances and height differences
     HEIGHT = {c: (TAPE[c][2], 30.0) for c in names if c in TAPE}
     for a, b in itertools.combinations(names, 2):
-        if a in TAPE and b in TAPE:
+        if a in TAPE and b in TAPE and "--no-tape-dist" not in args:      # a long tape run sags / bends (operator)
             DIST.append((a, b, np.hypot(*(TAPE[a][:2] - TAPE[b][:2])), 30.0))
         if a in TRI and b in TRI:
             d = np.hypot(*(TRI[a][:2] - TRI[b][:2])); DIST.append((a, b, d, 15.0 + 0.005 * d))
@@ -295,7 +295,7 @@ t0 = time.time()
 RC, PJ, sol = fit(ALL, IDS)
 L = [f"RAY-SPACE GROUND CORRECTION  bundle {pm.FIT} (unchanged); degree {rm.DEG}, coefficient prior {SIG_COEF}, "
      f"seam {'step' if rm.SEAM_W == 0 else f'ramp over {np.degrees(rm.SEAM_W):.0f} deg'}; "
-     f"centre constraints {('tape + triangulated drone lenses' if TRI else 'tape + drone (distances, heights)') if USE_CENTRES else 'none'}; "
+     f"centre constraints {(('tape heights + triangulated drone lenses' if '--no-tape-dist' in args else 'tape + triangulated drone lenses') if TRI else 'tape + drone (distances, heights)') if USE_CENTRES else 'none'}; "
      f"wall tops {('in the fit (weight ' + str(WT_W) + (', ' + WT_HOLD + ' held out' if WT_HOLD else '') + ')') if USE_WALLTOP else 'not in the fit'}",
      f"{len(OBS)} labels ({collections.Counter(o[3] for o in OBS)}), {len(IDS)} latent cones; fit {time.time() - t0:.0f} s, "
      f"cost {sol.cost:.0f}, status {sol.status}", ""]
@@ -312,14 +312,11 @@ for c in names:
         lab_res[(c, kind)].append(e)
 L.append("label residuals (in, median / p90): " + "; ".join(f"{c} {k} {np.median(v):.1f}/{np.percentile(v, 90):.1f}" for (c, k), v in sorted(lab_res.items())))
 L.append("camera centres (in, tape-frame-free): " + "; ".join(f"{c} dC ({RC[c].dC[0] / IN:+.1f}, {RC[c].dC[1] / IN:+.1f}, {RC[c].dC[2] / IN:+.1f})" for c in names))
-for a, b, d, s in DIST:
-    if a in TAPE and b in TAPE:
-        L.append(f"  distance {a}-{b}: tape {d / IN:.1f} in; release {np.hypot(*(cams[a].centre[:2] - cams[b].centre[:2])) / IN:.1f}; "
-                 f"ray fit {np.hypot(*(RC[a].centre[:2] - RC[b].centre[:2])) / IN:.1f}")
-for a, b, d, s in DIST:
-    if a in TRI and b in TRI and not (a in TAPE and b in TAPE):
-        L.append(f"  distance {a}-{b}: drone {d / IN:.1f} in; release {np.hypot(*(cams[a].centre[:2] - cams[b].centre[:2])) / IN:.1f}; "
-                 f"ray fit {np.hypot(*(RC[a].centre[:2] - RC[b].centre[:2])) / IN:.1f}")
+for a, b, d, s in DIST:                                                  # sigma 30 = a tape pair, otherwise the drone
+    L.append(f"  distance {a}-{b}: {'tape' if s == 30.0 else 'drone'} {d / IN:.1f} in"
+             + (f" (tape {np.hypot(*(TAPE[a][:2] - TAPE[b][:2])) / IN:.1f}, not in the fit)" if s != 30.0 and a in TAPE and b in TAPE
+                and "--no-tape-dist" in args else "")
+             + f"; release {np.hypot(*(cams[a].centre[:2] - cams[b].centre[:2])) / IN:.1f}; ray fit {np.hypot(*(RC[a].centre[:2] - RC[b].centre[:2])) / IN:.1f}")
 L.append("  heights (m): " + ", ".join(f"{c} release {cams[c].centre[2] / 1000:.3f} fit {RC[c].centre[2] / 1000:.3f} target {HEIGHT[c][0] / 1000:.3f}" for c in names if c in HEIGHT))
 L.append("")
 

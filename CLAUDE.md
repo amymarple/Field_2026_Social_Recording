@@ -272,8 +272,10 @@ Two Python trees of different vintage:
     points (bundle unchanged; boards between cameras 37 / 86 mm, was 71 / 153) - `calibration_qc/RELEASE_2026-10-02.md`
     has the evidence and the open points; `ball_check.py` scores the ball sweep as a stand-in rat.
     **2026-10-03 (current):** `paddock_map.load()` applies `ray_correction.json` - a ray-space correction (`raymap.py`,
-    `refit_rays.py`) with camera centres from the tape and drone, drone wall tops, sha-bound to the fit;
-    `load(rays=None)` gives 10-02b. Handoff jumps 51 -> 46 mm, CH01|CH02 93 -> 59; `calibration_qc/RELEASE_2026-10-03.md`.
+    `refit_rays.py`) with camera centres from the drone (plate scale) and taped heights, drone wall tops, sha-bound to
+    the fit; `load(rays=None)` gives 10-02b. Handoff jumps 51 -> 45 mm, CH01|CH02 93 -> 60;
+    `calibration_qc/RELEASE_2026-10-03.md`. Only rigid objects are exact references (the ChArUco plate, the houses);
+    cone / cord positions and long tape runs are not (operator, 2026-10-03).
   - **Use it anywhere** (numpy/scipy/cv2 only, falls back to the repo copy when `E:` is absent):
     `sys.path.insert(0, "<repo>/calibration_qc"); from paddock_map import load; cams = load();
     cams["CH01"].to_paddock((u, v), z_mm=0, units="in")`. `to_paddock` returns NaN outside the
