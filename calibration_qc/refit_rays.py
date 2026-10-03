@@ -33,7 +33,7 @@ centres against the tape. Each check is computed the same way for the release (b
 
 Usage: python refit_rays.py --out <dir> [--deg 3] [--sig-coef 0.03] [--no-centres] [--old-drone] [--walltop]
                               [--walltop-hold X0] [--wt-w 0.5] [--seam-w-deg 0] [--no-tape-dist] [--boards [--board-w 3]
-                              [--board-step 7] [--board-folds 4] [--ground-datum]] [--folds 5]
+                              [--board-step 7] [--board-folds 4] [--ground-datum]] [--drone-scale plate|anchor] [--height-source tape|drone] [--folds 5]
 Output: <out>\RAYMAP.json (coefficients, dC), REFIT_RAYS.txt
 """
 import sys, json, itertools, collections, time
@@ -119,6 +119,10 @@ LM = Path(r"D:\Documents\GitHub\Field2026_Social_analysis\cv\configs\landmarks\2
 IR2COL = {"CH01": (0.68, -0.39), "CH02": (0.90, 0.67), "CH03": (0.55, -5.60), "CH04": (0.03, 0.0)}   # 09-18 IR -> colour px
 _WTJ = json.loads((qc_paths.QC_ROOT / "drone_sfm" / "2026-10-02_all" / "walltop_profile.json").read_text(encoding="utf-8"))
 WT = _WTJ["walls"]
+if opt("--drone-scale", "plate") == "anchor":                            # wall tops back to the anchor scale and its own datum
+    _cc = json.loads((qc_paths.QC_ROOT / "camera_centres_2026-10-03.json").read_text(encoding="utf-8"))
+    _dat = 1000 * np.mean([v["h_m"] - _cc["drone_tri"][c]["z_m"] for c, v in _cc["tape"].items() if c in _cc["drone_tri"]])
+    WT = {w: [[a, (z - _WTJ["datum_mm"]) / _WTJ["k_board"] + _dat, *r] for a, z, *r in v] for w, v in WT.items()}
 if "--ground-datum" in args:                                             # one ground for everything: the plates' / drone floor's
     WT = {w: [[a, z - _WTJ["datum_mm"], *r] for a, z, *r in v] for w, v in WT.items()}   # (the tape's soil datum is ~8 cm lower)
 
@@ -177,12 +181,16 @@ cc = json.loads((qc_paths.QC_ROOT / "camera_centres_2026-10-03.json").read_text(
 bs = json.loads((qc_paths.QC_ROOT / "drone_sfm" / "2026-10-02_all" / "board_scale.json").read_text(encoding="utf-8"))
 an = json.loads((qc_paths.QC_ROOT / "drone_sfm" / "2026-10-02_all" / "anchor" / "anchor.json").read_text(encoding="utf-8"))["1"]
 k_drone = bs["mm_per_unit"] / (1000 * an["scale"])                      # drone anchor metres -> board-scaled metres
+if opt("--drone-scale", "plate") == "anchor":                            # the operator's pole tape (2026-10-03): rows A / C 480.25 /
+    k_drone = 1.0                                                        # 480.0 in = the design grid; the plate's scale is local
 TAPE = {c: np.array([v["x_in"] * IN, v["y_in"] * IN, v["h_m"] * 1000]) for c, v in cc["tape"].items()}
 DRONE = {c: np.array([v["x_m"], v["y_m"], v["z_m"]]) * 1000 * k_drone for c, v in cc["drone"].items()}
 TRI = {} if "--old-drone" in args else {c: np.array([v["x_m"], v["y_m"], v["z_m"]]) * 1000 * k_drone for c, v in cc.get("drone_tri", {}).items()}
 DIST, HDIFF = [], []
 if TRI:                                                                  # tape heights; drone distances and height differences
     HEIGHT = {c: (TAPE[c][2], 30.0) for c in names if c in TAPE}
+    if opt("--height-source", "tape") == "drone":                        # operator: the cameras cannot be taped - the drone's lens
+        HEIGHT = {c: (TRI[c][2], 40.0) for c in names if c in TRI}       # heights (its floor = the grass tops, a few cm above the plates)
     if "--ground-datum" in args:                                         # the tape's heights are from the soil: differences only
         HEIGHT = {}
         for a, b in itertools.combinations([c for c in names if c in TAPE], 2):
@@ -390,7 +398,7 @@ t0 = time.time()
 RC, PJ, sol = fit(ALL, IDS)
 L = [f"RAY-SPACE GROUND CORRECTION  bundle {pm.FIT} (unchanged); degree {rm.DEG}, coefficient prior {SIG_COEF}, "
      f"seam {'step' if rm.SEAM_W == 0 else f'ramp over {np.degrees(rm.SEAM_W):.0f} deg'}; "
-     f"{'ground datum = plates / drone floor; ' if '--ground-datum' in args else ''}centre constraints {(('tape heights + triangulated drone lenses' if '--no-tape-dist' in args else 'tape + triangulated drone lenses') if TRI else 'tape + drone (distances, heights)') if USE_CENTRES else 'none'}; "
+     f"{'ground datum = plates / drone floor; ' if '--ground-datum' in args else ''}drone scale {opt('--drone-scale', 'plate')}; heights {opt('--height-source', 'tape')}; centre constraints {(('triangulated drone lenses only (distances, heights, height differences)' if opt('--height-source', 'tape') == 'drone' and '--no-tape-dist' in args else 'tape heights + triangulated drone lenses' if '--no-tape-dist' in args else 'tape + triangulated drone lenses') if TRI else 'tape + drone (distances, heights)') if USE_CENTRES else 'none'}; "
      f"boards {('in the fit (weight ' + str(B_W) + ', every ' + str(B_STEP) + 'th corner, ' + str(len(BKEYS)) + ' plate poses)') if USE_BOARDS else 'not in the fit'}; "
      f"wall tops {('in the fit (weight ' + str(WT_W) + (', ' + WT_HOLD + ' held out' if WT_HOLD else '') + ')') if USE_WALLTOP else 'not in the fit'}",
      f"{len(OBS)} labels ({collections.Counter(o[3] for o in OBS)}), {len(IDS)} latent cones; fit {time.time() - t0:.0f} s, "

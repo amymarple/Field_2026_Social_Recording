@@ -1063,3 +1063,12 @@ ball 40 / 87 (rev a 55 / 102), held-out cones 45 / 77, handoffs 36 mm (rev a 45)
 pair for a rat keypoint); relief explains part of the residual - checked on the ball: the CH03 pairs (west end) lose
 10-19 mm of their variable part with the drone terrain, CH01|CH02 and CH01|CH04 do not.
 
+**Revision c, 2026-10-03.** The operator's pole tape (centre to centre; rows A / C 480.25 / 480.0 in) supports the
+design-grid scale of the drone model, not the plate's (1.2 % lower; local) -> drone data at the anchor scale; camera
+centres from the drone only (the cameras cannot be taped). Checks equal to rev b within 1-3 mm. `house_check.py`: the
+two houses as rigid models from the survey; the operator's edge labels from 3 cameras each agree on each house's
+position to 36-39 mm at 60-88 cm height, roof-edge rays within 1-36 mm of the rigid model, the soil 67 / 90 mm under
+the calibration's ground. Ground tilt against gravity from the drone's gimbal-level frames: +14.6 mm/m along x,
++34.6 mm/m along y (east and row-C side high; operator confirms) - the calibration frame is the ground itself, so it
+does not enter the mapping. `survey_2026-10-03.json` holds the survey.
+
