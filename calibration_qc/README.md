@@ -942,3 +942,28 @@ registered 404 of 414 frames from PTSC_0012 / 0014 / 0016 / 0017 into one model:
 reprojection error, one camera (f 1473 px at 1920 wide, i.e. 66 deg across; k1 0.075). Seen against its own ground
 plane the paddock floor, the wall tops (the orange flagging) and the top frame stand out; its scale and orientation
 are arbitrary until known points tie it to the paddock (`<qc root>\drone_sfm6-10-02\`).
+
+### The drone puts the rig cameras where the tape does (2026-10-03)
+
+With all six inside-paddock videos the first model glued two inconsistent halves together (the paddock looks the
+same turned 180 deg: four alike walls, a regular pole grid, alike cones; frames from 1-2 m see little of it);
+stricter matching (min 40 inliers, abs-pose 60) splits it into consistent pieces instead (`2026-10-02_anchor`:
+the 09-30 high pass, 120 frames; two 10-02 pieces, 231 and 157). The operator labelled landmarks in 21 frames
+(`drone_landmark_gui.py`, `session_2026-10-02_drone_landmarks.json`: pole feet / tops, cords, wall feet / tops,
+beams, towers, roofs, camera lenses) and `drone_landmark_anchor.py` moved each piece into the paddock frame on the
+pole grid, cords, wall feet and beams only (`DRONE_ANCHOR_2026-10-02.txt`; cords fit to 5-7 cm, feet 3-15 cm).
+Held out, the camera lenses against the operator's taped positions (CALIBRATION_REPORT_2026-09-24_rev2.md 4):
+
+| camera | drone (x, y) in | tape (x, y) in | release bundle (x, y) in |
+|---|---|---|---|
+| CH01 | (239, 85) | (236, 92) | (243, 80) |
+| CH02 | (249, 157) | (249, 160) | (245, 159) |
+| CH03 | (112, 123) | (112, 128) | (123, 125) |
+| CH04 | (372, 118) | (369, 123) | (361, 126) |
+
+Drone minus tape: a common (+1.6, -5.0) in and then 2.0 in rms; bundle minus tape: 9.7 in rms after its common
+shift (CH03 +11 in in x, CH04 -8, CH01 +7 / -12). Three independently anchored pieces agree on each camera to a few
+inches. So the bundle's camera centres are off by ~25 cm while its ground mapping holds (position traded against
+orientation); it matters above the ground (the panos' wall tops, an animal's height), and the tape / drone
+positions can hold the centres in a refit. Heights: drone - tape -25 / +2 / +44 / +115 mm (CH04 from one piece;
+the bundle also puts CH04 12 cm above the tape).
