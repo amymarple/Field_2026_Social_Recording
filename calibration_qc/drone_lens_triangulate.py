@@ -8,7 +8,10 @@ a lens that was not the one meant). The spread comes from a bootstrap over frame
 paddock frame with the landmark anchor (design pole grid); positions are also given with the ChArUco plate's scale
 (drone_board_scale.py) applied about the anchor's centre.
 
-Usage: python drone_lens_triangulate.py --name 2026-10-02_all [--model 1] [--labels a.json,b.json] [--update]
+--sparse reads a model folder with extra registered frames (drone_register_frames.py: the CH04 close-ups in 1_ch04,
+same coordinates as model 1, whose anchor applies).
+
+Usage: python drone_lens_triangulate.py --name 2026-10-02_all [--model 1] [--sparse 1_ch04] [--labels a.json,b.json] [--update]
 Output: <run>\lens_tri.json, LENS_TRI.txt (+ with --update: a 'drone_tri' entry in camera_centres_2026-10-03.json)
 """
 import sys, json
@@ -25,11 +28,13 @@ args = sys.argv[1:]
 def opt(name, default=None):
     return args[args.index(name) + 1] if name in args else default
 RUN = qc_paths.QC_ROOT / "drone_sfm" / opt("--name", "2026-10-02_all")
-MODEL = opt("--model", "1")
+MODEL, SPARSE = opt("--model", "1"), opt("--sparse", opt("--model", "1"))
 LABELS = opt("--labels", ",".join([str(HERE / "session_2026-10-02_drone_landmarks.json"),
-                                    str(RUN / "landmark_gui_cams" / "drone_landmarks_cams.json")])).split(",")
+                                    str(RUN / "landmark_gui_cams" / "drone_landmarks_cams.json"),
+                                    str(RUN / "landmark_gui_ch04" / "drone_landmarks_ch04.json")])).split(",")
+LABELS = [x for x in LABELS if Path(x).exists()]
 IN = 0.0254
-rec = pycolmap.Reconstruction(str(RUN / "sparse" / MODEL))
+rec = pycolmap.Reconstruction(str(RUN / "sparse" / SPARSE))
 imgs = {im.name: im for im in rec.images.values()}
 A = json.loads((RUN / "anchor" / "anchor.json").read_text(encoding="utf-8"))[MODEL]
 s, Rm, t = A["scale"], Rotation.from_rotvec(A["rotvec"]).as_matrix(), np.asarray(A["t"])
