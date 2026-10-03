@@ -43,7 +43,7 @@ aside h2 { font-size: .74rem; letter-spacing: .08em; text-transform: uppercase; 
 </header>
 <div id="stage"><canvas id="cv"></canvas></div>
 <aside>
-  <div class="hint">Pick a landmark, then click it in the photo. Click a placed point to select it, Delete removes it. Wheel zooms, drag pans, Z resets the view, &larr; &rarr; change frame. Only label what you are sure of; two frames per landmark in the same model are enough.</div>
+  <div class="hint">Pick a landmark, then click it in the photo (a cord takes several clicks). Click a placed point to select it, Delete removes it. Wheel zooms, drag pans, Z resets the view, &larr; &rarr; change frame. Only label what you are sure of; two frames per landmark in the same model are enough.</div>
   <div><h2>Active</h2><div id="sel">none</div></div>
   <div><h2>Poles: foot (ground) / top (frame)</h2>
     <div class="grid" id="poles"></div>
@@ -52,6 +52,8 @@ aside h2 { font-size: .74rem; letter-spacing: .08em; text-transform: uppercase; 
     <div class="hint">From the calibration: CH03 and CH05 near pole B1, CH01 and CH02 at B2 (CH01 on the row-A side, CH02 on the row-C side), CH06 and CH04 near B3.</div></div>
   <div><h2>Water towers, houses, PC box</h2><div class="row" id="other"></div>
     <div class="hint">Same names as in your landmark GUI (TOWER_1, TOWER_2). Top = centre of the lid, base = where it stands on the ground. These tell the two ends of the paddock apart.</div></div>
+  <div><h2>Ground cords (click several points along it)</h2><div class="row" id="cords"></div>
+    <div class="hint">The two long blue cords on the ground: Y39 runs 39 in from the row-A wall, Y201 39 in from the row-C wall. Spread 3-6 clicks along the part you can see; the ends do not matter.</div></div>
   <div><h2>Frames (model · frame)</h2><div class="frames" id="frames"></div></div>
 </aside>
 <script>
@@ -65,7 +67,9 @@ function btn(name, text) { return `<button type="button" data-lm="${name}">${tex
 $("poles").innerHTML = ["C", "B", "A"].map(r => `<span class="rl">${r}</span>` + [0, 1, 2, 3, 4].map(c =>
   `<div class="cell">${btn(`${r}${c} top`, `${r}${c} top`)}${btn(`${r}${c} foot`, `${r}${c} foot`)}</div>`).join("")).join("");
 $("cams").innerHTML = LM.filter(n => n.startsWith("CH")).map(n => btn(n, n.replace(" lens", ""))).join("");
-$("other").innerHTML = LM.filter(n => !n.startsWith("CH") && !/^[ABC]\d /.test(n)).map(n => btn(n, n)).join("");
+const isLine = n => n.startsWith("cord ");
+$("other").innerHTML = LM.filter(n => !n.startsWith("CH") && !/^[ABC]\d /.test(n) && !isLine(n)).map(n => btn(n, n)).join("");
+$("cords").innerHTML = LM.filter(isLine).map(n => btn(n, n)).join("");
 $("frames").innerHTML = FRAMES.map((f, i) => `<button type="button" data-f="${i}">${f.model}·${f.name.split(/[\\/]/).pop().replace(/\.jpg$/i, "")}</button>`).join("");
 function fit() { const r = cv.getBoundingClientRect(); cv.width = r.width * devicePixelRatio; cv.height = r.height * devicePixelRatio;
   if (img.naturalWidth) { const s = Math.min(cv.width / img.naturalWidth, cv.height / img.naturalHeight); view = { s, ox: (cv.width - img.naturalWidth * s) / 2, oy: (cv.height - img.naturalHeight * s) / 2 }; } draw(); }
@@ -78,7 +82,16 @@ function draw() {
   g.setTransform(view.s, 0, 0, view.s, view.ox, view.oy); g.drawImage(img, 0, 0);
   g.setTransform(1, 0, 0, 1, 0, 0);
   const P = pts(); g.font = `${13 * devicePixelRatio}px "IBM Plex Mono", monospace`;
-  for (const [n, [u, v]] of Object.entries(P)) {
+  for (const [n, val] of Object.entries(P)) {
+    if (isLine(n)) {                                                     // a cord: polyline through its clicks
+      const xy = val.map(([u, v]) => [u * view.s + view.ox, v * view.s + view.oy]);
+      g.strokeStyle = "#5fb4ff"; g.lineWidth = 2 * devicePixelRatio; g.beginPath(); xy.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.stroke();
+      xy.forEach(([x, y], i) => { const sel = selected === `${n}#${i}`; g.fillStyle = sel ? "#ff8a3d" : "#5fb4ff"; g.beginPath(); g.arc(x, y, (sel ? 7 : 5) * devicePixelRatio, 0, 7); g.fill(); });
+      if (xy.length) { g.fillStyle = "rgba(0,0,0,.65)"; const w = g.measureText(n).width; g.fillRect(xy[0][0] + 10, xy[0][1] - 16 * devicePixelRatio, w + 8, 20 * devicePixelRatio);
+        g.fillStyle = "#5fb4ff"; g.fillText(n, xy[0][0] + 14, xy[0][1] - 1 * devicePixelRatio); }
+      continue;
+    }
+    const [u, v] = val;
     const x = u * view.s + view.ox, y = v * view.s + view.oy, sel = n === selected, r = 9 * devicePixelRatio;
     g.strokeStyle = sel ? "#ff8a3d" : "#4cc48a"; g.lineWidth = 2 * devicePixelRatio;
     g.beginPath(); g.arc(x, y, r, 0, 7); g.moveTo(x - r * 1.6, y); g.lineTo(x + r * 1.6, y); g.moveTo(x, y - r * 1.6); g.lineTo(x, y + r * 1.6); g.stroke();
@@ -108,17 +121,26 @@ window.addEventListener("mousemove", e => { if (!drag) return; const [, , x, y] 
 window.addEventListener("mouseup", e => {
   if (!drag) return; const moved = drag.moved; drag = null; if (moved || e.target !== cv) return;
   const [u, v] = toImg(e), P = pts();
-  const hit = Object.entries(P).find(([n, [pu, pv]]) => Math.hypot((pu - u) * view.s, (pv - v) * view.s) < 12 * devicePixelRatio);
-  if (hit) { selected = hit[0]; refresh(); return; }
+  const near = ([pu, pv]) => Math.hypot((pu - u) * view.s, (pv - v) * view.s) < 12 * devicePixelRatio;
+  for (const [n, val] of Object.entries(P)) {
+    if (isLine(n)) { const i = val.findIndex(near); if (i >= 0) { selected = `${n}#${i}`; refresh(); return; } }
+    else if (near(val)) { selected = n; refresh(); return; }
+  }
   if (!active) { $("sel").textContent = "pick a landmark on the right first"; return; }
   if (!isFinite(u) || !isFinite(v)) { $("sel").textContent = "the photo has no size yet - resize the window and click again"; return; }
-  P[active] = [Math.round(u * 10) / 10, Math.round(v * 10) / 10]; selected = active; save(); refresh();
+  const q = [Math.round(u * 10) / 10, Math.round(v * 10) / 10];
+  if (isLine(active)) { P[active] = (P[active] || []).concat([q]); selected = `${active}#${P[active].length - 1}`; }
+  else { P[active] = q; selected = active; }
+  save(); refresh();
 });
 cv.addEventListener("wheel", e => { e.preventDefault(); const [, , x, y] = toImg(e), k = Math.exp(-e.deltaY * 0.0015);
   view.ox = x - (x - view.ox) * k; view.oy = y - (y - view.oy) * k; view.s *= k; draw(); }, { passive: false });
 document.addEventListener("keydown", e => {
   if (e.key === "ArrowRight") load(fi + 1); else if (e.key === "ArrowLeft") load(fi - 1);
-  else if ((e.key === "Delete" || e.key === "Backspace") && selected) { delete pts()[selected]; selected = null; save(); refresh(); }
+  else if ((e.key === "Delete" || e.key === "Backspace") && selected) {
+    const P = pts(), [n, i] = selected.split("#");
+    if (i !== undefined) { P[n].splice(+i, 1); if (!P[n].length) delete P[n]; } else delete P[n];
+    selected = null; save(); refresh(); }
   else if (e.key === "Escape") { active = null; selected = null; refresh(); } else if (e.key === "z" || e.key === "Z") fit();
 });
 $("prev").onclick = () => load(fi - 1); $("next").onclick = () => load(fi + 1);

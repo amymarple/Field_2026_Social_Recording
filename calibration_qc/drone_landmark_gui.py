@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 r"""Landmark labelling page for drone_sfm.py models: the operator clicks named rigid landmarks (pole feet and tops,
-the rig cameras, the two water towers, house roofs) in a few frames of every model; drone_landmark_anchor.py then triangulates them inside
+the rig cameras, the two water towers, house roofs; the ground cords Y39 / Y201 as clicked points along
+the line) in a few frames of every model; drone_landmark_anchor.py then triangulates them inside
 each model and moves the model into the paddock frame. Identity comes only from the operator (detect-then-decode):
 the paddock looks the same turned 180 deg, which is exactly what fooled the reconstruction.
 
@@ -36,7 +37,8 @@ for m in MODELS:
         frames.append(dict(model=m, name=n, file=f"frames/{flat}"))
 POLES = [f"{r}{c}" for r in "CBA" for c in range(5)]
 LM = ([f"{p} foot" for p in POLES] + [f"{p} top" for p in POLES] + [f"CH0{i} lens" for i in range(1, 7)]
-      + ["TOWER_1 top", "TOWER_1 base", "TOWER_2 top", "TOWER_2 base", "HOUSE_1 roof peak", "HOUSE_2 roof peak", "PC box top"])
+      + ["TOWER_1 top", "TOWER_1 base", "TOWER_2 top", "TOWER_2 base", "HOUSE_1 roof peak", "HOUSE_2 roof peak", "PC box top"]
+      + ["cord Y39", "cord Y201"])                                      # lines: any number of points along the cord
 page = (Path(__file__).resolve().parent / "drone_landmark_gui_template.html").read_text(encoding="utf-8")
 (OUT / "drone_landmarks.html").write_text(page.replace("__FRAMES__", json.dumps(frames)).replace("__RUN__", json.dumps(RUN.name))
                                          .replace("__LM__", json.dumps(LM)), encoding="utf-8")
