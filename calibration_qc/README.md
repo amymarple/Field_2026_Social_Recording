@@ -1072,3 +1072,10 @@ the calibration's ground. Ground tilt against gravity from the drone's gimbal-le
 +34.6 mm/m along y (east and row-C side high; operator confirms) - the calibration frame is the ground itself, so it
 does not enter the mapping. `survey_2026-10-03.json` holds the survey.
 
+**Revision d, 2026-10-03.** The operator: every cone station had the plate and every plate the detector missed was
+clicked by hand - true: every timeline placement in CH01 / CH02's view has a view (detected or 4-corner clicks); only
+CH03 lacks 2. The plate fit had used the detected views only. `--board-weak` adds the clicks (half weight): plates held
+out 30 / 57 (rev c 31 / 62), handoffs 34 mm (37), CH01|CH02 52 (62); `--board-seam` (pano views across the seam) makes
+the held-out plates worse (37 / 89) and stays out. My earlier "no plate seen by both panos there" came from counting
+detected views only - a detector's silence is not the field's.
+

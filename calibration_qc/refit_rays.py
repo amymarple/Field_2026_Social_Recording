@@ -19,6 +19,8 @@ references): every plate pose gets a free (x, y, theta) on z = 6 mm and its corn
 (its coordinates are left-handed seen from above) - must land on it in every camera that saw it (every B_STEP-th corner,
 weight B_W; 3 = 0.5 in, the plates' own shape scatter). The 09-19 make-up plates are carried to the 09-18 pixels first
 (session_2026-09-19_drift.json). Check 1 then holds plates out by station (B_FOLDS folds) and scores the plate shape.
+--board-weak adds the operator's 4-corner clicks (the views the detector missed; all 4 corners, half weight) and
+--board-seam the pano views across the stitch seam (marked bad only because one homography cannot span the seam).
 --ground-datum (with --boards): one vertical datum, the ground the plates lie on, which is also the drone's floor (the
 grass tops); the drone wall tops keep their own heights (no tape offset) and the tape heights enter as differences only
 - the taped heights are from the soil, ~8 cm below (the plate fit puts every camera 2-8 cm under its taped height).
@@ -33,7 +35,7 @@ centres against the tape. Each check is computed the same way for the release (b
 
 Usage: python refit_rays.py --out <dir> [--deg 3] [--sig-coef 0.03] [--no-centres] [--old-drone] [--walltop]
                               [--walltop-hold X0] [--wt-w 0.5] [--seam-w-deg 0] [--no-tape-dist] [--boards [--board-w 3]
-                              [--board-step 7] [--board-folds 4] [--ground-datum]] [--drone-scale plate|anchor] [--height-source tape|drone] [--folds 5]
+                              [--board-step 7] [--board-folds 4] [--ground-datum] [--board-weak] [--board-seam]] [--drone-scale plate|anchor] [--height-source tape|drone] [--folds 5]
 Output: <out>\RAYMAP.json (coefficients, dC), REFIT_RAYS.txt
 """
 import sys, json, itertools, collections, time
@@ -231,17 +233,27 @@ def placements19():
 
 _zf = np.load(pm.FIT, allow_pickle=False)
 _DROP = {tuple(s_.split("|")[:4]) for s_ in _zf["dropped_views"]} if "dropped_views" in _zf else set()
-PB = [p_ for p_ in placements19() if not p_["bad"] and not p_["weak"] and (p_["cam"], p_["session"], p_["station"], p_["win"]) not in _DROP]
+def _seam_split(p_):                                                     # a pano view across the stitch seam: "bad" only because
+    if p_["cam"] not in rm.PANO:                                         # one homography cannot fit a board split over the two
+        return False                                                     # lens halves (all 5 such views, 4-10 px)
+    u_ = np.asarray(p_["px"], float)[:, 0]; W_ = cams[p_["cam"]].upright_size[0]
+    return u_.min() < W_ / 2 < u_.max()
+
+
+PB = [p_ for p_ in placements19() if (p_["cam"], p_["session"], p_["station"], p_["win"]) not in _DROP
+      and (not p_["bad"] or ("--board-seam" in args and _seam_split(p_)))
+      and (not p_["weak"] or "--board-weak" in args)]
 BKEYS = sorted({(p_["session"], p_["station"], p_["win"]) for p_ in PB})
-BCAM = {c: dict(px=[], obj=[], key=[]) for c in names}
+BCAM = {c: dict(px=[], obj=[], key=[], w=[]) for c in names}
 for p_ in PB:
-    k_ = np.arange(len(p_["ids"])) % B_STEP == 0
+    k_ = (np.arange(len(p_["ids"])) % B_STEP == 0) if len(p_["ids"]) > 12 else np.ones(len(p_["ids"]), bool)   # clicks: all 4
+    BCAM[p_["cam"]]["w"] += [0.5 if p_["weak"] else 1.0] * int(k_.sum())                             # clicks: half weight
     BCAM[p_["cam"]]["px"].append(np.asarray(p_["px"], float)[k_]); BCAM[p_["cam"]]["obj"].append(np.asarray(p_["obj_mm"], float)[k_] * FLIP / IN)
     BCAM[p_["cam"]]["key"] += [(p_["session"], p_["station"], p_["win"])] * int(k_.sum())
 for c in names:
     b_ = BCAM[c]
     b_["px"] = np.concatenate(b_["px"]) if b_["px"] else np.zeros((0, 2)); b_["obj"] = np.concatenate(b_["obj"]) if b_["obj"] else np.zeros((0, 2))
-    b_["key"] = np.array([BKEYS.index(k_) for k_ in b_["key"]], int)
+    b_["key"] = np.array([BKEYS.index(k_) for k_ in b_["key"]], int); b_["w"] = np.array(b_["w"], float)
     b_["q"] = rm.base_coords(cams[c], b_["px"]) if len(b_["px"]) else np.zeros((0, 2)); b_["T"] = rm.terms(c, b_["q"]) if len(b_["q"]) else None
 
 
@@ -347,7 +359,7 @@ def fit(use, ids, bkeys=None):
                 rc = rm.RayCam(cams[c], coef[c], dC[c])
                 X = rc.to_plane_q(BCAM[c]["q"][bsel[c]], 6.0, BCAM[c]["T"][bsel[c]])
                 g = np.nan_to_num(X[:, :2] / IN, nan=1e4)
-                r += list(((g - plate_xy(PP[bpi[c]], BCAM[c]["obj"][bsel[c]])) * B_W).ravel())
+                r += list(((g - plate_xy(PP[bpi[c]], BCAM[c]["obj"][bsel[c]])) * B_W * BCAM[c]["w"][bsel[c]][:, None]).ravel())
         return np.array(r, float)
 
     # sparsity: a camera's parameters touch its own label rows, its prior rows and the centre rows
@@ -399,7 +411,7 @@ RC, PJ, sol = fit(ALL, IDS)
 L = [f"RAY-SPACE GROUND CORRECTION  bundle {pm.FIT} (unchanged); degree {rm.DEG}, coefficient prior {SIG_COEF}, "
      f"seam {'step' if rm.SEAM_W == 0 else f'ramp over {np.degrees(rm.SEAM_W):.0f} deg'}; "
      f"{'ground datum = plates / drone floor; ' if '--ground-datum' in args else ''}drone scale {opt('--drone-scale', 'plate')}; heights {opt('--height-source', 'tape')}; centre constraints {(('triangulated drone lenses only (distances, heights, height differences)' if opt('--height-source', 'tape') == 'drone' and '--no-tape-dist' in args else 'tape heights + triangulated drone lenses' if '--no-tape-dist' in args else 'tape + triangulated drone lenses') if TRI else 'tape + drone (distances, heights)') if USE_CENTRES else 'none'}; "
-     f"boards {('in the fit (weight ' + str(B_W) + ', every ' + str(B_STEP) + 'th corner, ' + str(len(BKEYS)) + ' plate poses)') if USE_BOARDS else 'not in the fit'}; "
+     f"boards {('in the fit (weight ' + str(B_W) + ', every ' + str(B_STEP) + 'th corner, ' + str(len(BKEYS)) + ' plate poses, ' + str(len(PB)) + ' views' + (', + operator clicks' if '--board-weak' in args else '') + (', + seam-split views' if '--board-seam' in args else '') + ')') if USE_BOARDS else 'not in the fit'}; "
      f"wall tops {('in the fit (weight ' + str(WT_W) + (', ' + WT_HOLD + ' held out' if WT_HOLD else '') + ')') if USE_WALLTOP else 'not in the fit'}",
      f"{len(OBS)} labels ({collections.Counter(o[3] for o in OBS)}), {len(IDS)} latent cones; fit {time.time() - t0:.0f} s, "
      f"cost {sol.cost:.0f}, status {sol.status}", ""]
