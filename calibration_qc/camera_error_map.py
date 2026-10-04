@@ -153,14 +153,22 @@ try:
             ax.add_patch(plt.Rectangle((i * CELL, j * CELL), CELL, CELL, fc=col.get(c, "#eee"), ec="white", alpha=0.75))
             if c:
                 e = pe[j, i]
-                lab = f"{c[2:]}\n" + ((("" if kind[j, i] == "est" else "<= ") + f"{e:.0f} mm") if np.isfinite(e) else "no ball")
+                n_p = seen.get((c, i, j), 0); n_o = sum(v for (cc, ii, jj), v in seen.items() if (ii, jj) == (i, j) and cc != c)
+                if np.isfinite(e):
+                    lab = f"{c[2:]}\n" + ("" if kind[j, i] == "est" else "<= ") + f"{e:.0f} mm"
+                elif n_p:                                                # the ball was there; no other camera saw enough of it
+                    lab = f"{c[2:]}\nonly {c[2:]}\n({n_p} balls)"
+                elif n_o and not n_p:
+                    lab = f"{c[2:]}\nmissed by {c[2:]}\n(others {n_o})"
+                else:
+                    lab = f"{c[2:]}\nno ball"
                 ax.text((i + 0.5) * CELL, (j + 0.5) * CELL, lab, ha="center", va="center", fontsize=8.5,
                         fontweight="bold" if np.isfinite(e) and e >= 50 else "normal",
                         color="k" if kind[j, i] == "est" else "#444")
     for c in CAMS:
         p = cams[c].centre / IN; ax.plot(p[0], p[1], "k^", ms=9); ax.text(p[0] + 4, p[1] + 4, c, fontsize=9)
     ax.set_xlim(-10, 490); ax.set_ylim(-10, 250); ax.set_aspect("equal"); ax.set_xlabel("x (in)"); ax.set_ylabel("y (in)")
-    ax.set_title("primary camera per cell (finest resolution) and its OWN error on the ball, mm" + chr(10) + "3+ cameras: three-cornered hat estimate;  <=: only two cameras, bound if the primary is the better one")
+    ax.set_title("primary camera per cell (finest resolution) and its OWN error on the ball, mm" + chr(10) + "black: 3+ cameras (estimate);  <=: 2 cameras (bound);  only CHxx: one camera saw the ball, nothing to compare", fontsize=10)
     fig.tight_layout(); fig.savefig(OUT / "camera_error_map.png", dpi=110)
 except Exception as e:                                                   # the text report is the result
     print("plot skipped:", e)
