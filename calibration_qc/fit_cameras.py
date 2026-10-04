@@ -448,6 +448,25 @@ INTR_SIGMA = np.array([5.0, 5.0, 0.01, 0.01])                      # cx, cy px; 
                 # carry no information about f, c or k, so a free lens here only absorbs
                 # pose error. A pano canvas has nothing to refine either.
 MODEL_OF = {c: ("equirect" if c in PANO else "pinhole") for c in cam_list}
+# FIT_FREE_PANO="CH01,CH02" (trial, 2026-10-02): let the bundle solve those panos' canvas scales fu, fv and the
+# elevation-azimuth term k1 (cu, cv stay: they only rotate the camera). Plates on one plane cannot (the tape fixed
+# PANO_SCALE); boards in the air seen by a calibrated pinhole at the same time can. Weak priors only stop a runaway.
+free_pano = [c.strip() for c in os.environ.get("FIT_FREE_PANO", "").split(",") if c.strip() in PANO and c.strip() in cam_list]
+PANO_PRIOR = np.array([300.0, 300.0, 0.05])                       # fu, fv px/rad; k1
+# FIT_SWEEP=<board_sweep20_instances.py output> (trial, 2026-10-02): the hand-held sweep boards of 2026-09-18 as
+# extra plates with a free 6-DOF pose each (held in the air, so no ground or tilt constraint), seen by the sweep
+# camera and a pano within a frame. One view's corners share one pose error, so a view counts as at most
+# FIT_SWEEP_NEFF corners: a view with more is thinned to NEFF corners spread over the board (farthest-point order
+# in board mm), its sigma unchanged. FIT_SWEEP_HOLDOUT=odd|even leaves out the instances in the odd / even 10-s
+# blocks of each sweep (a check of the views the fit has not seen).
+# FIT_INIT=<camera_fit.npz> (trial): start stage 5 from that bundle's camera poses, plate poses and free lenses
+# instead of stage 4 (a warm start; with FIT_MAX_NFEV it is "that bundle, moved by N more steps").
+MAX_NFEV = int(os.environ.get("FIT_MAX_NFEV", 8000))             # the release stops at this budget; a smoke test can lower it
+SWEEP_FILE = os.environ.get("FIT_SWEEP", "")
+SWEEP_NEFF = float(os.environ.get("FIT_SWEEP_NEFF", 16))
+SWEEP_HOLD = os.environ.get("FIT_SWEEP_HOLDOUT", "")
+if SWEEP_FILE and SPLIT:
+    raise SystemExit("FIT_SWEEP needs one pose per pano (no --split)")
 
 # observations
 OBS = []
@@ -458,11 +477,42 @@ for u in unit_list:
         if k in bidx:
             OBS.append((uidx[u], bidx[k], p))
 CONES = [(uidx[u], Xf, uv, st) for u in unit_list for Xf, uv, st in CONE_OBS.get(u, [])]
+INIT = os.environ.get("FIT_INIT", "")
+if INIT:                             # a warm start uses exactly the views that bundle used: its second-pass drops are
+    _drop = {tuple(str(d).split("|")[:4]) for d in np.load(INIT, allow_pickle=False)["dropped_views"]   # applied here
+             if str(d).split("|")[4:5] and str(d).split("|")[4].startswith("bundle")}
+    for o in OBS:
+        if (unit_list[o[0]], o[2]["session"], o[2]["station"], o[2]["win"]) in _drop:
+            DROPPED.append((unit_list[o[0]], o[2]["session"], o[2]["station"], o[2]["win"], "dropped in FIT_INIT"))
+    OBS = [o for o in OBS if (unit_list[o[0]], o[2]["session"], o[2]["station"], o[2]["win"]) not in _drop]
 
-NU, NB = len(unit_list), len(board_list)
+SWEEP = []                           # (key, window, t, [(unit index, ids, px, sigma)])
+if SWEEP_FILE:
+    _sj = json.loads(Path(SWEEP_FILE).read_text(encoding="utf-8"))
+    for ins in _sj["instances"]:
+        blk = int(ins["t"] // 10.0) % 2
+        if (SWEEP_HOLD == "odd" and blk == 1) or (SWEEP_HOLD == "even" and blk == 0):
+            continue
+        vv = []
+        for v in ins["views"]:
+            if v["cam"] not in uidx:
+                continue
+            ids, px = np.asarray(v["ids"], int), np.asarray(v["px"], float)
+            if len(ids) > SWEEP_NEFF:                   # farthest-point thinning in board mm
+                P = bd.OBJ_MM[ids]; pick = [int(np.argmax(np.linalg.norm(P - P.mean(0), axis=1)))]
+                dmin = np.linalg.norm(P - P[pick[0]], axis=1)
+                while len(pick) < SWEEP_NEFF:
+                    j = int(np.argmax(dmin)); pick.append(j); dmin = np.minimum(dmin, np.linalg.norm(P - P[j], axis=1))
+                pick = np.sort(pick); ids, px = ids[pick], px[pick]
+            vv.append((uidx[v["cam"]], ids, px, float(v["sigma"])))
+        if len(vv) >= 2:
+            SWEEP.append((ins["key"], ins["window"], ins["t"], vv))
+NU, NB, NS = len(unit_list), len(board_list), len(SWEEP)
 OFF_B = 6 * NU
 OFF_I = OFF_B + 5 * NB               # plates: (yaw, x, y, tilt_x, tilt_y), centre ON the ground, tilt bounded
-x0 = np.zeros(OFF_I + 5 * len(free_f))
+OFF_P = OFF_I + 5 * len(free_f)      # free pano canvases: (fu, fv, k1)
+OFF_S = OFF_P + 3 * len(free_pano)   # sweep boards: (rotvec, centre m), free 6 DOF
+x0 = np.zeros(OFF_S + 6 * NS)
 for i, u in enumerate(unit_list):
     R, t = FIELD[u]                                  # X_cam = R_cf X_field + t_cf
     Rcf, tcf = R.T, -R.T @ t
@@ -498,6 +548,82 @@ for i in range(NB):
     UB[OFF_B + 5 * i + 3:OFF_B + 5 * i + 5] = np.radians(TILT_MAX)
 for i, c in enumerate(free_f):
     x0[OFF_I + 5 * i:OFF_I + 5 * i + 5] = INTR[c]["intr"]
+for i, c in enumerate(free_pano):
+    x0[OFF_P + 3 * i:OFF_P + 3 * i + 3] = np.asarray(INTR[c]["intr"], float)[[0, 2, 4]]
+PANO0 = {c: np.asarray(INTR[c]["intr"], float)[[0, 2, 4]] for c in free_pano}
+if INIT:
+    _z = np.load(INIT, allow_pickle=False)
+    _zu, _zk = list(_z["units"]), list(_z["board_keys"])
+    for i, u in enumerate(unit_list):
+        if u in _zu:
+            j = _zu.index(u); x0[6 * i:6 * i + 3] = _z["cam_rvec"][j]; x0[6 * i + 3:6 * i + 6] = _z["cam_tvec"][j] * 1e-3
+    _lim = np.radians(TILT_MAX) * 0.9999
+    for i, k in enumerate(board_list):
+        if "|".join(k) in _zk:
+            j = _zk.index("|".join(k)); Rb = cv2.Rodrigues(_z["board_pose"][j, :3])[0]
+            ctr = Rb @ CTR_M + _z["board_pose"][j, 3:] * 1e-3
+            a, b_, c_ = Rotation.from_matrix(Rb @ FLIP).as_euler("ZXY")        # R = Rz Rx Ry FLIP (board_RT)
+            x0[OFF_B + 5 * i:OFF_B + 5 * i + 5] = [a, ctr[0], ctr[1], np.clip(b_, -_lim, _lim), np.clip(c_, -_lim, _lim)]
+    for i, c in enumerate(free_f):
+        if c in _zu:
+            x0[OFF_I + 5 * i:OFF_I + 5 * i + 5] = _z["intr"][_zu.index(c)]
+    for i, c in enumerate(free_pano):
+        if c in _zu:
+            x0[OFF_P + 3 * i:OFF_P + 3 * i + 3] = _z["intr"][_zu.index(c)][[0, 2, 4]]
+SW_OBJ = np.c_[bd.OBJ_MM - bd.OBJ_MM.mean(0), np.zeros(88)] * 1e-3   # sweep board corners about the pattern centre, m
+
+
+def sweep_init(ui, ids, px):
+    """the sweep camera's own planar PnP (IPPE in a virtual pinhole along the mean ray) -> board in the field, m."""
+    u = unit_list[ui]; c = UNITS[u]["cam"]
+    b = fm.bearings(MODEL_OF[c], INTR[c]["intr"], px); m = b.mean(0); m /= np.linalg.norm(m)
+    Q = Rotation.align_vectors([[0, 0, 1]], [m])[0].as_matrix(); v = b @ Q.T
+    uv = (v[:, :2] / v[:, 2:]).astype(np.float64); P = SW_OBJ[ids].astype(np.float64)
+    n, rv, tv, e = cv2.solvePnPGeneric(P, uv, np.eye(3), None, flags=cv2.SOLVEPNP_IPPE)
+    k = int(np.argmin(np.asarray(e).ravel())); rv, tv = cv2.solvePnPRefineLM(P, uv, np.eye(3), None, rv[k], tv[k])
+    Rcf = cv2.Rodrigues(x0[6 * ui:6 * ui + 3])[0]; tcf = x0[6 * ui + 3:6 * ui + 6]
+    return np.concatenate([cv2.Rodrigues(Rcf.T @ Q.T @ cv2.Rodrigues(rv)[0])[0].ravel(), Rcf.T @ (Q.T @ tv.ravel() - tcf)])
+
+
+def intr_x0(c):
+    q = np.array(INTR[c]["intr"], float)
+    if c in free_f:
+        q = x0[OFF_I + 5 * free_f.index(c):OFF_I + 5 * free_f.index(c) + 5].copy()
+    if c in free_pano:
+        q[[0, 2, 4]] = x0[OFF_P + 3 * free_pano.index(c):OFF_P + 3 * free_pano.index(c) + 3]
+    return q
+
+
+def sweep_refine(p0, vv):
+    """the board pose from all its views, cameras held at x0 (so the joint fit starts consistent)."""
+    looks = [(MODEL_OF[UNITS[unit_list[ui]]["cam"]], intr_x0(UNITS[unit_list[ui]]["cam"]), cv2.Rodrigues(x0[6 * ui:6 * ui + 3])[0],
+              x0[6 * ui + 3:6 * ui + 6], ids, px, sg) for ui, ids, px, sg in vv]
+
+    def res(p):
+        R = Rotation.from_rotvec(p[:3]).as_matrix()
+        return np.concatenate([((fm.project(m, q, (SW_OBJ[ids] @ R.T + p[3:]) @ Rc.T + tc) - px) / sg).ravel()
+                               for m, q, Rc, tc, ids, px, sg in looks])
+    return least_squares(res, p0, method="trf", loss="soft_l1", f_scale=4.0, x_scale=0.01, max_nfev=200).x
+
+
+for i, (_k, _w, _t, vv) in enumerate(SWEEP):
+    x0[OFF_S + 6 * i:OFF_S + 6 * i + 6] = sweep_refine(sweep_init(*vv[0][:3]), vv)
+
+
+def build_sweep_tables():
+    """one row per sweep corner (camera unit, instance, object point m, pixel, sigma); rebuilt if views are dropped."""
+    global s_ui, s_si, s_obj, s_obs, s_sig, s_cam, s_grp
+    rows = [(ui, si, ids, px, sg) for si, (_k, _w, _t, vv) in enumerate(SWEEP) for ui, ids, px, sg in vv]
+    s_ui = np.concatenate([np.full(len(r[2]), r[0]) for r in rows]) if rows else np.zeros(0, int)
+    s_si = np.concatenate([np.full(len(r[2]), r[1]) for r in rows]) if rows else np.zeros(0, int)
+    s_obj = np.concatenate([SW_OBJ[r[2]] for r in rows]) if rows else np.zeros((0, 3))
+    s_obs = np.concatenate([r[3] for r in rows]) if rows else np.zeros((0, 2))
+    s_sig = np.concatenate([np.full(len(r[2]), r[4]) for r in rows]) if rows else np.zeros(0)
+    s_cam = np.array([cidx[UNITS[unit_list[u]]["cam"]] for u in s_ui], int)
+    s_grp = {c: np.where(s_cam == cidx[c])[0] for c in cam_list}
+
+
+build_sweep_tables()
 
 # flattened corner table - one row per corner, rebuilt if the second pass drops views
 def build_tables():
@@ -538,7 +664,26 @@ def unpack(x):
     ip = {c: INTR[c]["intr"] for c in cam_list}
     for i, c in enumerate(free_f):
         ip[c] = x[OFF_I + 5 * i:OFF_I + 5 * i + 5]
+    for i, c in enumerate(free_pano):
+        q = np.array(INTR[c]["intr"], float); q[[0, 2, 4]] = x[OFF_P + 3 * i:OFF_P + 3 * i + 3]; ip[c] = q
     return cp, bp, ip
+
+
+def sweep_residuals(x, cp, ip):
+    """sweep corners, in sigmas (rows: s_obs order)."""
+    if not NS:
+        return np.zeros((0, 2))
+    sp = x[OFF_S:OFF_S + 6 * NS].reshape(NS, 6)
+    Rs = Rotation.from_rotvec(sp[:, :3]).as_matrix()
+    Rc = Rotation.from_rotvec(cp[:, :3]).as_matrix()
+    Xf = np.einsum("nij,nj->ni", Rs[s_si], s_obj) + sp[s_si, 3:]
+    Xc = np.einsum("nij,nj->ni", Rc[s_ui], Xf) + cp[s_ui, 3:]
+    uv = np.empty_like(s_obs)
+    for c in cam_list:
+        g = s_grp[c]
+        if len(g):
+            uv[g] = fm.project(MODEL_OF[c], ip[c], Xc[g])
+    return (uv - s_obs) / s_sig[:, None]
 
 
 def residuals(x, split=False):
@@ -572,32 +717,46 @@ def residuals(x, split=False):
     else:
         e_h = np.zeros(0)
     e_ip = np.concatenate([(ip[c][1:] - INTR0[c][1:]) / INTR_SIGMA for c in free_f]) if free_f else np.zeros(0)
+    e_pp = np.concatenate([(ip[c][[0, 2, 4]] - PANO0[c]) / PANO_PRIOR for c in free_pano]) if free_pano else np.zeros(0)
+    e_sw = sweep_residuals(x, cp, ip)
     if split:
         return e_corner, e_cone, e_tilt, e_z, e_st
-    return np.concatenate([e_corner.ravel(), e_cone.ravel(), e_tilt, e_z, e_st.ravel(), e_h, e_ip])
+    return np.concatenate([e_corner.ravel(), e_cone.ravel(), e_tilt, e_z, e_st.ravel(), e_h, e_ip, e_pp, e_sw.ravel()])
 
 
 def build_sparsity():
     """Which parameter each residual row can possibly touch. Rows: corners, cones, station anchors
     (2 per plate), height priors, intrinsic priors - the order of residuals()."""
-    nr = 2 * len(c_obs) + 2 * len(k_obs) + 2 * NB + len(h_ui) + 4 * len(free_f)
+    nr = (2 * len(c_obs) + 2 * len(k_obs) + 2 * NB + len(h_ui) + 4 * len(free_f) + 3 * len(free_pano)
+          + 2 * len(s_obs))
     S = np.zeros((nr, len(x0)), bool)
+
+    def rows_of(r0, g):                              # residual rows (u, v) of table entries g, from row r0
+        return np.repeat(r0 + 2 * g, 2) + np.tile([0, 1], len(g))
+
+    def lens_cols(c):                                # the free lens parameters of camera c
+        if c in free_f:
+            i = free_f.index(c); return np.arange(OFF_I + 5 * i, OFF_I + 5 * i + 5)
+        if c in free_pano:
+            i = free_pano.index(c); return np.arange(OFF_P + 3 * i, OFF_P + 3 * i + 3)
+        return np.zeros(0, int)
     rw = np.arange(2 * len(c_obs))
     for j in range(6):
         S[rw, 6 * np.repeat(c_ui, 2) + j] = True
     for j in range(5):
         S[rw, OFF_B + 5 * np.repeat(c_bi, 2) + j] = True
-    for i, c in enumerate(free_f):
+    for c in cam_list:
         g = c_grp[c]
-        S[np.repeat(g * 2, 2) + np.tile([0, 1], len(g)), OFF_I + 5 * i:OFF_I + 5 * i + 5] = True
+        if len(lens_cols(c)) and len(g):
+            S[np.ix_(rows_of(0, g), lens_cols(c))] = True
     r0 = 2 * len(c_obs)
     rw = np.arange(r0, r0 + 2 * len(k_obs))
     for j in range(6):
         S[rw, 6 * np.repeat(k_ui, 2) + j] = True
-    for i, c in enumerate(free_f):
+    for c in cam_list:
         g = np.where(k_cam == cidx[c])[0]
-        if len(g):
-            S[np.repeat(r0 + g * 2, 2) + np.tile([0, 1], len(g)), OFF_I + 5 * i:OFF_I + 5 * i + 5] = True
+        if len(lens_cols(c)) and len(g):
+            S[np.ix_(rows_of(r0, g), lens_cols(c))] = True
     r0 += 2 * len(k_obs)
     for i in range(NB):
         S[r0 + 2 * i:r0 + 2 * i + 2, OFF_B + 5 * i:OFF_B + 5 * i + 5] = True
@@ -606,6 +765,19 @@ def build_sparsity():
         S[r_h + j, 6 * i:6 * i + 6] = True
     for i, c in enumerate(free_f):
         S[r_h + len(h_ui) + 4 * i:r_h + len(h_ui) + 4 * i + 4, OFF_I + 5 * i + 1:OFF_I + 5 * i + 5] = True
+    r_p = r_h + len(h_ui) + 4 * len(free_f)
+    for i, c in enumerate(free_pano):
+        S[r_p + 3 * i + np.arange(3), OFF_P + 3 * i + np.arange(3)] = True
+    r_s = r_p + 3 * len(free_pano)
+    if len(s_obs):
+        rw = np.arange(r_s, r_s + 2 * len(s_obs))
+        for j in range(6):
+            S[rw, 6 * np.repeat(s_ui, 2) + j] = True
+            S[rw, OFF_S + 6 * np.repeat(s_si, 2) + j] = True
+        for c in cam_list:
+            g = s_grp[c]
+            if len(lens_cols(c)) and len(g):
+                S[np.ix_(rows_of(r_s, g), lens_cols(c))] = True
     return S
 
 
@@ -615,16 +787,35 @@ xs[:OFF_B] = np.tile([0.01, 0.01, 0.01, 0.02, 0.02, 0.02], NU)          # rad, m
 xs[OFF_B:OFF_I] = np.tile([0.01, 0.01, 0.01, 0.01, 0.01], NB)   # rad, metres, metres, rad, rad
 for i in range(len(free_f)):
     xs[OFF_I + 5 * i:OFF_I + 5 * i + 5] = [5.0, 5.0, 5.0, 2e-3, 2e-3]   # px, px, px, k1, k2
+for i in range(len(free_pano)):
+    xs[OFF_P + 3 * i:OFF_P + 3 * i + 3] = [5.0, 5.0, 2e-3]               # px/rad, px/rad, k1
+xs[OFF_S:] = np.tile([0.01, 0.01, 0.01, 0.01, 0.01, 0.01], NS)          # rad, metres
 r = least_squares(residuals, x0, jac_sparsity=S, method="trf", loss="soft_l1", f_scale=4.0,
-                  x_scale=xs, bounds=(LB, UB), xtol=1e-14, ftol=1e-14, gtol=1e-14, max_nfev=8000)
+                  x_scale=xs, bounds=(LB, UB), xtol=1e-14, ftol=1e-14, gtol=1e-14, max_nfev=MAX_NFEV)
 ec0 = residuals(r.x, split=True)[0]
 pix0 = np.linalg.norm(ec0 * c_sig[:, None], axis=1)
 bad_obs = []
-for j, (ui, bi, pp) in enumerate(OBS):
+for j, (ui, bi, pp) in enumerate([] if INIT else OBS):     # warm start: the init bundle's drops, applied above
     g = (c_ui == ui) & (c_bi == bi)
     if np.median(pix0[g]) > max(20.0, 6 * np.median(pix0[c_ui == ui])):
         bad_obs.append(j)
-if bad_obs:
+bad_sw = []                                           # the same rule for the sweep views
+if NS:
+    _cp, _bp, _ip = unpack(r.x)
+    pixs = np.linalg.norm(sweep_residuals(r.x, _cp, _ip) * s_sig[:, None], axis=1)
+    for si, (_k, _w, _t, vv) in enumerate(SWEEP):
+        for vi, (ui, ids, px, sg) in enumerate(vv):
+            g = (s_si == si) & (s_ui == ui)
+            if np.median(pixs[g]) > max(20.0, 6 * np.median(pixs[s_ui == ui])):
+                bad_sw.append((si, vi, float(np.median(pixs[g]))))
+if bad_sw:
+    say("")
+    say(f"  sweep views dropped (same rule): " + ", ".join(f"{SWEEP[si][0]} {unit_list[SWEEP[si][3][vi][0]]} {e:.0f} px"
+                                                        for si, vi, e in bad_sw))
+    drop = {(si, vi) for si, vi, _ in bad_sw}
+    SWEEP = [(k_, w_, t_, [v for vi, v in enumerate(vv) if (si, vi) not in drop]) for si, (k_, w_, t_, vv) in enumerate(SWEEP)]
+    build_sweep_tables()
+if bad_obs or bad_sw:
     say("")
     say("  a second pass, after dropping the views no camera geometry can explain:")
     for j in bad_obs:
@@ -639,10 +830,10 @@ if bad_obs:
     build_tables()
     S = build_sparsity()
     r = least_squares(residuals, r.x, jac_sparsity=S, method="trf", loss="soft_l1", f_scale=4.0,
-                      x_scale=xs, bounds=(LB, UB), xtol=1e-14, ftol=1e-14, gtol=1e-14, max_nfev=8000)
+                      x_scale=xs, bounds=(LB, UB), xtol=1e-14, ftol=1e-14, gtol=1e-14, max_nfev=MAX_NFEV)
 cp, bp3, ip = unpack(r.x)
 SOLVER = dict(status=int(r.status), message=str(r.message), nfev=int(r.nfev), cost=float(r.cost),
-              optimality=float(r.optimality), second_pass=bool(bad_obs))
+              optimality=float(r.optimality), second_pass=bool(bad_obs or bad_sw))
 Rb_all, tb_all = board_RT(bp3)
 t_origin = tb_all - np.einsum("nij,j->ni", Rb_all, CTR_M)        # board-origin translation, so board_points() still applies
 bp = np.concatenate([np.array([cv2.Rodrigues(Rb_all[i])[0].ravel() for i in range(NB)]), t_origin], 1)
@@ -666,6 +857,19 @@ for i, u in enumerate(unit_list):
     ee = np.linalg.norm(ec[g] * c_sig[g, None], axis=1)
     say(f"     {u:7s} {len(set(c_bi[g])):2d} boards {g.sum():5d} corners   median {np.median(ee):5.2f} px"
         f"   rms {np.sqrt((ee**2).mean()):6.2f} px")
+if NS:
+    esw = sweep_residuals(r.x, cp, ip) * s_sig[:, None]
+    say(f"  sweep boards (FIT_SWEEP {SWEEP_FILE}, holdout '{SWEEP_HOLD or 'none'}', NEFF {SWEEP_NEFF:g}): {NS} instances,"
+        f" {len(s_obs)} corners; per camera:")
+    for i, u in enumerate(unit_list):
+        g = s_ui == i
+        if g.any():
+            ee = np.linalg.norm(esw[g], axis=1)
+            say(f"     {u:7s} {len(set(s_si[g])):3d} views {g.sum():5d} corners   median {np.median(ee):5.2f} px"
+                f"   rms {np.sqrt((ee**2).mean()):6.2f} px   mean (du, dv) ({esw[g, 0].mean():+.1f}, {esw[g, 1].mean():+.1f})")
+for c in free_pano:
+    say(f"  {c} canvas solved: fu {ip[c][0]:.1f} fv {ip[c][2]:.1f} px/rad, k1 {ip[c][4]:+.4f}"
+        f"   (start {PANO0[c][0]:.1f} / {PANO0[c][1]:.1f} / {PANO0[c][2]:+.4f})")
 
 # ---------------------------------------------------------------- results
 IN = fd.MM_PER_IN
@@ -710,8 +914,10 @@ say("RESULT 2  LENS MODELS (the panos have none to fit - their canvas is a fixed
 say("=" * 100)
 for c in cam_list:
     if c in PANO:
-        ip_ = INTR[c]["intr"]
-        say(f"  {c}  equirect  fu={ip_[0]:.1f} fv={ip_[2]:.1f} px/rad, centre ({ip_[1]:.1f}, {ip_[3]:.1f})   [{INTR[c].get('scale_source', 'nominal')}; W/pi = {qc_paths.upright_size(qc_paths.resolve(None)[0], c)[0]/np.pi:.1f}]")
+        ip_ = ip[c]
+        src = "solved with the sweep boards (FIT_FREE_PANO)" if c in free_pano else INTR[c].get('scale_source', 'nominal')
+        say(f"  {c}  equirect  fu={ip_[0]:.1f} fv={ip_[2]:.1f} px/rad, centre ({ip_[1]:.1f}, {ip_[3]:.1f})"
+            + (f" k1={ip_[4]:+.4f}" if c in free_pano else "") + f"   [{src}; W/pi = {qc_paths.upright_size(qc_paths.resolve(None)[0], c)[0]/np.pi:.1f}]")
         continue
     f, cx, cy, k1, k2 = ip[c]
     W, H = qc_paths.upright_size(qc_paths.resolve(None)[0], c)
@@ -750,7 +956,15 @@ say("")
 say(f"  {len(offsets)} placements: offset from the designed station median {np.median(offsets):.0f} mm, "
     f"p90 {np.percentile(offsets,90):.0f} mm, max {offsets.max():.0f} mm")
 
-np.savez(OUT / "camera_fit.npz",
+EXTRA = {}
+if NS:                                                       # trial only: the release file keeps its exact layout
+    _sp = r.x[OFF_S:OFF_S + 6 * NS].reshape(NS, 6)
+    EXTRA = dict(sweep_keys=np.array([k for k, *_ in SWEEP]), sweep_pose=np.c_[_sp[:, :3], _sp[:, 3:] * 1000.0],
+                 sweep_views=np.array(["|".join(unit_list[v[0]] for v in vv) for *_, vv in SWEEP]),
+                 sweep_note=f"sweep_pose = rotvec, pattern centre mm (board corners about the pattern centre); "
+                            f"holdout {SWEEP_HOLD or 'none'}; NEFF {SWEEP_NEFF:g}; free pano {','.join(free_pano) or 'none'}; "
+                            f"init {INIT or 'stage 4'}; max_nfev {MAX_NFEV}")
+np.savez(OUT / "camera_fit.npz", **EXTRA,
          units=np.array(unit_list), cam_rvec=cp[:, :3], cam_tvec=cp[:, 3:] * 1000.0,
          cam_centre_mm=np.array([CAMPOS[u][0] for u in unit_list]),
          models=np.array([UNITS[u]["model"] for u in unit_list]),
@@ -790,7 +1004,9 @@ MANIFEST = dict(
               intr={c: [float(v) for v in ip[c]] for c in cam_list}),
     counts=dict(assembled=len(P0), bad_homography=sum(1 for q in P0 if q["bad"]), weak_clicks=len(weak),
                 geometry_views=len(P), bundle_views=len(OBS), corners=int(len(c_obs)), cones=int(len(k_obs)),
-                boards=int(NB), dropped_views=[list(d) for d in DROPPED]),
+                boards=int(NB), dropped_views=[list(d) for d in DROPPED],
+                **(dict(sweep_file=SWEEP_FILE, sweep_holdout=SWEEP_HOLD or None, sweep_instances=int(NS),
+                        sweep_corners=int(len(s_obs)), sweep_neff=SWEEP_NEFF, free_pano=free_pano) if NS or free_pano else {})),
     solver=SOLVER, inputs={f: _sha(REPO / f) for f in _inputs},
     note="the fit is this camera_fit.npz; frame_correction.json must carry this fit_sha256 to be applied")
 (OUT / "fit_manifest.json").write_text(json.dumps(MANIFEST, indent=1), encoding="utf-8")

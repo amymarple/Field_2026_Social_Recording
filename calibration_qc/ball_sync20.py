@@ -48,6 +48,7 @@ agree less with it (all pairs 65 / 134 mm vs 62 / 122).
 
 Usage: python ball_sync20.py [--fit <camera_fit.npz>] [--track <dir>] [--drift <json>] [--base index|pts|both]
                              [--labels <ball labels>] [--flags <ball20_flags.json>] [--keep-held] [--centre sam|top] [--out <txt>]
+                             [--dump <npz>: every aligned frame pair's signed difference, mid-point and time (first time base)]
 Output: <fit dir>\BALL_SYNC20.txt; <track dir>\held20.json (intervals, evidence, offsets, heights)
 """
 import sys, json, itertools, collections
@@ -326,6 +327,7 @@ L += ["  triangulated ball-centre height (review only; the ball centre is at 105
       + " | dropped " + fz(np.concatenate(list(zh.values()))), ""]
 tracks = subset(tracks, keep)
 q = lambda v: f"median {np.median(v):4.0f} mm, p90 {np.percentile(v, 90):4.0f}, n {len(v)}" if len(v) else "-"
+DUMP, dump = opt("--dump"), []                                           # --dump <npz>: every aligned pair's signed difference
 for base in BASES:
     off, pair_tau, pair_n, curves = fit_offsets(tracks, base)
     L.append(f"TIME BASE: {base}  ({'frame index / fitted frame rate' if base == 'index' else 'recording timestamps'})")
@@ -344,6 +346,8 @@ for base in BASES:
             continue
         d = np.hypot(*(A["xy"][ok] - pb[ok]).T)
         pair[f"{a}-{b}"] += list(d); percam[a] += list(d); percam[b] += list(d)
+        if DUMP and base == BASES[0]:                                     # signed differences for distribution studies
+            dump.append((f"{a}-{b}", A["xy"][ok] - pb[ok], (A["xy"][ok] + pb[ok]) / 2, A[base][ok] - off[a]))
         x = (A["xy"][ok][:, 0] + pb[ok][:, 0]) / 2 / 25.4
         for dd, xx in zip(d, x):
             region["x < 60 in" if xx < 60 else "x > 400 in (CH04 end)" if xx > 400 else "60-400 in"].append(dd)
@@ -355,6 +359,9 @@ for base in BASES:
     L += [f"  ALIGNED, every frame pair: {q(allp)}", "  per camera:"] + [f"    {c}: {q(v)}" for c, v in sorted(percam.items())]
     L += ["  per pair (all frames | ball slower than 5 cm/s):"] + [f"    {p}: {q(v)}  |  {q(slow[p])}" for p, v in sorted(pair.items())]
     L += ["  by region:"] + [f"    {r}: {q(v)}" for r, v in sorted(region.items())] + [""]
+if DUMP and dump:
+    np.savez_compressed(DUMP, pair=np.concatenate([[n] * len(d) for n, d, _, _ in dump]), d_mm=np.concatenate([d for _, d, _, _ in dump]),
+                        xy_mm=np.concatenate([m for _, _, m, _ in dump]), t_s=np.concatenate([t for _, _, _, t in dump]))
 OUT = Path(opt("--out", str(FIT.parent / "BALL_SYNC20.txt")))
 OUT.write_text("\n".join(L) + "\n", encoding="utf-8")
 print("\n".join(L))

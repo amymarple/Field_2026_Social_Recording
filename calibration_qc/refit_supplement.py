@@ -31,6 +31,7 @@ balls).
 Usage: python refit_supplement.py --session <09-30 session dir> --out <dir> [--drift <landmark_drift.json>]
                                   [--sigma-layout 4] [--cord-weight 0.5] [--folds 5] [--deg CH03=2,...] [--no-supplement]
                                   [--balls <ball_labels.json>] [--ball-weight 1] [--soft-lattice <in>] [--rel <frame_correction.json>]
+                                  [--fit <camera_fit.npz>]
 --soft-lattice S (2026-10-02, both audits): the 2026-09-18 lattice cones also become shared latent points held to
 their design station by a prior of S inches, like the supplement cones, instead of exact targets in each camera's
 warp; cords and wall foot stay lines. --rel: the warp used as the starting point and as the "release" baseline in
@@ -68,8 +69,9 @@ OBS_SIGMA = 1.5                                           # in: the scale of a l
 CONE_Z = fcorr.CONE_Z
 POS = {**fd.LATTICE, **fd.SUPPLEMENT}
 
-REL = json.loads(Path(opt("--rel", str(Path(pm.FIT).parent / "frame_correction.json"))).read_text(encoding="utf-8"))
-cams = pm.load(pm.FIT, correct=False)
+FIT = Path(opt("--fit", str(pm.FIT)))                    # the bundle (default: the release); a trial bundle needs --rel too
+REL = json.loads(Path(opt("--rel", str(FIT.parent / "frame_correction.json"))).read_text(encoding="utf-8"))
+cams = pm.load(FIT, correct=False)
 names = sorted(cams)
 DEG = {c: REL["cameras"][c]["deg"] for c in names}
 for item in (opt("--deg", "") or "").split(","):          # e.g. --deg CH03=2,CH04=2: a more flexible warp where a camera now has more points
@@ -286,7 +288,7 @@ DEG0 = {c: REL["cameras"][c]["deg"] for c in names}
 REL_W = {c: np.pad(REL_W0[c], ((0, 0), (0, NT[c] - REL_W0[c].shape[1]))) for c in names}   # the release, in the requested degree
 V0 = ball_velocity(REL_W) if ball_obs else {}
 ALL_KS = sorted({k for _, k, _ in ball_obs})
-L = [f"REFIT OF THE GROUND CORRECTION WITH THE 2026-09-30 SUPPLEMENT  (bundle unchanged: {pm.FIT})",
+L = [f"REFIT OF THE GROUND CORRECTION WITH THE 2026-09-30 SUPPLEMENT  (bundle unchanged: {FIT})",
      f"{len(cone_obs)} cone observations of {len({j for _, j, _ in cone_obs})} cones, "
      f"{sum(len(v[0]) for v in cord_obs.values())} cord points (Y39/Y201); prior {SIGMA_LAYOUT} in on the layout, cord weight {CORD_W}; "
      f"09-30 pixels carried to 09-18 through {DRIFT.name}"]
@@ -367,11 +369,11 @@ for c in names:
     L.append(f"   {c}: correction moved by median {np.median(shift):4.0f} mm, max {shift.max():4.0f} mm (inside the release's support)")
 
 # write: bundle copy + frame_correction.json in the release schema
-shutil.copy2(pm.FIT, OUT / "camera_fit.npz")
+shutil.copy2(FIT, OUT / "camera_fit.npz")
 out = dict(fit_sha256=hashlib.sha256((OUT / "camera_fit.npz").read_bytes()).hexdigest(),
            note=REL["note"].split(" | ")[0] + " | refitted jointly with the 2026-09-30 supplement (refit_supplement.py)"
                 + (f"; 09-18 lattice cones latent, prior {SOFT18} in" if SOFT18 > 0 else "") + (f"; balls weight {BALL_W}" if ball_obs else ""),
-           soft_lattice_in=SOFT18 if SOFT18 > 0 else None, baseline_warp=str(opt("--rel", Path(pm.FIT).parent / "frame_correction.json")),
+           soft_lattice_in=SOFT18 if SOFT18 > 0 else None, baseline_warp=str(opt("--rel", FIT.parent / "frame_correction.json")),
            fit=str(OUT / "camera_fit.npz"), ridge_in=RIDGE, deg_pano=REL["deg_pano"], held_out_groups=[],
            balls=dict(labels=str(BALLS), weight=BALL_W, n_marks=len(ball_obs), clock_offset_s={c: float(t) for c, t in TAU.items()},
                       reference=TAU_REF) if ball_obs else None,
