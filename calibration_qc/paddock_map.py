@@ -13,9 +13,11 @@ flat plane; the paddock floor varies by +-5 cm. load(rays=None) gives the 10-02b
 THE ONE THING THAT MATTERS: a pixel is a RAY, not a point. A camera cannot know how far along
 that ray the thing is, so every pixel -> paddock conversion has to assume a height. `z_mm` is
 that assumption: 0 = the ground, 6 = the top of the calibration plate, ~60 = a rat's back. Get it
-wrong by dz and the answer slides horizontally by dz / tan(depression angle) - which for the two
-panoramas (~54 deg down) is 0.73 mm per mm of height. Tracking an animal's back at z = 0 puts it
-~4 cm too far from the camera. `height_sensitivity()` prints the factor for each camera.
+wrong by dz and the answer slides horizontally, away from the camera, by dz / tan(depression angle)
+= dz x d / (H - z), d the point's horizontal distance from the camera and H the camera's height:
+0.45 mm per mm of height at 1 m, 1.0 at 2.4 m, 2-3 at the far rows (5-7 m) - checked on the release
+2026-10-04. Tracking an animal's back (~60 mm) at z = 0 puts it 3-16 cm too far from the camera,
+so map at the tracked point's real height. `height_sensitivity()` prints the factor for each camera.
 
 Pixel coordinates are UPRIGHT (space="upright", the default): for CH01/CH02 that is the 7680 x 2160
 frame you get after rotating the stored 2160 x 7680 video 90 deg CCW, which is what every tool in

@@ -282,6 +282,10 @@ Two Python trees of different vintage:
     (`terrain_2026-10-02.json`): **`to_paddock(uv, z_mm)` now means z above the LOCAL ground** (floor +-5 cm); plates
     held out 28 / 56, cones 42 / 76. Revision f orders the operator's plate clicks by the rigid plate (18 / 20 were
     reversed): ball 38 / 84, cones 41 / 72; `camera_error_map.py` = primary camera per region and its own error.
+    **2026-10-04:** cords at the drone's positions (`refit_rays.py --drone-cords`, `drone_line_check.py`) tested and NOT
+    adopted - rev f stands; `single_camera_check.py` maps each primary camera's own held-out plate stretch and cord offset;
+    the place-cell audit (`calibration_qc/AUDIT_FABLE_PLACECELL_PRECISION_2026-10-04.md`): sufficient for place-cell analyses
+    if the tracking blends cameras at a switch, maps at the keypoint's height and measures walls / houses in the same map.
     Only rigid objects are exact
     references (the ChArUco plate, the houses);
     cone / cord positions and long tape runs are not (operator, 2026-10-03).
@@ -292,7 +296,8 @@ Two Python trees of different vintage:
   - **Conventions that bite**: pixel coordinates are UPRIGHT — the Duo 3 panos are stored rotated
     (2160 x 7680) and every tool works in the 7680 x 2160 frame (`space="stored"` for raw pixels);
     nothing downstream may hard-code frame sizes (`qc_paths.frame_size`). `z_mm` is an assumption
-    about height (0.73 mm horizontal error per mm on the panos). Lens scales are pinned in
+    about height: the horizontal error per mm of height is d / (H - z) (d the distance from the camera, H its height): 0.45 at
+    1 m, 1.0 at 2.4 m, 2-3 at the far rows - map at the tracked point's real height, never 0. Lens scales are pinned in
     `fit_intrinsics.py` (`FOCAL_OVERRIDE`, `PANO_SCALE`, set once from the taped heights) and the
     bundle never refits the lens on coplanar placements. `qc_placements` detector params are
     deliberately not OpenCV defaults.

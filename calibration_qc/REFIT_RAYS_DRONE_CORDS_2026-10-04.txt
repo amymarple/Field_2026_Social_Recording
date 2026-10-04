@@ -1,0 +1,53 @@
+RAY-SPACE GROUND CORRECTION  bundle F:\calibration\qc\camera_fit.npz (unchanged); degree 4, coefficient prior 0.05, seam ramp over 3 deg; terrain terrain_2026-10-02.json; drone scale anchor; heights drone; centre constraints triangulated drone lenses only (distances, heights, height differences); boards in the fit (weight 3.0, every 7th corner, 64 plate poses, 125 views, + operator clicks (18 re-ordered)); wall tops in the fit (weight 1.0)
+983 labels (Counter({'wtop': 459, 'line': 225, 'cone': 214, 'x': 65, 'y': 20})), 114 latent cones; fit 102 s, cost 3113, status 0
+
+label residuals (in, median / p90): CH01 cone 0.9/2.2; CH01 line 2.2/4.5; CH01 wtop 0.7/1.1; CH01 x 1.5/4.4; CH01 y 1.0/2.9; CH02 cone 0.8/1.9; CH02 line 1.5/5.0; CH02 wtop 0.7/1.1; CH02 x 2.7/8.2; CH02 y 0.7/3.1; CH03 cone 1.2/1.9; CH03 line 2.0/3.6; CH03 wtop 0.2/0.6; CH03 x 1.8/3.4; CH04 cone 1.2/2.0; CH04 line 1.0/4.1; CH04 wtop 0.2/0.5; CH04 x 2.7/3.3; CH05 cone 0.9/1.9; CH05 line 0.3/0.7; CH06 cone 0.9/1.3; CH06 line 0.6/1.1
+camera centres (in, tape-frame-free): CH01 dC (+0.2, +1.9, -3.2); CH02 dC (+0.7, -3.7, -6.2); CH03 dC (-2.6, -3.4, -4.1); CH04 dC (+5.0, +0.2, -9.0); CH05 dC (+5.3, -5.3, -2.5); CH06 dC (+0.6, -2.4, -2.5)
+  distance CH01-CH02: drone 69.7 in (tape 69.2, not in the fit); release 74.3; ray fit 68.8
+  distance CH01-CH03: drone 132.5 in (tape 129.1, not in the fit); release 131.7; ray fit 133.0
+  distance CH01-CH04: drone 139.5 in (tape 136.6, not in the fit); release 135.2; ray fit 139.2
+  distance CH01-CH05: drone 104.0 in; release 111.3; ray fit 104.2
+  distance CH01-CH06: drone 110.9 in; release 112.0; ray fit 110.7
+  distance CH02-CH03: drone 140.4 in (tape 140.7, not in the fit); release 135.9; ray fit 139.0
+  distance CH02-CH04: drone 130.1 in (tape 125.6, not in the fit); release 126.7; ray fit 129.9
+  distance CH02-CH05: drone 111.5 in; release 114.8; ray fit 111.0
+  distance CH02-CH06: drone 101.5 in; release 101.8; ray fit 101.3
+  distance CH03-CH04: drone 262.3 in (tape 257.0, not in the fit); release 254.0; ray fit 261.7
+  distance CH03-CH05: drone 30.0 in; release 21.8; ray fit 29.7
+  distance CH03-CH06: drone 232.4 in; release 228.7; ray fit 232.0
+  distance CH04-CH05: drone 232.4 in; release 232.3; ray fit 232.1
+  distance CH04-CH06: drone 29.9 in; release 25.4; ray fit 29.8
+  distance CH05-CH06: drone 202.4 in; release 206.9; ray fit 202.3
+  heights (m): CH01 release 2.352 fit 2.271 target 2.285, CH02 release 2.409 fit 2.251 target 2.254, CH03 release 2.293 fit 2.189 target 2.187, CH04 release 2.405 fit 2.177 target 2.180, CH05 release 2.315 fit 2.251 target 2.254, CH06 release 2.311 fit 2.248 target 2.252
+
+CHECK boards (mm, median / p90 of two cameras on the same corner) - boards IN the fit:
+  release  all 38 / 82 (n 2297); CH01-CH02 37, CH01-CH03 54, CH01-CH04 39, CH01-CH05 34, CH01-CH06 26, CH02-CH03 12, CH02-CH04 54, CH02-CH05 47, CH02-CH06 23
+  ray fit  all 11 / 23 (n 2525); CH01-CH02 14, CH01-CH03 12, CH01-CH04 13, CH01-CH05 9, CH01-CH06 8, CH02-CH03 15, CH02-CH04 19, CH02-CH05 7, CH02-CH06 10
+  plate shape, rms about the rigid printed pattern (release): median 15.0 mm, p90 26.6 (n 103 views)
+  plate shape, rms about the rigid printed pattern (ray fit): median 8.3 mm, p90 19.6 (n 106 views)
+  HELD OUT by station (4 folds): ray fit 27 / 53 (n 2525), release on the same corners 38 / 82; held-out plate shape median 10.4 mm, p90 27.4
+CHECK 20 Hz ball at 105 mm (mm, median / p90 of two cameras at the aligned time; clocks of held20.json):
+  release  all 59 / 113 (n 5666); CH01-CH02 79, CH01-CH03 71, CH01-CH04 65, CH01-CH05 40, CH01-CH06 41, CH02-CH03 50, CH02-CH04 37, CH02-CH05 51, CH02-CH06 28
+  ray fit  all 39 / 83 (n 6325); CH01-CH02 54, CH01-CH03 38, CH01-CH04 45, CH01-CH05 23, CH01-CH06 32, CH02-CH03 33, CH02-CH04 59, CH02-CH05 25, CH02-CH06 27
+CHECK wall tops against the drone profile (camera minus drone, mm, median / n per camera and wall; the other walls are IN the fit):
+  release  CH01 X0 +29/69; CH01 Y240 -125/50; CH02 X0 +175/46; CH02 Y0 -120/20; CH03 X0 +56/131; CH03 Y0 -35/7; CH03 Y240 -125/11; CH04 X480 +83/125
+  ray fit  CH01 X0 +13/69; CH01 Y240 +3/50; CH02 X0 +7/46; CH02 Y0 -10/20; CH03 X0 +2/131; CH03 Y0 -26/7; CH03 Y240 -29/11; CH04 X480 -1/125
+CHECK west wall top (x = 0): height (mm) per 24 in along y
+  release:  y     0    24    48    72    96   120   144   168   192   216
+     CH01:  1044  1025  1017  1004   995  1000  1026  1038  1040  1035
+     CH02:  1000  1040  1084  1131  1154  1196  1225   nan   nan   nan
+     CH03:   989   981   988  1005  1018  1039  1066  1110  1153  1176
+     spread between cameras per bin: median 120 mm, max 199 mm
+  ray fit:  y     0    24    48    72    96   120   144   168   192   216
+     CH01:   965   975   981   982   981   991  1017  1021  1031  1047
+     CH02:   964   972   979   991   985   983   967   nan   nan   nan
+     CH03:   991   968   965   968   971   979   989  1015  1046  1091
+     spread between cameras per bin: median 16 mm, max 49 mm
+
+CHECK held-out 09-30 cones (5-fold, two cameras on the same unseen cone, mm): ray fit 41 / 70 (n 62); release 51 / 84 IN its fit (10-02b was fitted on these cones; its own 5-fold held-out figure is 62 / 124, RELEASE_2026-10-02.md)
+CHECK cords held out one at a time, across the cord against the drone (mm; model 0 moved into model 1's frame: scale -1.15 %, rotation +0.25 deg, shift (-55, -44) mm; its lines then differ from model 1's by 34 mm median)
+  vs drone model 1: per camera and cord |median| 67 mm (p90 149, n 21); every label |offset| median 70, p90 168 (n 225)
+     CH01 X168 -149/8; CH01 X240 -109/9; CH01 X312 +82/9; CH01 X384 -25/7; CH01 X456 +210/9; CH01 X96 -55/10; CH01 Y201 +106/27; CH02 X168 -142/8; CH02 X240 -8/2; CH02 X312 +71/7; CH02 X384 -6/7; CH02 X456 +246/8; CH02 X96 -57/9; CH02 Y39 -0/23; CH03 Y201 +142/13; CH03 Y39 +24/8; CH04 X456 +143/9; CH04 Y201 +67/13; CH04 Y39 -14/12; CH05 X168 -64/11; CH05 Y201 +28/2; CH06 X312 +43/10; CH06 Y39 -3/4
+  vs drone model 0: per camera and cord |median| 85 mm (p90 144, n 21); every label |offset| median 78, p90 152 (n 225)
+     CH01 X168 -144/8; CH01 X240 -53/9; CH01 X312 +101/9; CH01 X384 +29/7; CH01 X456 +143/9; CH01 X96 -103/10; CH01 Y201 +85/27; CH02 X168 -157/8; CH02 X240 +34/2; CH02 X312 +75/7; CH02 X384 +92/7; CH02 X456 +169/8; CH02 X96 -89/9; CH02 Y39 +22/23; CH03 Y201 +92/13; CH03 Y39 +17/8; CH04 X456 +83/9; CH04 Y201 +89/13; CH04 Y39 +31/12; CH05 X168 -71/11; CH05 Y201 +8/2; CH06 X312 +69/10; CH06 Y39 +38/4
+CHECK stitch seam, ground jump at z 60 mm between the columns either side of u = W / 2: CH01 max 1 mm, median 1 mm over v 0.55-0.95 H; CH02 max 1 mm, median 1 mm over v 0.55-0.95 H

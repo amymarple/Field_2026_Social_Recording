@@ -1,0 +1,36 @@
+DRONE LINE CHECK  cameras: release; drone 2026-10-02_all model 1, anchor scale 1.0053; cords triangulated as 3-D lines from the operator's drone clicks; camera labels mapped onto the local ground
+
+drone cords: name, rays / frames, rays' miss of the fitted line (median mm), height (mm, middle), direction (deg from x), clicked extent along the cord (in), offset from design at the extent's ends (mm, + = larger x / y)
+  X168   47 /  8     4.1   z   +31     89.9     21 -  237     +60 /   +72
+  X240   36 /  6     9.4   z   +32     89.3     10 -  240      +4 /   +74
+  X312   20 /  4    12.0   z   -29     88.2      6 -  237     -18 /  +162
+  X384    6 /  2     5.8   z   -62     89.9     81 -  227     +45 /   +53
+  X456   10 /  2    10.8   z   +45     90.8      2 -  217     -66 /  -144
+  X96    42 /  7     7.2   z    -1     90.8     10 -  230     +28 /   -53
+  Y201   39 /  8     9.5   z    +9      0.5      4 -  389     -73 /   +17
+  Y39    32 /  8    11.1   z    -2      0.4     26 -  479     -39 /   +39
+
+camera minus drone, perpendicular to the cord in the ground plane (mm), median per 48 in along the cord (n points):
+  CH01 X168  all  -129 mm (|median| 129, n 8)  along:  96-144:  -131 (4)
+  CH01 X240  all   -87 mm (|median| 87, n 9)  along:  96-144:   -52 (4); 192-240:  -123 (3)
+  CH01 X312  all    +5 mm (|median| 15, n 9)  along: 144-192:    +5 (3)
+  CH01 X384  all   -34 mm (|median| 34, n 7)  along: 
+  CH01 X456  all  +164 mm (|median| 164, n 9)  along: 
+  CH01 X96   all   -50 mm (|median| 50, n 10)  along:  96-144:   -48 (4); 192-240:   -41 (3)
+  CH01 Y201  all   +76 mm (|median| 78, n 27)  along:   0- 48:  +122 (3);  48- 96:  +103 (3); 192-240:   +38 (4); 288-336:   +68 (3); 384-432:   +96 (3); 432-480:   -29 (3)
+  CH02 X168  all  -121 mm (|median| 121, n 8)  along:  96-144:  -114 (3)
+  CH02 X240  all   -44 mm (|median| 44, n 2)  along: 
+  CH02 X312  all   +14 mm (|median| 14, n 7)  along:  96-144:    +4 (3)
+  CH02 X384  all   -14 mm (|median| 17, n 7)  along: 
+  CH02 X456  all  +182 mm (|median| 182, n 8)  along: 
+  CH02 X96   all   -62 mm (|median| 62, n 9)  along:   0- 48:   -40 (3); 144-192:   -99 (3)
+  CH02 Y39   all    -2 mm (|median| 37, n 23)  along:   0- 48:   +48 (3); 144-192:   -10 (3); 240-288:   +59 (4)
+  CH03 Y201  all  +106 mm (|median| 106, n 13)  along:   0- 48:  +123 (6);  48- 96:   +88 (6)
+  CH03 Y39   all   +35 mm (|median| 35, n 8)  along:   0- 48:   +39 (4);  48- 96:   +28 (3)
+  CH04 X456  all   +99 mm (|median| 99, n 9)  along: 
+  CH04 Y201  all   +12 mm (|median| 34, n 13)  along: 384-432:   +38 (7); 432-480:    -7 (6)
+  CH04 Y39   all   -20 mm (|median| 20, n 12)  along: 384-432:    -7 (5); 432-480:   -35 (6)
+  CH05 X168  all   -44 mm (|median| 44, n 11)  along:  48- 96:   -56 (4);  96-144:   -44 (3); 144-192:   -42 (3)
+  CH05 Y201  all   +16 mm (|median| 16, n 2)  along: 
+  CH06 X312  all   -26 mm (|median| 26, n 10)  along:  48- 96:   -37 (3);  96-144:   -25 (3)
+  CH06 Y39   all    -9 mm (|median| 9, n 4)  along: 336-384:   -13 (3)

@@ -1043,7 +1043,7 @@ panos the two lens halves overlap at the stitch seam (u = W / 2: the ground posi
 it at the far rows), so there two pixels map to one point and to_paddock_inv returns one of them. The release is
 unchanged; the candidate is opt-in.
 
-**Promoted 2026-10-03** (operator: "D可以"; asked whether the seam is blended): the hard switch between the lens halves
+**Promoted 2026-10-03** (operator approved option D; asked whether the seam is blended): the hard switch between the lens halves
 left a 24-26 cm fold at the stitch seam; `raymap.SEAM_W` blends the halves linearly over a band instead (1-10 deg all
 score the same within 1 mm; 3 deg taken; `refit_rays.py --seam-w-deg`). That fit is the release, `ray_correction.json`,
 which `paddock_map.load()` now applies (RayCamera; `load(rays=None)` = 10-02b). The operator: a long tape run sags, only
@@ -1059,7 +1059,7 @@ carried into the 09-18 pixels by the overnight drift measured with landmark_trac
 `session_2026-09-19_drift.json`; the bundle never applied it). Plates held out by station 32 / 62 mm (10-02b 38 / 82),
 ball 40 / 87 (rev a 55 / 102), held-out cones 45 / 77, handoffs 36 mm (rev a 45), CH01|CH04 44 / 79. That fit is now
 `ray_correction.json`; RELEASE_2026-10-03.md "Revision b". The Fable audit (results only,
-`F:\calibration\qcudit\AUDIT_FABLE_PHYSLIMIT_2026-10-03.md`): not at the physical limit but close (~40 mm median per
+`F:\calibration\qc\audit\AUDIT_FABLE_PHYSLIMIT_2026-10-03.md`): not at the physical limit but close (~40 mm median per
 pair for a rat keypoint); relief explains part of the residual - checked on the ball: the CH03 pairs (west end) lose
 10-19 mm of their variable part with the drone terrain, CH01|CH02 and CH01|CH04 do not.
 
@@ -1088,3 +1088,46 @@ second); the fit now picks each click set's order by the rigid plate. Ball 38 / 
 (48), plates held out 28 / 54, cones 41 / 72. `camera_error_map.py`: one primary camera per region (finest
 resolution) and its own error (three-cornered hat where 3+ cameras saw the ball): median 19 mm, p90 58.
 
+### One camera alone: plates, drone cords, the pole tape at its height, pole lean (2026-10-04)
+
+The question (operator): where only one camera sees the floor, how good is its 2-D map? Agreement between cameras says
+nothing there. `single_camera_check.py` draws two held-out checks on the primary-camera map (`camera_error_map.py`):
+- plates held out by station (`refit_rays.py` writes `board_heldout.json`): the primary camera's local scale error,
+  |median| 1-4 % per camera, locally 5-11 % (CH01's row-C strip, CH02's row-A strip); shape rms 6-17 mm median. Relative
+  only - a shifted map keeps a perfect plate.
+- cords held out one at a time against the drone (`refit_rays.py --cord-folds`, `cord_heldout.json`): absolute.
+
+`drone_line_check.py`: each cord as one 3-D line through the operator's clicks in several drone frames (rays miss it by
+4-12 mm), compared with every camera's cord labels mapped onto the local ground; `drone_cords_2026-10-02.json` holds the
+model-1 lines. The two drone models disagree on the cords by 34 mm median even after the best similarity between them
+- the drone is no exact ruler either.
+
+`refit_rays.py --drone-cords` (the cords where the drone saw them instead of on their design lines) is NOT adopted:
+held-out cords against drone model 1 73 -> 67 mm per camera and cord, against model 0 82 -> 85; plates, cones and the
+ball unchanged. After the best similarity the cameras agree with the drone's cords to ~30 mm median; the similarity
+is mostly a 2.5 % scale (both drone models) - the drone sees the X cords closer together than the cameras do. The
+held-out plates show no camera stretch (signed median -1.6 .. +1.2 % per camera), and the X cords were labelled on
+09-18 but flown on 10-02 and may have been knocked or moved by rain in between (operator) - so the X cords test the
+cords, not the cameras. The same-epoch cords (09-30 labels, two days before the flight): Y39 CH02 +1, CH04 -9, CH03
++37 mm; Y201 +61 .. +151 mm in CH01, CH03 and CH04 alike - unexplained (the cord moved, or a common-mode offset along
+the north side).
+
+The pole tape ran just above the wall tops (~1.0-1.1 m; `survey_2026-10-03.json` `tape_height_mm`), so
+`pole_tape_check.py` now compares at that height and the poles' lean drops out. Still weak: the tape network has no
+diagonals (its shear is held only by a 6 in pull to the design grid; spans differ from 120 in by up to 6 in), rays at
+1 m towards the far poles pass above the far wall (outside the fit's support), and the nearest poles carry the camera
+mounts. Not used for decisions.
+
+Pole lean: `drone_landmark_anchor.py --kinds ... --out ...` and a LEAN line per pole. The two drone models disagree pole
+by pole (A0 11 vs 4 deg, C1 1.5 vs 15 deg) - the drone cannot measure lean (the foot clicks sit in the grass).
+Anchoring on the feet alone moves the frame by 88 mm median (model 1) and 123 mm (model 0, scale -3 %), in different
+directions: the frame is set only to several cm by the choice of landmarks. Lean matters only there; a phone
+inclinometer on each pole (along x and y) would make the pole tops exact anchors. Not done.
+
+Place-cell audit (Fable, results only, `AUDIT_FABLE_PLACECELL_PRECISION_2026-10-04.md`): sufficient for rate maps at
+5-10 cm bins, field size / number / location, spatial information, decoding, replay and remapping, on three
+analysis-side conditions - blend the cameras across a switch (a hard switch gives 50-280 cm/s speed spikes), map at the
+tracked keypoint's real height (horizontal error per mm of height d / (H - z): 0.45 at 1 m, 1.05 at 2.4 m - checked on
+the release - 2-3 at the far rows), and measure walls / houses in the same camera map (the house_check positions), not
+from the design. Per-day camera correction before any cross-day comparison. Before teardown: check the sync LED in all
+six cameras; a short ball pass through CH04 (the CH04|CH06 boundary is unmeasured).

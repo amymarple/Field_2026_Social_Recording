@@ -30,6 +30,13 @@ paddock_map then maps "z above the local ground".
 --walltop adds the first data above the ground: the operator's wall-top polylines in the cameras (analysis repo,
 2026c landmarks, as walltop_check.py) must meet the wall's design plane at the drone's wall-top height there
 (drone_walltop.py, on the tape's ground; weight WT_W); --walltop-hold <wall> leaves one wall out for the check.
+--drone-cords <json> (drone_line_check.py; operator 2026-10-03: the cords were laid by hand, the poles lean, only the
+drone gives absolute positions) puts every cord the drone measured where the drone saw it: a cord label must land on the
+drone's line (perpendicular distance) instead of on its design x / y; cords the drone did not measure (X24) and the wall
+feet keep their design lines. --cord-folds is the check: every drone-measured cord is held out in turn (all its labels
+out of the fit) and its labels, mapped by that fit, are scored across the cord against the drone line - drone model 1
+(--cord-ref, default drone_cords_2026-10-02.json) and, if given, a second model (--cord-ref2) moved into model 1's frame
+by the best 2-D similarity of the two line sets (the two anchors differ by a few cm; that is frame convention).
 
 Checks (none of them in the fit): boards 09-18/19 (two cameras on the same corner, z 6 mm); a 5-fold over the 09-30
 cones (refit without the fold, score its cones); the reviewed 20 Hz ball at 105 mm (fixed clock offsets, held and
@@ -39,6 +46,7 @@ centres against the tape. Each check is computed the same way for the release (b
 Usage: python refit_rays.py --out <dir> [--deg 3] [--sig-coef 0.03] [--no-centres] [--old-drone] [--walltop]
                               [--walltop-hold X0] [--wt-w 0.5] [--seam-w-deg 0] [--no-tape-dist] [--boards [--board-w 3]
                               [--board-step 7] [--board-folds 4] [--ground-datum] [--board-weak] [--board-seam]] [--drone-scale plate|anchor] [--height-source tape|drone] [--terrain terrain_2026-10-02.json] [--folds 5]
+                              [--drone-cords drone_cords_2026-10-02.json] [--cord-folds [--cord-ref <json>] [--cord-ref2 <json>]]
 Output: <out>\RAYMAP.json (coefficients, dC), REFIT_RAYS.txt
 """
 import sys, json, itertools, collections, time
@@ -72,6 +80,17 @@ rel = pm.load(pm.FIT, rays=None)                                        # releas
 names = sorted(cams)
 drift = json.loads((HERE / "session_2026-09-30_drift_final.json").read_text(encoding="utf-8"))["cameras"]
 POS = {**fd.LATTICE, **fd.SUPPLEMENT}
+
+
+def cord_line(L_, name):
+    """a drone cord line (drone_line_check.py json entry, mm) as (n_x, n_y, c) in inches: n . xy - c is the signed
+    distance across the cord, + towards larger x (X cords) / larger y (Y cords)."""
+    v = np.asarray(L_["u"][:2], float); v /= np.linalg.norm(v); n = np.array([-v[1], v[0]])
+    n *= np.sign(n[0 if name.startswith("X") else 1]); return np.r_[n, n @ np.asarray(L_["p0"][:2], float) / IN]
+
+
+DCORDS = json.loads(Path(opt("--drone-cords")).read_text(encoding="utf-8"))["lines"] if opt("--drone-cords") else None
+CORD_FOLDS = "--cord-folds" in args
 
 
 def to_0918(cam, uv):
@@ -175,12 +194,15 @@ for cam in names:
             WT_OBS.append((cam, u, 0.0, "wtop", wall, "WT_" + wall, WT_W))
 if USE_WALLTOP:
     OBS += [o for o in WT_OBS if o[4] != WT_HOLD]
+if DCORDS is not None:                                                   # cords where the drone measured them (hand-laid, not on design)
+    OBS = [(o[0], o[1], o[2], "line", cord_line(DCORDS[o[5].split("@")[0]], o[5]), *o[5:])
+           if o[3] in ("x", "y") and o[5].split("@")[0] in DCORDS else o for o in OBS]
 if TERR is not None:                                                     # labels sit on the LOCAL ground: cones at their design
     _o2 = []                                                             # station, cords / wall feet where the release maps them
     for o in OBS:
         if o[3] == "cone":
             g_ = np.asarray(POS[o[5].replace("@0918", "")], float) * IN
-        elif o[3] in ("x", "y"):
+        elif o[3] in ("x", "y", "line"):
             g_ = rel[o[0]].to_paddock(np.atleast_2d(o[1]), z_mm=o[2])
             g_ = g_[0] if np.isfinite(g_).all() else cams[o[0]].to_paddock(np.atleast_2d(o[1]), z_mm=o[2])[0]
         else:
@@ -401,6 +423,8 @@ def fit(use, ids, bkeys=None):
                     r.append((g[k, 0] - tgt) * w)
                 elif kind == "y":
                     r.append((g[k, 1] - tgt) * w)
+                elif kind == "line":                                     # across the drone's cord line
+                    r.append((g[k, 0] * tgt[0] + g[k, 1] * tgt[1] - tgt[2]) * w)
                 else:                                                    # wall top: height where the ray meets the wall plane
                     r.append((g[k, 2] - wt_target(tgt, g[k, 1 - WALLS[tgt][0]]) / IN) * w)
             r = r if isinstance(r, list) else list(r)
@@ -490,7 +514,8 @@ for c in names:
             Xw = wall_cut(rc.centre, rc.rays(np.atleast_2d(uv)), tgt)[0]
             lab_res[(c, kind)].append(abs(Xw[2] - wt_target(tgt, Xw[1 - WALLS[tgt][0]] / IN)) / IN); continue
         g = rc.to_paddock(uv, z, units="in")[0]
-        e = np.hypot(*(g - PJ[j])) if kind == "cone" else abs(g[0] - tgt) if kind == "x" else abs(g[1] - tgt)
+        e = (np.hypot(*(g - PJ[j])) if kind == "cone" else abs(g[0] - tgt) if kind == "x" else abs(g[1] - tgt) if kind == "y"
+             else abs(g @ tgt[:2] - tgt[2]))
         lab_res[(c, kind)].append(e)
 L.append("label residuals (in, median / p90): " + "; ".join(f"{c} {k} {np.median(v):.1f}/{np.percentile(v, 90):.1f}" for (c, k), v in sorted(lab_res.items())))
 L.append("camera centres (in, tape-frame-free): " + "; ".join(f"{c} dC ({RC[c].dC[0] / IN:+.1f}, {RC[c].dC[1] / IN:+.1f}, {RC[c].dC[2] / IN:+.1f})" for c in names))
@@ -551,6 +576,37 @@ def shape_check(mapfn, views):
     return np.array(out)
 
 
+VIEWS_HO = []
+
+
+def held_views(mapfn, views, fold):
+    """per held-out plate view: where it is, how far its mapped corners leave the rigid printed pattern (shape rms) and
+    how much bigger / smaller it maps (similarity scale - 1), plus, per placement, the other cameras' corners."""
+    byk = collections.defaultdict(dict)
+    for p_ in views:
+        g_ = mapfn(p_["cam"], np.asarray(p_["px"], float), 6.0); ok_ = np.isfinite(g_).all(1)
+        if ok_.sum() < 8:
+            continue
+        A_, B_ = np.asarray(p_["obj_mm"], float)[ok_] * FLIP, g_[ok_]
+        am, bm = A_.mean(0), B_.mean(0); U_, S_, Vt_ = np.linalg.svd((B_ - bm).T @ (A_ - am))
+        D_ = np.diag([1, np.sign(np.linalg.det(U_ @ Vt_))]); R_ = U_ @ D_ @ Vt_
+        sc_ = np.trace(np.diag(S_) @ D_) / ((A_ - am) ** 2).sum()
+        rms = float(np.sqrt(((B_ - bm - (A_ - am) @ R_.T) ** 2).sum(1).mean()))
+        key = (str(p_["session"]), p_["station"], p_["win"])
+        for i_, q_ in zip(np.asarray(p_["ids"])[ok_], B_):
+            byk[key].setdefault(int(i_), {})[p_["cam"]] = q_
+        VIEWS_HO.append(dict(fold=fold, session=str(p_["session"]), station=p_["station"], cam=p_["cam"], n=int(ok_.sum()),
+                             x_in=round(float(bm[0] / IN), 1), y_in=round(float(bm[1] / IN), 1),
+                             shape_rms_mm=round(rms, 1), scale_err_pct=round(100 * (sc_ - 1), 2)))
+    for key, cor in byk.items():                                         # two cameras on the same held-out corner
+        pairs_ = collections.defaultdict(list)
+        for i_, v_ in cor.items():
+            for a_, b_ in itertools.combinations(sorted(v_), 2):
+                pairs_[(a_, b_)].append(float(np.hypot(*(v_[a_] - v_[b_]))))
+        for (a_, b_), d_ in pairs_.items():
+            VIEWS_HO.append(dict(fold=fold, session=key[0], station=key[1], pair=f"{a_}-{b_}", n=len(d_), median_mm=round(float(np.median(d_)), 1)))
+
+
 L.append("CHECK boards (mm, median / p90 of two cameras on the same corner)" + (" - boards IN the fit:" if USE_BOARDS else ":"))
 for nm, f in (("release", rel_map), ("ray fit", ray_map)):
     a, d = board_check(f)
@@ -570,6 +626,7 @@ if USE_BOARDS and B_FOLDS > 1:                                           # hones
         a2, _ = board_check(rel_map); pr.append(a2)
         P = P_save
         ps.append(shape_check(lambda c, uv, z: tmap(RCb[c], uv, z), Ph))
+        held_views(lambda c, uv, z: tmap(RCb[c], uv, z), Ph, k)
     pa, pr, ps = np.concatenate(pa), np.concatenate(pr), np.concatenate(ps)
     L.append(f"  HELD OUT by station ({B_FOLDS} folds): ray fit {np.median(pa):.0f} / {np.percentile(pa, 90):.0f} (n {len(pa)}), "
              f"release on the same corners {np.median(pr):.0f} / {np.percentile(pr, 90):.0f}; held-out plate shape median {np.median(ps):.1f} mm, p90 {np.percentile(ps, 90):.1f}")
@@ -702,6 +759,50 @@ for k, fold in enumerate(folds):
 L.append(f"CHECK held-out 09-30 cones ({FOLDS}-fold, two cameras on the same unseen cone, mm): ray fit {np.median(pair_ray):.0f} / "
          f"{np.percentile(pair_ray, 90):.0f} (n {len(pair_ray)}); release {np.median(pair_rel):.0f} / {np.percentile(pair_rel, 90):.0f} IN its fit "
          f"(10-02b was fitted on these cones; its own 5-fold held-out figure is 62 / 124, RELEASE_2026-10-02.md)")
+if CORD_FOLDS:                                                           # check 6: each drone-measured cord held out, against the drone
+    REFS, EXT = {}, {}
+    for nm_, p_ in (("drone model 1", opt("--cord-ref", str(HERE / "drone_cords_2026-10-02.json"))), ("drone model 0", opt("--cord-ref2"))):
+        if p_:
+            _lj = json.loads(Path(p_).read_text(encoding="utf-8"))["lines"]
+            REFS[nm_] = {k: cord_line(v, k) for k, v in _lj.items()}; EXT[nm_] = {k: v["extent_in"] for k, v in _lj.items()}
+    SIM = {"drone model 1": lambda g_: np.atleast_2d(g_)}
+    if "drone model 0" in REFS:                                          # model 1 frame -> model 0 frame: 2-D similarity, point to line
+        m1, m0 = REFS["drone model 1"], REFS["drone model 0"]; c0 = np.array([240.0, 120.0]); smp = []
+        for k_ in sorted(set(m1) & set(m0)):
+            ax = 0 if k_.startswith("Y") else 1; n1 = m1[k_]
+            lo, hi = max(EXT["drone model 1"][k_][0], EXT["drone model 0"][k_][0]), min(EXT["drone model 1"][k_][1], EXT["drone model 0"][k_][1])
+            for a_ in np.linspace(lo, hi, 5):                            # points on the model-1 line at a_ along the cord
+                q_ = np.zeros(2); q_[ax] = a_; q_[1 - ax] = (n1[2] - n1[ax] * a_) / n1[1 - ax]; smp.append((q_, m0[k_]))
+
+        def _sim(x_, g_):
+            R_ = np.array([[np.cos(x_[1]), -np.sin(x_[1])], [np.sin(x_[1]), np.cos(x_[1])]])
+            return c0 + (1 + x_[0]) * (np.atleast_2d(g_) - c0) @ R_.T + x_[2:]
+        xs = least_squares(lambda x_: [(_sim(x_, q_)[0] @ l_[:2] - l_[2]) for q_, l_ in smp], np.zeros(4), loss="soft_l1", f_scale=1.0).x
+        SIM["drone model 0"] = lambda g_, xs=xs: _sim(xs, g_)
+        L.append(f"CHECK cords held out one at a time, across the cord against the drone (mm; model 0 moved into model 1's frame: scale "
+                 f"{100 * xs[0]:+.2f} %, rotation {np.degrees(xs[1]):+.2f} deg, shift ({xs[2] * IN:+.0f}, {xs[3] * IN:+.0f}) mm; its "
+                 f"lines then differ from model 1's by {np.median([abs(_sim(xs, q_)[0] @ l_[:2] - l_[2]) for q_, l_ in smp]) * IN:.0f} mm median)")
+    else:
+        L.append("CHECK cords held out one at a time, across the cord against the drone (mm)")
+    held_c, held_xy = collections.defaultdict(list), collections.defaultdict(list)   # (ref, cam, cord) -> signed offsets mm, where (in)
+    for k_ in sorted({o[5].split("@")[0] for o in OBS if o[3] in ("x", "y", "line")} & set(REFS["drone model 1"])):
+        use = np.array([o[5].split("@")[0] != k_ for o in OBS])
+        RCk, _, _ = fit(use, IDS)
+        for o in OBS:
+            if o[5].split("@")[0] == k_:
+                g_ = tmap(RCk[o[0]], np.atleast_2d(o[1]), 0.0)[0] / IN
+                if np.isfinite(g_).all():
+                    for ref in SIM:
+                        if k_ in REFS[ref]:
+                            l_ = REFS[ref][k_]; held_c[(ref, o[0], k_)].append(float((SIM[ref](g_)[0] @ l_[:2] - l_[2]) * IN))
+                            held_xy[(ref, o[0], k_)].append([round(float(g_[0]), 1), round(float(g_[1]), 1)])
+    for ref in SIM:
+        allc = [abs(np.median(v)) for (r_, c_, k_), v in held_c.items() if r_ == ref and len(v) >= 3]
+        allp = [abs(x_) for (r_, c_, k_), v in held_c.items() if r_ == ref for x_ in v]
+        L.append(f"  vs {ref}: per camera and cord |median| {np.median(allc):.0f} mm (p90 {np.percentile(allc, 90):.0f}, n {len(allc)}); "
+                 f"every label |offset| median {np.median(allp):.0f}, p90 {np.percentile(allp, 90):.0f} (n {len(allp)})")
+        L.append("     " + "; ".join(f"{c_} {k_} {np.median(v):+.0f}/{len(v)}" for (r_, c_, k_), v in sorted(held_c.items(), key=lambda t: (t[0][1], t[0][2])) if r_ == ref))
+    (OUT / "cord_heldout.json").write_text(json.dumps({f"{r_}|{c_}|{k_}": dict(offset_mm=[round(x_, 1) for x_ in v], xy_in=held_xy[(r_, c_, k_)]) for (r_, c_, k_), v in held_c.items()}, indent=0), encoding="utf-8")
 seam = []                                                                # check 5: the pano's ground position across its stitch seam
 for c in rm.PANO:
     W, Hh = qc_paths.upright_size(S18, c); vs = np.linspace(0.55, 0.95, 9) * Hh
@@ -709,8 +810,10 @@ for c in rm.PANO:
     j = np.hypot(*(a_ - b_).T)
     seam.append(f"{c} max {np.nanmax(j):.0f} mm, median {np.nanmedian(j):.0f} mm over v 0.55-0.95 H")
 L.append("CHECK stitch seam, ground jump at z 60 mm between the columns either side of u = W / 2: " + "; ".join(seam))
+if VIEWS_HO:
+    (OUT / "board_heldout.json").write_text(json.dumps(VIEWS_HO, indent=1), encoding="utf-8")
 (OUT / "RAYMAP.json").write_text(json.dumps(dict(note="raymap.py ray-space correction on the release bundle; refit_rays.py",
-                                                 bundle=str(pm.FIT), terrain=(Path(opt("--terrain")).name if TERR is not None else None), fit_sha256=__import__('hashlib').sha256(Path(pm.FIT).read_bytes()).hexdigest(), deg=rm.DEG, sig_coef=SIG_COEF, centres=USE_CENTRES,
+                                                 bundle=str(pm.FIT), terrain=(Path(opt("--terrain")).name if TERR is not None else None), fit_sha256=__import__('hashlib').sha256(Path(pm.FIT).read_bytes()).hexdigest(), drone_cords=(Path(opt("--drone-cords")).name if DCORDS is not None else None), deg=rm.DEG, sig_coef=SIG_COEF, centres=USE_CENTRES,
                                                  cameras={c: RC[c].todict() for c in names}), indent=1), encoding="utf-8")
 (OUT / "REFIT_RAYS.txt").write_text("\n".join(L) + "\n", encoding="utf-8")
 print("\n".join(L)); print("->", OUT)

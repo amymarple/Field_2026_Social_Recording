@@ -15,7 +15,13 @@ the median depth of the model's own points seen within NEAR px of the click in t
 The camera lenses, wall tops, towers and roofs are NOT in the fit: they are the check. Poles are taken on the
 design 10 ft grid until the operator's tape survey replaces it.
 
+--kinds limits which landmark kinds enter the similarity (default foot,top,cord,wallfoot,beam; the floor always does):
+--kinds foot is the lean-free anchor (2026-10-03, operator: the poles lean, so a pole top or a beam is not above its foot,
+and the cords were laid by hand). Every run also reports each pole's lean as the drone sees it (median top minus
+median foot, horizontal) - the foot clicks sit in the grass, so it is coarse.
+
 Usage: python drone_landmark_anchor.py --name 2026-10-02_anchor --labels <drone_landmarks.json> [--models 1,2,3]
+                                       [--kinds foot,top,cord,wallfoot,beam] [--out <dir>]
        (labels are matched by frame name, so labels made on one run's frames anchor any other run that registered them)
 Output: <run>\anchor\ANCHOR_REPORT.txt, anchor.json (transforms, landmark positions), paddock_points_<m>.ply
 """
@@ -35,7 +41,8 @@ def opt(name, default=None):
 RUN = qc_paths.QC_ROOT / "drone_sfm" / opt("--name", "2026-10-02_anchor")
 LAB = json.loads(Path(opt("--labels", str(RUN / "landmark_gui" / "drone_landmarks.json"))).read_text(encoding="utf-8"))
 MODELS = opt("--models", "1,2,3").split(",")
-OUT = RUN / "anchor"; OUT.mkdir(exist_ok=True)
+OUT = Path(opt("--out", str(RUN / "anchor"))); OUT.mkdir(parents=True, exist_ok=True)
+KINDS = set(opt("--kinds", "foot,top,cord,wallfoot,beam").split(","))
 IN, R_POLE, NEAR = 0.0254, 0.15, 25.0                                    # m per in; pole radius m; px
 SIG = dict(foot=0.10, top=0.10, cord=0.05, wallfoot=0.12, beam=0.10, floor=0.05)
 ROWY = dict(A=0.0, B=120 * IN, C=240 * IN)
@@ -130,6 +137,8 @@ for m in MODELS:
     def res(x):
         r = []
         for nm, k, X, _ in obs:
+            if k not in KINDS:
+                continue
             Y = tf(x, X)[0]
             if k in ("foot", "top"):
                 ax = np.r_[120 * int(nm[1]) * IN, ROWY[nm[0]]]
@@ -165,7 +174,8 @@ for m in MODELS:
         else:
             continue
         by[k].append(e)
-    rep.append(f"model {m}: {len(imgs)} frames, {len(obs)} labelled clicks with a 3-D point; scale {s_m:.4f} m per model unit")
+    rep.append(f"model {m}: {len(imgs)} frames, {len(obs)} labelled clicks with a 3-D point; scale {s_m:.4f} m per model unit; "
+               f"fitted to {', '.join(sorted(KINDS))} + floor")
     rep.append("  fit residuals (horizontal, mm; median / p90 / n): " + "; ".join(
         f"{k} {1000 * np.median(v):.0f} / {1000 * np.percentile(v, 90):.0f} / {len(v)}" for k, v in sorted(by.items())))
     zf = tf(x, FS)[:, 2]; rep.append(f"  floor sample z: median {1000 * np.median(zf):+.0f} mm, spread (p10-p90) {1000 * np.ptp(np.percentile(zf, [10, 90])):.0f} mm")
@@ -188,6 +198,13 @@ for m in MODELS:
     for nm in sorted(lm):
         if kind(nm) in ("top", "beam", "other"):
             Y = np.array(lm[nm]); rep.append(f"  {nm}: ({np.median(Y[:, 0]) / IN:.0f}, {np.median(Y[:, 1]) / IN:.0f}) in, height {1000 * np.median(Y[:, 2]):.0f} mm, n {len(Y)}")
+    for row in "ABC":                                                    # each pole's lean: top minus foot, horizontal
+        for col in range(5):
+            ft, tp = lm.get(f"{row}{col} foot"), lm.get(f"{row}{col} top")
+            if ft and tp:
+                F_, T_ = np.median(ft, 0), np.median(tp, 0); d_ = T_[:2] - F_[:2]; h_ = T_[2] - F_[2]
+                rep.append(f"  LEAN {row}{col}: top - foot ({1000 * d_[0]:+.0f}, {1000 * d_[1]:+.0f}) mm over {1000 * h_:.0f} mm = "
+                           f"{np.degrees(np.arctan2(np.hypot(*d_), h_)):.1f} deg (feet {len(ft)}, tops {len(tp)} clicks)")
     rep.append("")
     out[m] = dict(scale=s_m, rotvec=x[1:4].tolist(), t=x[4:7].tolist(), n_obs=len(obs),
                   landmarks={nm: np.median(v, 0).tolist() for nm, v in lm.items()})
