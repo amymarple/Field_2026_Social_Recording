@@ -1,0 +1,12 @@
+CAMERA ERROR MAP  cameras: F:\calibration\qc\refit_rays\S05_all\RAYMAP.json; reviewed 20 Hz ball at 105 mm above the ground; cells 40 in; 96 (pair, cell) medians; primary = finest resolution; its own error by the three-cornered hat (3+ cameras) or <= d / sqrt(2) (2 cameras, primary the better)
+
+primary camera and its own error, mm (e = estimate, < = bound), per cell (x along the length, rows from y 240 at the top):
+  y 200-240 03:e 20 03:e 10 01:  -  01:  -  01:  -  01:  -  01:  -  01:  -  01:  -  01:  -  04:< 47 04:< 20
+  y 160-200 03:e 10 03:e 23 02:e 41 05:e 10 05:  -  01:  -  01:  -  01:< 24 06:< 17 01:< 18 04:< 37 04:e 10
+  y 120-160 03:e 10 03:e 10 02:< 18 05:< 18 05:e 10 01:< 47 01:< 47 06:< 13 06:e 22 06:<188 04:e 50 04:e 10
+  y  80-120 03:e 10 03:e 10 01:< 33 05:< 13 05:e 15 02:< 20 02:< 55 01:e 10 06:e 24 06:< 18 04:e 10 04:< 66
+  y  40- 80 03:e 10 03:e 12 02:< 11 05:< 14 02:< 15 02:< 56 02:  -  06:  -  06:< 16 06:  -  04:< 30 04:  - 
+  y   0- 40 03:< 55 03:< 18 02:< 80 02:  -  02:  -  02:  -  02:  -  02:  -  02:  -  02:  -  04:< 24 04:  - 
+
+primary camera's own error over the cells with ball data: median 18 mm, p90 55, max 188
+cells with an estimate (3+ cameras): 21, with a bound only (2 cameras): 28, no ball data: 23

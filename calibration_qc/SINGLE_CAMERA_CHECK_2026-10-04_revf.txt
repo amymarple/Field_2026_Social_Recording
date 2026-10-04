@@ -1,18 +1,18 @@
 SINGLE-CAMERA CHECK  the primary camera's own 2-D ground map where tracking uses it (primary map: camera_error_map.py, 40 in cells)
 
-PLATES held out by station (G_design_cordfolds): one camera's map of a rigid 800 x 600 mm plate; scale error = local stretch, shape = rms about the printed pattern after the best similarity
-  CH01 as primary: n 12, scale |error| median 3.6 %, p90 7.5 (signed median +0.3); shape median 17 mm, p90 25
-  CH01 all views : n 35, scale |error| median 3.0 %, p90 7.4 (signed median +0.4); shape median 14 mm, p90 25
-  CH02 as primary: n 10, scale |error| median 2.9 %, p90 12.0 (signed median -1.3); shape median 11 mm, p90 36
-  CH02 all views : n 28, scale |error| median 2.6 %, p90 6.8 (signed median -0.2); shape median 11 mm, p90 28
-  CH03 as primary: n 12, scale |error| median 1.9 %, p90 8.0 (signed median +1.2); shape median 7 mm, p90 32
-  CH03 all views : n 12, scale |error| median 1.9 %, p90 8.0 (signed median +1.2); shape median 7 mm, p90 32
-  CH04 as primary: n 11, scale |error| median 1.1 %, p90 2.5 (signed median +0.4); shape median 7 mm, p90 11
-  CH04 all views : n 12, scale |error| median 1.7 %, p90 3.8 (signed median +0.3); shape median 8 mm, p90 12
-  CH05 as primary: n  5, scale |error| median 2.6 %, p90 4.0 (signed median -1.6); shape median 8 mm, p90 10
-  CH05 all views : n  8, scale |error| median 2.3 %, p90 3.9 (signed median -1.8); shape median 8 mm, p90 9
-  CH06 as primary: n  9, scale |error| median 0.9 %, p90 3.2 (signed median -0.5); shape median 6 mm, p90 10
-  CH06 all views : n 11, scale |error| median 0.6 %, p90 2.8 (signed median -0.3); shape median 6 mm, p90 10
+PLATES held out by station (G_design_cordfolds; views with >= 40 of 88 corners - partial views under the panos give no scale): one camera's map of a rigid 800 x 600 mm plate; scale error = local stretch, shape = rms about the printed pattern after the best similarity
+  CH01 as primary: n 10, scale |error| median 3.6 %, p90 7.2 (signed median -1.6); shape median 17 mm, p90 24
+  CH01 all views : n 31, scale |error| median 2.8 %, p90 6.6 (signed median -0.4); shape median 14 mm, p90 24
+  CH02 as primary: n  8, scale |error| median 2.5 %, p90 4.9 (signed median +0.2); shape median 10 mm, p90 19
+  CH02 all views : n 25, scale |error| median 2.6 %, p90 5.9 (signed median -0.1); shape median 11 mm, p90 24
+  CH03 as primary: n 10, scale |error| median 2.2 %, p90 8.1 (signed median +1.7); shape median 10 mm, p90 32
+  CH03 all views : n 10, scale |error| median 2.2 %, p90 8.1 (signed median +1.7); shape median 10 mm, p90 32
+  CH04 as primary: n 10, scale |error| median 1.7 %, p90 2.7 (signed median +0.7); shape median 8 mm, p90 11
+  CH04 all views : n 11, scale |error| median 2.2 %, p90 3.9 (signed median +0.4); shape median 9 mm, p90 12
+  CH05 as primary: n  4, scale |error| median 2.1 %, p90 3.5 (signed median -1.2); shape median 6 mm, p90 10
+  CH05 all views : n  7, scale |error| median 2.1 %, p90 3.2 (signed median -1.6); shape median 8 mm, p90 10
+  CH06 as primary: n  8, scale |error| median 0.8 %, p90 2.2 (signed median -0.2); shape median 6 mm, p90 8
+  CH06 all views : n  9, scale |error| median 0.6 %, p90 2.1 (signed median -0.3); shape median 6 mm, p90 8
   a scale error of s % moves a point d m from the plate's place by about s x d cm along the stretch - it is local, the plates are 0.8 m
 
 CORDS held out one at a time (G_design_cordfolds, cords on design): labels mapped by a fit that never saw the cord, across the cord vs the drone line, mm; only Y201, Y39

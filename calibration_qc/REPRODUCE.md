@@ -1,16 +1,17 @@
 # Reproducing the paddock calibration
 
-Status 2026-10-04. The release in use is `ray_correction.json` (release 2026-10-03, see `RELEASE_2026-10-03.md`) on the bundle
+Status 2026-10-04, FROZEN (`CALIBRATION_FINAL_2026-10-04.md`). The release is `ray_correction.json` = release 2026-10-03
+revision g (`RELEASE_2026-10-03.md`; revision f kept as `ray_correction_2026-10-03f.json`) on the bundle
 `camera_fit.npz` (sha256 6e4b54e9...) and the ground warp `frame_correction.json` (10-02b, used for label selection and the
 comparisons). Everything below runs from this folder with `CALIB_ROOT=F:\calibration` (lab PC) - check that
 `qc_paths.ROOT` is `F:\calibration` before a run.
 
 ## Verified
 
-- `refit_rays.py` with the release flags (below) reproduces the committed `ray_correction.json` **bit for bit** (largest
-  difference over every coefficient and camera centre: 0.0), checked twice on 2026-10-04 (`F:\calibration\qc\refit_rays\
-  G_design_cordfolds`, `T_trace`) after the opt-in options of 2026-10-03/04 (`--drone-cords`, `--cord-folds`, `--fit`,
-  `--sweep`) were added - none of them changes the default path.
+- `refit_rays.py` with the release flags (below) reproduces revision g **bit for bit** (largest difference over every
+  coefficient and camera centre: 0.0; `F:\calibration\qc\refit_rays\S05_repro`), and without the `--sweep` line it
+  reproduces revision f bit for bit, checked twice on 2026-10-04 (`G_design_cordfolds`, `T_trace`) after the opt-in
+  options of 2026-10-03/04 (`--drone-cords`, `--cord-folds`, `--fit`, `--sweep`) were added.
 - Environment: the `cv` conda env, Python 3.11.15, numpy 2.4.4, scipy 1.17.1, opencv(-contrib) 5.0.0, pycolmap 4.2.1
   (drone steps only), matplotlib 3.11.0. On the lab PC scipy.linalg dies silently unless cv2 is imported first (every
   script here imports it through paddock_map / qc_paths).
@@ -23,15 +24,18 @@ comparisons). Everything below runs from this folder with `CALIB_ROOT=F:\calibra
 | calibration videos, sessions 2026-09-18 (x2), 09-19, 09-30 | `F:\calibration\session_*` | `Q:\hc997\SocialFieldRat2026\3rd_rat\calibration\session_*` (2026-10-04; file counts and bytes checked equal) |
 | drone footage 09-30, 10-02, 10-03 (originals) and the recovered PTSC_0017 / 0018 | `F:\ATOM_001\DCIM`, `F:\calibration\drone` | `...\3rd_rat\calibration\drone_ATOM_001`, `drone_recovered` |
 | house photos, pole-spacing sketch | `F:\calibration\houses`, `survey` | `...\3rd_rat\calibration\houses`, `survey` |
-| derived data and the operator's labels: corner caches, cone / line labels, the drone reconstruction and anchor, ball tracks, every run | `F:\calibration\qc` (19 GB) | **none yet** |
+| derived data and the operator's labels: corner caches, cone / line labels, the drone reconstruction and anchor, ball tracks, the sweep detections, every run | `F:\calibration\qc` (19 GB) | `...\3rd_rat\calibration\qc` (2026-10-04; counts and bytes checked) |
+| the hand-held sweep boards used by revision g (406 instances) | `F:\calibration\qc\trial_sweep\instances_v3.json` | this repo, `sweep_instances_2026-09-18_v3.json` (sha256 identical) |
 | rigid-landmark labels (wall tops, pole edges) | analysis repo `Field2026_Social_analysis\cv\configs\landmarks\2026c` | GitHub (that repo) |
 
 ## The final fit and exactly what it reads
 
     set CALIB_ROOT=F:\calibration
     python refit_rays.py --out <dir> --deg 4 --sig-coef 0.05 --walltop --wt-w 1.0 --seam-w-deg 3 --no-tape-dist --boards ^
-        --board-w 3 --drone-scale anchor --height-source drone --board-weak --terrain terrain_2026-10-02.json
+        --board-w 3 --drone-scale anchor --height-source drone --board-weak --terrain terrain_2026-10-02.json ^
+        --sweep sweep_instances_2026-09-18_v3.json --sweep-w 0.5
     -> <dir>\RAYMAP.json  (= ray_correction.json, sha-bound to camera_fit.npz) and REFIT_RAYS.txt (all checks)
+    (revision f: the same without the last option line)
 
 Files it opened (traced with an audit hook, 2026-10-04, `F:\calibration\qc\refit_rays\T_trace\inputs_opened.json`):
 - corner caches: `F:\calibration\qc\corners\CH01..CH06\` and `F:\calibration\qc\2026-09-19\corners\CH0x\` (~2,170 files);
@@ -43,7 +47,9 @@ Files it opened (traced with an audit hook, 2026-10-04, `F:\calibration\qc\refit
 - analysis repo: `landmarks_CH0x_20260918_*.json` (6 files);
 - this folder: `paddock_map.py`, `raymap.py`, `refit_rays.py`, the manual-quad / labelled-frame / cone-corner files of 09-18
   and 09-19, `session_2026-09-19_drift.json`, `session_2026-09-30_drift_final.json`, `terrain_2026-10-02.json`;
-- plus the session videos' frame sizes (ffprobe through `qc_paths`).
+- plus the session videos' frame sizes (ffprobe through `qc_paths`);
+- revision g in addition: the sweep instances (`--sweep`), built by `board_sweep20_instances.py` from the sweep corner
+  detections under `F:\calibration\qc\sweep20\` (`board_sweep20.py`, `board_sweep20_rescue.py`, the operator's clicks).
 
 ## The upstream chain (each step is a dated README section)
 

@@ -282,7 +282,12 @@ Two Python trees of different vintage:
     (`terrain_2026-10-02.json`): **`to_paddock(uv, z_mm)` now means z above the LOCAL ground** (floor +-5 cm); plates
     held out 28 / 56, cones 42 / 76. Revision f orders the operator's plate clicks by the rigid plate (18 / 20 were
     reversed): ball 38 / 84, cones 41 / 72; `camera_error_map.py` = primary camera per region and its own error.
-    **2026-10-04:** cords at the drone's positions (`refit_rays.py --drone-cords`, `drone_line_check.py`) tested and NOT
+    **2026-10-04 - FINAL, FROZEN: revision g** (rev f + the 2026-09-18 hand-held sweep boards in the ray fit, weight 0.5;
+    `ray_correction.json`, rev f kept as `ray_correction_2026-10-03f.json`). No further fitting. The calibration of record
+    - use, final error (primary camera's own error 18 / 55 mm per 1 m cell at the keypoint height, 23 one-camera cells
+    unmeasured; 2-6 cm handoff steps), methods paragraph, what not to claim - is `calibration_qc/CALIBRATION_FINAL_2026-10-04.md`;
+    reproduction `calibration_qc/REPRODUCE.md`; all calibration data backed up to `Q:\hc997\SocialFieldRat2026rd_rat\calibration\`.
+    Also 2026-10-04: cords at the drone's positions (`refit_rays.py --drone-cords`, `drone_line_check.py`) tested and NOT
     adopted - rev f stands; `single_camera_check.py` maps each primary camera's own held-out plate stretch and cord offset;
     the place-cell audit (`calibration_qc/AUDIT_FABLE_PLACECELL_PRECISION_2026-10-04.md`): sufficient for place-cell analyses
     if the tracking blends cameras at a switch, maps at the keypoint's height and measures walls / houses in the same map.

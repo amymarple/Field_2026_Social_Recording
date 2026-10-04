@@ -12,7 +12,7 @@ refit_rays.py runs, drawn on the primary-camera map (camera_error_map.py):
     flight (2026-10-02): the X cords were labelled on 09-18 and may have been knocked or moved by rain since (operator,
     2026-10-04), so only Y39 / Y201 (labelled 09-30) are a fair absolute check.
 
-Usage: python single_camera_check.py --run <refit dir> [--run2 <refit dir>] [--cords Y39,Y201] [--primary <camera_error_map.json>] [--out <dir>]
+Usage: python single_camera_check.py --run <refit dir> [--run2 <refit dir>] [--cords Y39,Y201] [--min-corners 40] [--primary <camera_error_map.json>] [--out <dir>]
 Output: <out>\SINGLE_CAMERA_CHECK.txt, single_camera_check.png   (default <qc root>\single_camera_check)
 """
 import sys, json, collections
@@ -28,6 +28,7 @@ def opt(name, default=None):
     return args[args.index(name) + 1] if name in args else default
 RUNS = [Path(p) for p in (opt("--run"), opt("--run2")) if p]
 KEEP = set(opt("--cords").split(",")) if opt("--cords") else None
+MIN_N = int(opt("--min-corners", "40"))                                   # a plate view needs this many corners to count
 PRIM = json.loads(Path(opt("--primary", str(qc_paths.QC_ROOT / "camera_error" / "camera_error_map.json"))).read_text(encoding="utf-8"))
 OUT = Path(opt("--out", str(qc_paths.QC_ROOT / "single_camera_check"))); OUT.mkdir(parents=True, exist_ok=True)
 CELL = PRIM["cell_in"]; P = PRIM["primary"]; NY, NX = len(P), len(P[0])
@@ -50,9 +51,10 @@ L = ["SINGLE-CAMERA CHECK  the primary camera's own 2-D ground map where trackin
 plates = []
 B = json.loads((RUNS[0] / "board_heldout.json").read_text(encoding="utf-8")) if (RUNS[0] / "board_heldout.json").exists() else []
 for v in B:
-    if "cam" in v:
+    if "cam" in v and v["n"] >= MIN_N:                                  # partial views (few corners) give no scale
         plates.append(dict(v, primary=primary(v["x_in"], v["y_in"]) == v["cam"]))
-L.append(f"PLATES held out by station ({RUNS[0].name}): one camera's map of a rigid 800 x 600 mm plate; scale error = local stretch, "
+L.append(f"PLATES held out by station ({RUNS[0].name}; views with >= {MIN_N} of 88 corners - partial views under the panos give no scale): "
+         "one camera's map of a rigid 800 x 600 mm plate; scale error = local stretch, "
          "shape = rms about the printed pattern after the best similarity")
 for c in CAMS:
     for prim_only in (True, False):

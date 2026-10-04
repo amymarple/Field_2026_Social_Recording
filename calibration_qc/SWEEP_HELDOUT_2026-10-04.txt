@@ -1,0 +1,61 @@
+SWEEP BOARDS HELD OUT (2026-10-04): rev f (ray_correction_2026-10-03f.json) and rev g fitted WITHOUT these 10-s blocks (sweep weight 0.5; refit_rays.py --sweep-hold), each mapped at its own triangulated heights (--own-z)
+
+SWEEP RAY CHECK  174 sweep instances (odd 10-s blocks), 238 two-camera views, 10456 shared corners; 3-D gap of the two rays, and the 2-D jump between the two cameras' floor-plan positions at the corner's height
+
+model ray_correction_2026-10-03f.json (terrain: z above the local ground)
+  all: 3-D gap 15 / 39 mm, 2-D jump 22 / 55 mm (n 10010)
+  CH03-CH01: views  42, 3-D gap  17 /  28, 2-D jump  25 /  40; 2-D jump by height (mm): z 0-200: 13 (891); z 200-350: 25 (753); z 350-500: 33 (621); z 500-900: 33 (570)
+  CH03-CH02: views  36, 3-D gap  22 /  60, 2-D jump  35 /  79; 2-D jump by height (mm): z 0-200: 6 (495); z 200-350: 25 (315); z 350-500: 42 (325); z 500-900: 71 (419)
+  CH04-CH01: views  42, 3-D gap  33 /  86, 2-D jump  39 / 105; 2-D jump by height (mm): z 0-200: 14 (520); z 200-350: 47 (359); z 350-500: 63 (202); z 500-900: 130 (106)
+  CH04-CH02: views 118, 3-D gap   9 /  29, 2-D jump  15 /  44; 2-D jump by height (mm): z 0-200: 13 (2362); z 200-350: 23 (991); z 350-500: 17 (564); z 500-900: 45 (335)
+  px score (pose from the sweep camera alone -> the pano): pair, views, |mean offset| median / p90 px, mean (du, dv), shape rms, size obs/pred u, v
+    CH03->CH01:  42    9.6 /  12.3  ( +8.5,  -0.6)    4.8   0.985, 0.963
+    CH03->CH02:  36   10.0 /  25.1  ( +0.5, +11.6)    8.2   1.030, 0.949
+    CH04->CH01:  42   16.7 /  47.3  ( +8.2,  +5.8)    9.8   1.046, 0.939
+    CH04->CH02: 118   14.1 /  29.5  ( -3.6,  -1.9)    4.7   0.975, 0.951
+    all: 238 views, 11.8 / 29.0 px
+
+model F:\calibration\qc\refit_rays\S05_hold_odd\RAYMAP.json (terrain: z above the local ground)
+  all: 3-D gap 5 / 12 mm, 2-D jump 8 / 17 mm (n 9981)
+  CH03-CH01: views  42, 3-D gap   4 /  12, 2-D jump   6 /  18; 2-D jump by height (mm): z 0-200: 4 (908); z 200-350: 6 (757); z 350-500: 6 (628); z 500-900: 15 (542)
+  CH03-CH02: views  36, 3-D gap   6 /  12, 2-D jump   9 /  15; 2-D jump by height (mm): z 0-200: 13 (499); z 200-350: 9 (324); z 350-500: 5 (345); z 500-900: 7 (386)
+  CH04-CH01: views  42, 3-D gap   9 /  23, 2-D jump  11 /  29; 2-D jump by height (mm): z 0-200: 8 (507); z 200-350: 13 (365); z 350-500: 15 (217); z 500-900: 26 (98)
+  CH04-CH02: views 118, 3-D gap   4 /  11, 2-D jump   7 /  16; 2-D jump by height (mm): z 0-200: 6 (2345); z 200-350: 9 (1008); z 350-500: 6 (528); z 500-900: 13 (404)
+  px score (pose from the sweep camera alone -> the pano): pair, views, |mean offset| median / p90 px, mean (du, dv), shape rms, size obs/pred u, v
+    CH03->CH01:  42    4.2 /   9.6  ( -0.0,  -0.6)    2.6   1.014, 0.979
+    CH03->CH02:  36    5.4 /  10.4  ( -2.1,  -2.0)    2.5   1.009, 0.991
+    CH04->CH01:  42   16.0 /  25.1  ( +5.8,  -5.0)    4.4   1.023, 0.977
+    CH04->CH02: 118    8.7 /  31.8  ( -4.7,  -2.9)    3.0   0.980, 0.979
+    all: 238 views, 7.1 / 23.6 px
+
+corner heights (first model): median 225 mm, p10-p90 45-544
+
+SWEEP RAY CHECK  232 sweep instances (even 10-s blocks), 344 two-camera views, 15896 shared corners; 3-D gap of the two rays, and the 2-D jump between the two cameras' floor-plan positions at the corner's height
+
+model ray_correction_2026-10-03f.json (terrain: z above the local ground)
+  all: 3-D gap 17 / 39 mm, 2-D jump 24 / 59 mm (n 15852)
+  CH03-CH01: views  37, 3-D gap  17 /  28, 2-D jump  23 /  41; 2-D jump by height (mm): z 0-200: 17 (887); z 200-350: 25 (259); z 350-500: 33 (395); z 500-900: 35 (326)
+  CH03-CH02: views  43, 3-D gap  19 /  38, 2-D jump  33 /  64; 2-D jump by height (mm): z 0-200: 8 (613); z 200-350: 35 (425); z 350-500: 45 (348); z 500-900: 60 (355)
+  CH04-CH01: views 124, 3-D gap  20 /  74, 2-D jump  29 /  89; 2-D jump by height (mm): z 0-200: 21 (2056); z 200-350: 47 (1077); z 350-500: 75 (794); z 500-900: 109 (281)
+  CH04-CH02: views 140, 3-D gap  12 /  30, 2-D jump  19 /  48; 2-D jump by height (mm): z 0-200: 13 (3565); z 200-350: 24 (1716); z 350-500: 33 (1413); z 500-900: 40 (571)
+  px score (pose from the sweep camera alone -> the pano): pair, views, |mean offset| median / p90 px, mean (du, dv), shape rms, size obs/pred u, v
+    CH03->CH01:  37   16.5 /  23.8  ( +8.9,  +2.2)    5.0   0.983, 0.972
+    CH03->CH02:  43   10.9 /  26.7  ( -3.8, +13.8)    7.9   1.022, 0.965
+    CH04->CH01: 124   17.1 /  36.2  ( +5.3, +11.6)   11.7   1.024, 0.879
+    CH04->CH02: 140   11.8 /  21.8  ( +7.3,  -1.8)    6.2   0.983, 0.991
+    all: 344 views, 13.7 / 29.5 px
+
+model F:\calibration\qc\refit_rays\S05_hold_even\RAYMAP.json (terrain: z above the local ground)
+  all: 3-D gap 6 / 19 mm, 2-D jump 9 / 27 mm (n 15858)
+  CH03-CH01: views  37, 3-D gap   8 /  15, 2-D jump  10 /  19; 2-D jump by height (mm): z 0-200: 12 (895); z 200-350: 10 (271); z 350-500: 10 (365); z 500-900: 6 (339)
+  CH03-CH02: views  43, 3-D gap   6 /  11, 2-D jump   9 /  16; 2-D jump by height (mm): z 0-200: 11 (615); z 200-350: 10 (433); z 350-500: 9 (362); z 500-900: 6 (330)
+  CH04-CH01: views 124, 3-D gap  10 /  36, 2-D jump  13 /  53; 2-D jump by height (mm): z 0-200: 9 (2022); z 200-350: 14 (1068); z 350-500: 30 (812); z 500-900: 44 (307)
+  CH04-CH02: views 140, 3-D gap   5 /  13, 2-D jump   7 /  19; 2-D jump by height (mm): z 0-200: 8 (3550); z 200-350: 7 (1652); z 350-500: 6 (1437); z 500-900: 13 (648)
+  px score (pose from the sweep camera alone -> the pano): pair, views, |mean offset| median / p90 px, mean (du, dv), shape rms, size obs/pred u, v
+    CH03->CH01:  37   12.2 /  16.5  ( +2.4,  -2.4)    3.0   0.991, 0.986
+    CH03->CH02:  43   10.3 /  13.1  ( -3.9,  +1.6)    4.6   1.000, 0.988
+    CH04->CH01: 124   14.5 /  21.4  ( +1.3,  +1.2)    6.3   1.001, 0.933
+    CH04->CH02: 140   10.0 /  21.5  ( +1.9,  -0.2)    4.1   0.994, 0.973
+    all: 344 views, 11.3 / 20.6 px
+
+corner heights (first model): median 203 mm, p10-p90 27-504

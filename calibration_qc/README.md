@@ -1145,3 +1145,26 @@ warm start FIT_INIT) brings boards it has not seen to 19 px with the camera pose
 boards' apparent size in the panos is not fixed by any bundle variant. Built on 10-02b, so superseded by the 10-03
 ray release as a candidate; the data and checks are handed over for the ray fit: `TRIAL_SWEEP_2026-10-02.md`,
 `HANDOFF_SWEEP_BOARDS_2026-10-04.md` (data under `<root>\qc\sweep20\` and `\trial_sweep\`).
+
+### FINAL: revision g, frozen (2026-10-04)
+
+The operator asked whether the parallel session's sweep work could still improve the release, and if not to freeze.
+`refit_rays.py --sweep` puts the 2026-09-18 hand-held sweep boards (`sweep_instances_2026-09-18_v3.json`, 406
+instances) into the ray fit as rigid plates in the air; `sweep_ray_check.py` scores them (3-D ray gap, 2-D jump at the
+plate's height, the trial's pano px and apparent size). Rev f, which never saw them, already beat the 10-02 trial
+bundle on them (12.6 / 29.4 px vs 19 / 43 held out; the 10-02b release 38 / 69); with the boards in and held out by
+alternate 10-s blocks the two cameras' jump at the plate's height goes 22-24 / 55-59 -> 8-9 / 17-27 mm, the apparent
+size comes to 0.96-1.00. A weight scan (0 / 0.25 / 0.5 / 1.0) is flat on every ground check; 0.5 chosen (1.0 starts
+to override the ground). Revision g = rev f + the boards at 0.5: plates 25 / 55, cones 40 / 70, ball 36 / 79, own
+error 18 / 55, houses 35 / 30 mm; camera centres within 6 cm of the drone's anchored lens positions (rev f: CH04 20 cm
+off). The other session's bundle candidate (`release_candidate_2026-10-02c_sweepA`) is superseded and was not used.
+
+Frozen on the Fable freeze audit (`AUDIT_FABLE_FREEZE_2026-10-04.md`) after its gates: house check on rev g, bit-for-bit
+reproduction of rev g (and of rev f, before and after the new options), and the backup of the whole calibration (videos,
+drone footage, photos, survey and `qc\`) to `Q:\hc997\SocialFieldRat2026\3rd_rat\calibration\`. The single-camera
+table now drops partial plate views (< 40 corners; T41 / T43 / T44 under the panos read -46 .. +13 %).
+**`CALIBRATION_FINAL_2026-10-04.md` is the calibration of record**: how to use it, the final error and its
+definition, the methods paragraph and what not to claim. `REPRODUCE.md`: commands, inputs and environment.
+The CH04|CH06 boundary has no camera overlap: behind HOUSE_2 only CH06 sees the floor (operator, 2026-10-04), so the
+freeze audit's suggested ball pass there cannot give a two-camera number; those cells are CH06-only and unmeasured,
+like the two wall strips.

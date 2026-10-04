@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 r"""Above-ground two-camera check with the 2026-09-18 hand-held sweep boards (board_sweep20_instances.py): the only data
-where two cameras see the same object 0.14-0.54 m above the ground - a rat's back and head. A CHECK: the boards are in
-no ray fit (they are in the sweep candidate's BUNDLE, release_candidate_2026-10-02c_sweepA).
+where two cameras see the same object 0.14-0.54 m above the ground - a rat's back and head. A CHECK. Since revision g
+(2026-10-04) the boards are IN the release's ray fit: score held out with a `refit_rays.py --sweep-hold odd|even` fit
+and `--blocks` (the other parity); rev f (`ray_correction_2026-10-03f.json`) never saw them.
 
 For every instance, every pair of views (the sweep camera CH03 / CH04 and each pano that saw the board at the same
 moment, within half a frame) and every corner both decoded:
