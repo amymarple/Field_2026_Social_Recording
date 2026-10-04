@@ -30,6 +30,12 @@ paddock_map then maps "z above the local ground".
 --walltop adds the first data above the ground: the operator's wall-top polylines in the cameras (analysis repo,
 2026c landmarks, as walltop_check.py) must meet the wall's design plane at the drone's wall-top height there
 (drone_walltop.py, on the tape's ground; weight WT_W); --walltop-hold <wall> leaves one wall out for the check.
+--sweep <instances.json> (board_sweep20_instances.py; HANDOFF_SWEEP_BOARDS_2026-10-04.md) adds the 2026-09-18 hand-held
+sweep boards - the plate in the air (0.14-0.54 m) seen at one moment by the sweep camera (CH03 / CH04) and a pano: per
+instance a latent rigid 6-DOF board; every kept corner of every view (at most --sweep-ncorner per view, farthest-point
+order, weight --sweep-w x clip(1.4 px / the view's sigma, 0.5, 2)) is a ray that must pass through its corner (the
+perpendicular miss, in inches like the other labels). --sweep-hold odd|even leaves those 10-s blocks (int(t // 10) % 2)
+out of the fit, for sweep_ray_check.py --blocks to score. --folds 0 skips the cone K-fold.
 --drone-cords <json> (drone_line_check.py; operator 2026-10-03: the cords were laid by hand, the poles lean, only the
 drone gives absolute positions) puts every cord the drone measured where the drone saw it: a cord label must land on the
 drone's line (perpendicular distance) instead of on its design x / y; cords the drone did not measure (X24) and the wall
@@ -43,10 +49,11 @@ cones (refit without the fold, score its cones); the reviewed 20 Hz ball at 105 
 wrong frames out); the west wall top cut by CH01 / CH02 / CH03 against each other and the drone profile; the camera
 centres against the tape. Each check is computed the same way for the release (bundle + object-space warp).
 
-Usage: python refit_rays.py --out <dir> [--deg 3] [--sig-coef 0.03] [--no-centres] [--old-drone] [--walltop]
+Usage: python refit_rays.py --out <dir> [--fit <camera_fit.npz>] [--deg 3] [--sig-coef 0.03] [--no-centres] [--old-drone] [--walltop]
                               [--walltop-hold X0] [--wt-w 0.5] [--seam-w-deg 0] [--no-tape-dist] [--boards [--board-w 3]
                               [--board-step 7] [--board-folds 4] [--ground-datum] [--board-weak] [--board-seam]] [--drone-scale plate|anchor] [--height-source tape|drone] [--terrain terrain_2026-10-02.json] [--folds 5]
-                              [--drone-cords drone_cords_2026-10-02.json] [--cord-folds [--cord-ref <json>] [--cord-ref2 <json>]]
+                              [--drone-cords drone_cords_2026-10-02.json]
+                              [--sweep <instances.json> [--sweep-w 1] [--sweep-ncorner 8] [--sweep-hold odd|even]] [--cord-folds [--cord-ref <json>] [--cord-ref2 <json>]]
 Output: <out>\RAYMAP.json (coefficients, dC), REFIT_RAYS.txt
 """
 import sys, json, itertools, collections, time
@@ -62,6 +69,8 @@ args = sys.argv[1:]
 def opt(name, default=None):
     return args[args.index(name) + 1] if name in args else default
 OUT = Path(opt("--out")); OUT.mkdir(parents=True, exist_ok=True)
+if opt("--fit"):                                                         # another bundle (e.g. a release candidate); its
+    pm.FIT = Path(opt("--fit"))                                          # frame_correction.json must sit next to it
 rm.DEG = int(opt("--deg", "3"))
 rm.SEAM_W = float(opt("--seam-w-deg", "0")) * np.pi / 180      # stitch blend band of the panos (0 = step)
 SIG_COEF = float(opt("--sig-coef", "0.03"))
@@ -69,6 +78,7 @@ USE_CENTRES = "--no-centres" not in args
 FOLDS = int(opt("--folds", "5"))
 TERR = pm.Terrain(Path(opt("--terrain"))) if opt("--terrain") else None   # ground relief (drone_terrain.py)
 USE_BOARDS, B_W, B_STEP, B_FOLDS = "--boards" in args, float(opt("--board-w", "3")), int(opt("--board-step", "7")), int(opt("--board-folds", "4"))
+SWEEP_F, SW_W, SW_N, SW_HOLD = opt("--sweep"), float(opt("--sweep-w", "1")), int(opt("--sweep-ncorner", "8")), opt("--sweep-hold")
 USE_WALLTOP, WT_HOLD, WT_W = "--walltop" in args, opt("--walltop-hold"), float(opt("--wt-w", "0.5"))
 WALLS = {"X0": (0, 0.0), "X480": (0, 480 * 25.4), "Y0": (1, 0.0), "Y240": (1, 240 * 25.4)}   # axis, design plane (mm)
 SIGMA_LAYOUT, CORD_W, OBS_SIGMA, CONE_Z, IN = 4.0, 0.5, 1.5, fcorr.CONE_Z, 25.4
@@ -340,6 +350,55 @@ for c in names:
     b_["q"] = rm.base_coords(cams[c], b_["px"]) if len(b_["px"]) else np.zeros((0, 2)); b_["T"] = rm.terms(c, b_["q"]) if len(b_["q"]) else None
 
 
+# ---------------------------------------------------------------- the hand-held sweep boards (2026-09-18): the plate in the air
+SW_I, SKEYS = [], []
+SCAM = {c: dict(px=[], obj=[], key=[], w=[]) for c in names}
+if SWEEP_F:
+    import board_detect as bd
+    from scipy.spatial.transform import Rotation as Rot
+    import cv2
+    OBJ3 = np.c_[bd.OBJ_MM - bd.OBJ_MM.mean(0), np.zeros(88)]
+    SW_I = json.loads(Path(SWEEP_F).read_text(encoding="utf-8"))["instances"]
+
+    def _fps(P_, n_):                                                    # farthest-point order (deterministic)
+        k_ = [0]; d_ = np.linalg.norm(P_ - P_[0], axis=1)
+        while len(k_) < min(n_, len(P_)):
+            j_ = int(np.argmax(d_)); k_.append(j_); d_ = np.minimum(d_, np.linalg.norm(P_ - P_[j_], axis=1))
+        return np.array(k_)
+    for si, ins in enumerate(SW_I):
+        for v in ins["views"]:
+            ids_ = np.asarray(v["ids"], int); px_ = np.asarray(v["px"], float); k_ = _fps(OBJ3[ids_, :2], SW_N)
+            sc_ = SCAM[v["cam"]]
+            sc_["px"].append(px_[k_]); sc_["obj"].append(OBJ3[ids_[k_]]); sc_["key"] += [si] * len(k_)
+            sc_["w"] += [float(np.clip(1.4 / max(v["sigma"], 1e-3), 0.5, 2.0))] * len(k_)
+    for c in names:
+        s_ = SCAM[c]
+        s_["px"] = np.concatenate(s_["px"]) if s_["px"] else np.zeros((0, 2)); s_["obj"] = np.concatenate(s_["obj"]) if s_["obj"] else np.zeros((0, 3))
+        s_["key"] = np.array(s_["key"], int); s_["w"] = np.array(s_["w"], float)
+        s_["q"] = rm.base_coords(cams[c], s_["px"]) if len(s_["px"]) else np.zeros((0, 2)); s_["T"] = rm.terms(c, s_["q"]) if len(s_["q"]) else None
+    SBLOCK = np.array([int(ins["t"] // 10) % 2 for ins in SW_I])
+    SKEYS = [i for i in range(len(SW_I)) if SW_HOLD is None or SBLOCK[i] != {"even": 0, "odd": 1}[SW_HOLD]]
+
+    def sweep_init():
+        """each board's pose from its sweep camera alone (planar PnP in a virtual pinhole along the mean ray, raw bundle
+        - the fit's starting point), as sweep_check.py: rotvec (3) and centre (mm, 3) per instance."""
+        out_ = np.zeros((len(SW_I), 6))
+        for si, ins in enumerate(SW_I):
+            v = ins["views"][0]; c = cams[v["cam"]]; ids_ = np.asarray(v["ids"], int)
+            b = c.rays(np.asarray(v["px"], float)) @ c.R.T                # camera-frame bearings
+            m = b.mean(0); m /= np.linalg.norm(m)
+            Qm = Rot.align_vectors([[0, 0, 1]], [m])[0].as_matrix(); vv = b @ Qm.T; uv = (vv[:, :2] / vv[:, 2:]).astype(np.float64)
+            P3 = OBJ3[ids_].astype(np.float64)
+            _, rv, tv, e = cv2.solvePnPGeneric(P3, uv, np.eye(3), None, flags=cv2.SOLVEPNP_IPPE)
+            k = int(np.argmin(np.asarray(e).ravel())); rv, tv = cv2.solvePnPRefineLM(P3, uv, np.eye(3), None, rv[k], tv[k])
+            Rc = Qm.T @ cv2.Rodrigues(rv)[0]; Xc = Qm.T @ tv.ravel()
+            out_[si, :3] = Rot.from_matrix(c.R.T @ Rc).as_rotvec(); out_[si, 3:] = c.R.T @ (Xc - c.tvec)
+        return out_
+else:                                                                    # no sweep: empty arrays, so fit() needs no special case
+    for c in names:
+        SCAM[c] = dict(px=np.zeros((0, 2)), obj=np.zeros((0, 3)), key=np.zeros(0, int), w=np.zeros(0), q=np.zeros((0, 2)), T=None)
+
+
 def plate_init():
     """each plate pose (x, y in, theta) from the release's mapping of its corners (rigid 2-D Procrustes, all its views)."""
     out = np.zeros((len(BKEYS), 3))
@@ -380,33 +439,41 @@ def map_obs(rc, idx, q, T):
     return X
 
 
-def unpack(x, ids, nb=0):
+def unpack(x, ids, nb=0, ns=0):
     o, coef, dC = 0, {}, {}
     for c in names:
         coef[c] = x[o:o + 2 * NT[c]].reshape(2, NT[c]); o += 2 * NT[c]
         dC[c] = x[o:o + 3]; o += 3
     P = x[o:o + 2 * len(ids)].reshape(-1, 2); o += 2 * len(ids)
-    return coef, dC, P, x[o:o + 3 * nb].reshape(-1, 3)
+    PP = x[o:o + 3 * nb].reshape(-1, 3); o += 3 * nb
+    return coef, dC, P, PP, x[o:o + 6 * ns].reshape(-1, 6)
 
 
-def fit(use, ids, bkeys=None):
-    """use: boolean mask over OBS; ids: the latent cone ids; bkeys: plate poses in the fit (indices into BKEYS)."""
+def fit(use, ids, bkeys=None, skeys=None):
+    """use: boolean mask over OBS; ids: the latent cone ids; bkeys: plate poses in the fit (indices into BKEYS);
+    skeys: sweep boards in the fit (indices into SW_I; default SKEYS)."""
     bkeys = (list(range(len(BKEYS))) if USE_BOARDS else []) if bkeys is None else list(bkeys)
+    skeys = list(SKEYS) if skeys is None else list(skeys)
+    sx = {k: i for i, k in enumerate(skeys)}; ns = len(skeys)
+    ssel = {c: np.isin(SCAM[c]["key"], skeys) for c in names}
+    spi = {c: np.array([sx[k] for k in SCAM[c]["key"][ssel[c]]], int) for c in names}
     bx = {k: i for i, k in enumerate(bkeys)}; nb = len(bkeys)
     bsel = {c: np.isin(BCAM[c]["key"], bkeys) for c in names}
     bpi = {c: np.array([bx[k] for k in BCAM[c]["key"][bsel[c]]], int) for c in names}
     jx = {j: i for i, j in enumerate(ids)}
     design = np.array([POS[j.replace("@0918", "")] for j in ids], float).reshape(-1, 2)
-    nx = sum(2 * NT[c] + 3 for c in names) + 2 * len(ids) + 3 * nb
+    nx = sum(2 * NT[c] + 3 for c in names) + 2 * len(ids) + 3 * nb + 6 * ns
     x0 = np.zeros(nx); o0 = sum(2 * NT[c] + 3 for c in names)
     x0[o0:o0 + 2 * len(ids)] = design.ravel() if ids else []
     if nb:
-        x0[o0 + 2 * len(ids):] = PINIT[bkeys].ravel()
+        x0[o0 + 2 * len(ids):o0 + 2 * len(ids) + 3 * nb] = PINIT[bkeys].ravel()
+    if ns:
+        x0[o0 + 2 * len(ids) + 3 * nb:] = SINIT[skeys].ravel()
     per = {c: [i for i in Q[c] if use[i]] for c in names}
     loc = {c: np.array([Q[c].index(i) for i in per[c]], int) for c in names}
 
     def resid(x):
-        coef, dC, P, PP = unpack(x, ids, nb)
+        coef, dC, P, PP, SP = unpack(x, ids, nb, ns)
         r = []
         for c in names:
             if not len(per[c]):
@@ -445,6 +512,13 @@ def fit(use, ids, bkeys=None):
                 X = rc.to_plane_q(BCAM[c]["q"][bsel[c]], BCAM[c]["z"][bsel[c]], BCAM[c]["T"][bsel[c]])
                 g = np.nan_to_num(X[:, :2] / IN, nan=1e4)
                 r += list(((g - plate_xy(PP[bpi[c]], BCAM[c]["obj"][bsel[c]])) * B_W * BCAM[c]["w"][bsel[c]][:, None]).ravel())
+        for c in names:                                                  # the sweep boards: each kept corner's ray through its corner
+            if ns and ssel[c].any():
+                rc = rm.RayCam(cams[c], coef[c], dC[c]); s_ = SCAM[c]
+                d = rc.rays_q(s_["q"][ssel[c]], s_["T"][ssel[c]])
+                Xs = np.einsum("nij,nj->ni", Rot.from_rotvec(SP[spi[c], :3]).as_matrix(), s_["obj"][ssel[c]]) + SP[spi[c], 3:]
+                v = Xs - rc.centre; perp = v - (v * d).sum(1)[:, None] * d
+                r += list((perp / IN * SW_W * s_["w"][ssel[c]][:, None]).ravel())
         return np.array(r, float)
 
     # sparsity: a camera's parameters touch its own label rows, its prior rows and the centre rows
@@ -482,13 +556,22 @@ def fit(use, ids, bkeys=None):
             for pi in bpi[c]:
                 for k in range(2):
                     J[row, cols[c]] = True; J[row, bcol + 3 * pi:bcol + 3 * pi + 3] = True; row += 1
+    scol = bcol + 3 * nb
+    for c in names:
+        if ns and ssel[c].any():
+            for pi in spi[c]:
+                for k in range(3):
+                    J[row, cols[c]] = True; J[row, scol + 6 * pi:scol + 6 * pi + 6] = True; row += 1
     assert row == len(r0), (row, len(r0))
     sol = least_squares(resid, x0, jac_sparsity=J, loss="soft_l1", f_scale=3.0, x_scale="jac", max_nfev=200)
-    coef, dC, P, PP = unpack(sol.x, ids, nb)
+    coef, dC, P, PP, SP = unpack(sol.x, ids, nb, ns)
+    FIT_SP.clear(); FIT_SP.update({k: SP[i] for k, i in sx.items()})
     return {c: rm.RayCam(cams[c], coef[c], dC[c]) for c in names}, dict(zip(ids, P)), sol
 
 
 PINIT = plate_init() if USE_BOARDS else None
+SINIT = sweep_init() if SWEEP_F else None
+FIT_SP = {}                                                              # the last fit's sweep-board poses
 for c in names:                                                          # plate corner heights: 6 mm above the local ground
     if USE_BOARDS and len(BCAM[c]["q"]):
         BCAM[c]["z"] = 6.0 + (TERR.height(plate_xy(PINIT[BCAM[c]["key"]], BCAM[c]["obj"]) * IN) if TERR is not None else 0.0)
@@ -502,7 +585,8 @@ L = [f"RAY-SPACE GROUND CORRECTION  bundle {pm.FIT} (unchanged); degree {rm.DEG}
      f"seam {'step' if rm.SEAM_W == 0 else f'ramp over {np.degrees(rm.SEAM_W):.0f} deg'}; "
      f"{'terrain ' + Path(opt('--terrain')).name + '; ' if TERR is not None else ''}{'ground datum = plates / drone floor; ' if '--ground-datum' in args else ''}drone scale {opt('--drone-scale', 'plate')}; heights {opt('--height-source', 'tape')}; centre constraints {(('triangulated drone lenses only (distances, heights, height differences)' if opt('--height-source', 'tape') == 'drone' and '--no-tape-dist' in args else 'tape heights + triangulated drone lenses' if '--no-tape-dist' in args else 'tape + triangulated drone lenses') if TRI else 'tape + drone (distances, heights)') if USE_CENTRES else 'none'}; "
      f"boards {('in the fit (weight ' + str(B_W) + ', every ' + str(B_STEP) + 'th corner, ' + str(len(BKEYS)) + ' plate poses, ' + str(len(PB)) + ' views' + (', + operator clicks (' + str(N_REORDER) + ' re-ordered)' if '--board-weak' in args else '') + (', + seam-split views' if '--board-seam' in args else '') + ')') if USE_BOARDS else 'not in the fit'}; "
-     f"wall tops {('in the fit (weight ' + str(WT_W) + (', ' + WT_HOLD + ' held out' if WT_HOLD else '') + ')') if USE_WALLTOP else 'not in the fit'}",
+     f"wall tops {('in the fit (weight ' + str(WT_W) + (', ' + WT_HOLD + ' held out' if WT_HOLD else '') + ')') if USE_WALLTOP else 'not in the fit'}; "
+     f"sweep boards {(str(len(SKEYS)) + ' of ' + str(len(SW_I)) + ' instances in the fit (weight ' + str(SW_W) + ', ' + str(SW_N) + ' corners per view' + (', ' + SW_HOLD + ' 10-s blocks held out' if SW_HOLD else '') + ')') if SWEEP_F else 'not in the fit'}",
      f"{len(OBS)} labels ({collections.Counter(o[3] for o in OBS)}), {len(IDS)} latent cones; fit {time.time() - t0:.0f} s, "
      f"cost {sol.cost:.0f}, status {sol.status}", ""]
 lab_res = collections.defaultdict(list)
@@ -518,6 +602,15 @@ for c in names:
              else abs(g @ tgt[:2] - tgt[2]))
         lab_res[(c, kind)].append(e)
 L.append("label residuals (in, median / p90): " + "; ".join(f"{c} {k} {np.median(v):.1f}/{np.percentile(v, 90):.1f}" for (c, k), v in sorted(lab_res.items())))
+if SWEEP_F:                                                              # sweep corners in the fit: the rays' miss of the fitted board
+    _sw = collections.defaultdict(list)
+    for c in names:
+        s_ = SCAM[c]; m_ = np.isin(s_["key"], SKEYS)
+        if m_.any():
+            d = RC[c].rays(s_["px"][m_]); Ps = np.array([FIT_SP[k] for k in s_["key"][m_]])
+            Xs = np.einsum("nij,nj->ni", Rot.from_rotvec(Ps[:, :3]).as_matrix(), s_["obj"][m_]) + Ps[:, 3:]
+            v = Xs - RC[c].centre; _sw[c] = np.linalg.norm(v - (v * d).sum(1)[:, None] * d, axis=1)
+    L.append("sweep corners in the fit, the ray's miss of its fitted board (mm, median / p90): " + "; ".join(f"{c} {np.median(v):.1f}/{np.percentile(v, 90):.1f}" for c, v in _sw.items()))
 L.append("camera centres (in, tape-frame-free): " + "; ".join(f"{c} dC ({RC[c].dC[0] / IN:+.1f}, {RC[c].dC[1] / IN:+.1f}, {RC[c].dC[2] / IN:+.1f})" for c in names))
 for a, b, d, s in DIST:                                                  # sigma 30 = a tape pair, otherwise the drone
     L.append(f"  distance {a}-{b}: {'tape' if s == 30.0 else 'drone'} {d / IN:.1f} in"
@@ -741,7 +834,7 @@ L.append("")
 
 # ---------------------------------------------------------------- check 4: held-out 09-30 cones (K-fold)
 supp = sorted({o[5] for o in OBS if o[3] == "cone" and not o[5].endswith("@0918")})
-rng = np.random.default_rng(0); perm = rng.permutation(supp); folds = [set(perm[k::FOLDS]) for k in range(FOLDS)]
+rng = np.random.default_rng(0); perm = rng.permutation(supp); folds = [set(perm[k::FOLDS]) for k in range(FOLDS)]   # --folds 0: none
 pair_ray, pair_rel = [], []
 for k, fold in enumerate(folds):
     use = np.array([not (o[3] == "cone" and o[5] in fold) for o in OBS])
@@ -756,9 +849,10 @@ for k, fold in enumerate(folds):
             for a, b in itertools.combinations(sorted(d), 2):
                 if np.isfinite(d[a]).all() and np.isfinite(d[b]).all():
                     out.append(np.hypot(*(d[a] - d[b])))
-L.append(f"CHECK held-out 09-30 cones ({FOLDS}-fold, two cameras on the same unseen cone, mm): ray fit {np.median(pair_ray):.0f} / "
-         f"{np.percentile(pair_ray, 90):.0f} (n {len(pair_ray)}); release {np.median(pair_rel):.0f} / {np.percentile(pair_rel, 90):.0f} IN its fit "
-         f"(10-02b was fitted on these cones; its own 5-fold held-out figure is 62 / 124, RELEASE_2026-10-02.md)")
+if FOLDS > 0:
+    L.append(f"CHECK held-out 09-30 cones ({FOLDS}-fold, two cameras on the same unseen cone, mm): ray fit {np.median(pair_ray):.0f} / "
+             f"{np.percentile(pair_ray, 90):.0f} (n {len(pair_ray)}); release {np.median(pair_rel):.0f} / {np.percentile(pair_rel, 90):.0f} IN its fit "
+             f"(10-02b was fitted on these cones; its own 5-fold held-out figure is 62 / 124, RELEASE_2026-10-02.md)")
 if CORD_FOLDS:                                                           # check 6: each drone-measured cord held out, against the drone
     REFS, EXT = {}, {}
     for nm_, p_ in (("drone model 1", opt("--cord-ref", str(HERE / "drone_cords_2026-10-02.json"))), ("drone model 0", opt("--cord-ref2"))):
@@ -813,7 +907,7 @@ L.append("CHECK stitch seam, ground jump at z 60 mm between the columns either s
 if VIEWS_HO:
     (OUT / "board_heldout.json").write_text(json.dumps(VIEWS_HO, indent=1), encoding="utf-8")
 (OUT / "RAYMAP.json").write_text(json.dumps(dict(note="raymap.py ray-space correction on the release bundle; refit_rays.py",
-                                                 bundle=str(pm.FIT), terrain=(Path(opt("--terrain")).name if TERR is not None else None), fit_sha256=__import__('hashlib').sha256(Path(pm.FIT).read_bytes()).hexdigest(), drone_cords=(Path(opt("--drone-cords")).name if DCORDS is not None else None), deg=rm.DEG, sig_coef=SIG_COEF, centres=USE_CENTRES,
+                                                 bundle=str(pm.FIT), terrain=(Path(opt("--terrain")).name if TERR is not None else None), fit_sha256=__import__('hashlib').sha256(Path(pm.FIT).read_bytes()).hexdigest(), drone_cords=(Path(opt("--drone-cords")).name if DCORDS is not None else None), sweep=(Path(SWEEP_F).name + (" (" + SW_HOLD + " blocks held out)" if SW_HOLD else "") if SWEEP_F else None), deg=rm.DEG, sig_coef=SIG_COEF, centres=USE_CENTRES,
                                                  cameras={c: RC[c].todict() for c in names}), indent=1), encoding="utf-8")
 (OUT / "REFIT_RAYS.txt").write_text("\n".join(L) + "\n", encoding="utf-8")
 print("\n".join(L)); print("->", OUT)
