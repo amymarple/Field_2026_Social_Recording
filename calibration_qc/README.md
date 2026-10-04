@@ -1083,3 +1083,8 @@ detected views only - a detector's silence is not the field's.
 `terrain_2026-10-02.json` (2 ft grid, sd 21 mm); `refit_rays.py --terrain` fits on the local ground and `paddock_map`
 maps z above the local ground. Plates held out 28 / 56, held-out cones 42 / 76, ball 43 / 91, handoffs 36 mm.
 
+**Revision f, 2026-10-03.** 18 of the 20 clicked plate views had their corners in the other order (the long side
+second); the fit now picks each click set's order by the rigid plate. Ball 38 / 84 (rev e 43 / 91), CH02-CH03 30
+(48), plates held out 28 / 54, cones 41 / 72. `camera_error_map.py`: one primary camera per region (finest
+resolution) and its own error (three-cornered hat where 3+ cameras saw the ball): median 19 mm, p90 58.
+

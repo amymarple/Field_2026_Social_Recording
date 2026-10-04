@@ -259,6 +259,51 @@ def _seam_split(p_):                                                     # a pan
 PB = [p_ for p_ in placements19() if (p_["cam"], p_["session"], p_["station"], p_["win"]) not in _DROP
       and (not p_["bad"] or ("--board-seam" in args and _seam_split(p_)))
       and (not p_["weak"] or "--board-weak" in args)]
+def _order_clicks(PB):
+    """The operator's 4-corner clicks are exact positions but not always in the same order around the plate (09-18 T12:
+    CH01 went round the other way - its first edge is the 600 mm side). Each clicked view gets the corner order (4 starts
+    x 2 directions) whose rigid plate fits its own mapped corners best and, where the same placement has detected views,
+    agrees with their plate pose."""
+    def rigid(A_, B_):
+        am, bm = A_.mean(0), B_.mean(0); U_, _, Vt_ = np.linalg.svd((B_ - bm).T @ (A_ - am))
+        R_ = U_ @ np.diag([1, np.sign(np.linalg.det(U_ @ Vt_))]) @ Vt_
+        return R_, bm - R_ @ am
+    det = collections.defaultdict(list)
+    for p_ in PB:
+        if not p_["weak"]:
+            g_ = rel[p_["cam"]].to_paddock(np.asarray(p_["px"], float), z_mm=6.0, units="in"); ok_ = np.isfinite(g_).all(1)
+            det[(p_["session"], p_["station"], p_["win"])].append((np.asarray(p_["obj_mm"], float)[ok_] * FLIP / IN, g_[ok_]))
+    out, n_fix = [], 0
+    for p_ in PB:
+        if not p_["weak"] or len(p_["ids"]) != 4:
+            out.append(p_); continue
+        g_ = rel[p_["cam"]].to_paddock(np.asarray(p_["px"], float), z_mm=6.0, units="in")
+        if not np.isfinite(g_).all():
+            g_ = cams[p_["cam"]].to_paddock(np.asarray(p_["px"], float), z_mm=6.0, units="in")
+        obj = np.asarray(p_["obj_mm"], float); best = None
+        D_ = det.get((p_["session"], p_["station"], p_["win"]))
+        if D_:
+            Rd, td = rigid(np.concatenate([a for a, b in D_]), np.concatenate([b for a, b in D_]))
+        for k in range(4):
+            for sgn in (1, -1):
+                o_ = np.roll(obj[::sgn], k, axis=0); A_ = o_ * FLIP / IN
+                if not np.isfinite(g_).all():
+                    continue
+                R_, t_ = rigid(A_, g_); e_ = np.sqrt(((A_ @ R_.T + t_ - g_) ** 2).sum(1).mean())
+                if D_:
+                    e_ += np.sqrt(((A_ @ Rd.T + td - g_) ** 2).sum(1).mean())
+                if best is None or e_ < best[0]:
+                    best = (e_, o_)
+        if best is not None and not np.allclose(best[1], obj):
+            p_ = dict(p_); p_["obj_mm"] = best[1]; n_fix += 1
+        out.append(p_)
+    return out, n_fix
+
+
+if "--board-weak" in args:
+    PB, N_REORDER = _order_clicks(PB)
+else:
+    N_REORDER = 0
 BKEYS = sorted({(p_["session"], p_["station"], p_["win"]) for p_ in PB})
 BCAM = {c: dict(px=[], obj=[], key=[], w=[]) for c in names}
 for p_ in PB:
@@ -432,7 +477,7 @@ RC, PJ, sol = fit(ALL, IDS)
 L = [f"RAY-SPACE GROUND CORRECTION  bundle {pm.FIT} (unchanged); degree {rm.DEG}, coefficient prior {SIG_COEF}, "
      f"seam {'step' if rm.SEAM_W == 0 else f'ramp over {np.degrees(rm.SEAM_W):.0f} deg'}; "
      f"{'terrain ' + Path(opt('--terrain')).name + '; ' if TERR is not None else ''}{'ground datum = plates / drone floor; ' if '--ground-datum' in args else ''}drone scale {opt('--drone-scale', 'plate')}; heights {opt('--height-source', 'tape')}; centre constraints {(('triangulated drone lenses only (distances, heights, height differences)' if opt('--height-source', 'tape') == 'drone' and '--no-tape-dist' in args else 'tape heights + triangulated drone lenses' if '--no-tape-dist' in args else 'tape + triangulated drone lenses') if TRI else 'tape + drone (distances, heights)') if USE_CENTRES else 'none'}; "
-     f"boards {('in the fit (weight ' + str(B_W) + ', every ' + str(B_STEP) + 'th corner, ' + str(len(BKEYS)) + ' plate poses, ' + str(len(PB)) + ' views' + (', + operator clicks' if '--board-weak' in args else '') + (', + seam-split views' if '--board-seam' in args else '') + ')') if USE_BOARDS else 'not in the fit'}; "
+     f"boards {('in the fit (weight ' + str(B_W) + ', every ' + str(B_STEP) + 'th corner, ' + str(len(BKEYS)) + ' plate poses, ' + str(len(PB)) + ' views' + (', + operator clicks (' + str(N_REORDER) + ' re-ordered)' if '--board-weak' in args else '') + (', + seam-split views' if '--board-seam' in args else '') + ')') if USE_BOARDS else 'not in the fit'}; "
      f"wall tops {('in the fit (weight ' + str(WT_W) + (', ' + WT_HOLD + ' held out' if WT_HOLD else '') + ')') if USE_WALLTOP else 'not in the fit'}",
      f"{len(OBS)} labels ({collections.Counter(o[3] for o in OBS)}), {len(IDS)} latent cones; fit {time.time() - t0:.0f} s, "
      f"cost {sol.cost:.0f}, status {sol.status}", ""]
