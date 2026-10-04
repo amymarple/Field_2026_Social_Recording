@@ -91,9 +91,14 @@ or any 10-02b number; one whole-paddock number without the map and the height.
 1. (The freeze audit's ball pass over the CH04|CH06 boundary is not possible: the two cameras do not overlap there -
    behind HOUSE_2 only CH06 sees the floor (operator). Those cells stay CH06-only and unmeasured.) A +y / -y ball pass
    through CH04's view would still separate CH04's clock from its geometry at CH01|CH04.
-2. If someone may enter for ~30 min: 6-8 plates per long wall, the plate's long edge on the wall foot, x taped from the
-   nearest pole base - the only absolute measurement possible in the two wall strips.
-3. Check that the sync LED is visible in all six cameras (not calibration, but unrecoverable later).
+2. Dropped (2026-10-04): plates along the long walls, taped from the nearest pole base. The wall feet are already in
+   the fit (circular in y), the pole bases' absolute positions are uncertain by a few cm (the poles lean), the strips'
+   smoothness is already shown by the held-out plates, and wall distances are measured in the same camera map anyway.
+3. The sync LED is visible in CH02 only (operator, 2026-10-04). Every other camera's clock has to be tied to CH02 by a
+   per-camera offset measured from shared events in the overlaps (the same rat in two cameras, as the 20 Hz ball was);
+   the calibration sessions showed offsets of 0.25-0.5 s between cameras that are not constant (CH04's clock in
+   particular; frame timestamps arrive in bursts), and 33 ms is 1.7-3.3 cm at 50-100 cm/s - so the offset is estimated
+   per camera per day and its drift checked before any video-ephys analysis. Not a calibration item.
 Do not add cones, cords, long tapes or another drone flight for the calibration.
 
 ## Methods paragraph (from the freeze audit, house check added)
