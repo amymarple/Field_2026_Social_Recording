@@ -24,6 +24,9 @@ weight B_W; 3 = 0.5 in, the plates' own shape scatter). The 09-19 make-up plates
 --ground-datum (with --boards): one vertical datum, the ground the plates lie on, which is also the drone's floor (the
 grass tops); the drone wall tops keep their own heights (no tape offset) and the tape heights enter as differences only
 - the taped heights are from the soil, ~8 cm below (the plate fit puts every camera 2-8 cm under its taped height).
+--terrain (drone_terrain.py) puts the labels on the LOCAL ground (cones at their stations, cords and wall feet where
+the release maps them, plate corners 6 mm above it) and maps every check the same way; the RAYMAP names it and
+paddock_map then maps "z above the local ground".
 --walltop adds the first data above the ground: the operator's wall-top polylines in the cameras (analysis repo,
 2026c landmarks, as walltop_check.py) must meet the wall's design plane at the drone's wall-top height there
 (drone_walltop.py, on the tape's ground; weight WT_W); --walltop-hold <wall> leaves one wall out for the check.
@@ -35,7 +38,7 @@ centres against the tape. Each check is computed the same way for the release (b
 
 Usage: python refit_rays.py --out <dir> [--deg 3] [--sig-coef 0.03] [--no-centres] [--old-drone] [--walltop]
                               [--walltop-hold X0] [--wt-w 0.5] [--seam-w-deg 0] [--no-tape-dist] [--boards [--board-w 3]
-                              [--board-step 7] [--board-folds 4] [--ground-datum] [--board-weak] [--board-seam]] [--drone-scale plate|anchor] [--height-source tape|drone] [--folds 5]
+                              [--board-step 7] [--board-folds 4] [--ground-datum] [--board-weak] [--board-seam]] [--drone-scale plate|anchor] [--height-source tape|drone] [--terrain terrain_2026-10-02.json] [--folds 5]
 Output: <out>\RAYMAP.json (coefficients, dC), REFIT_RAYS.txt
 """
 import sys, json, itertools, collections, time
@@ -56,6 +59,7 @@ rm.SEAM_W = float(opt("--seam-w-deg", "0")) * np.pi / 180      # stitch blend ba
 SIG_COEF = float(opt("--sig-coef", "0.03"))
 USE_CENTRES = "--no-centres" not in args
 FOLDS = int(opt("--folds", "5"))
+TERR = pm.Terrain(Path(opt("--terrain"))) if opt("--terrain") else None   # ground relief (drone_terrain.py)
 USE_BOARDS, B_W, B_STEP, B_FOLDS = "--boards" in args, float(opt("--board-w", "3")), int(opt("--board-step", "7")), int(opt("--board-folds", "4"))
 USE_WALLTOP, WT_HOLD, WT_W = "--walltop" in args, opt("--walltop-hold"), float(opt("--wt-w", "0.5"))
 WALLS = {"X0": (0, 0.0), "X480": (0, 480 * 25.4), "Y0": (1, 0.0), "Y240": (1, 240 * 25.4)}   # axis, design plane (mm)
@@ -171,6 +175,18 @@ for cam in names:
             WT_OBS.append((cam, u, 0.0, "wtop", wall, "WT_" + wall, WT_W))
 if USE_WALLTOP:
     OBS += [o for o in WT_OBS if o[4] != WT_HOLD]
+if TERR is not None:                                                     # labels sit on the LOCAL ground: cones at their design
+    _o2 = []                                                             # station, cords / wall feet where the release maps them
+    for o in OBS:
+        if o[3] == "cone":
+            g_ = np.asarray(POS[o[5].replace("@0918", "")], float) * IN
+        elif o[3] in ("x", "y"):
+            g_ = rel[o[0]].to_paddock(np.atleast_2d(o[1]), z_mm=o[2])
+            g_ = g_[0] if np.isfinite(g_).all() else cams[o[0]].to_paddock(np.atleast_2d(o[1]), z_mm=o[2])[0]
+        else:
+            _o2.append(o); continue
+        _o2.append((o[0], o[1], o[2] + float(TERR.height(g_)[0]), *o[3:]))
+    OBS = _o2
 Q = {c: [] for c in names}
 for i, o in enumerate(OBS):
     Q[o[0]].append(i)
@@ -357,7 +373,7 @@ def fit(use, ids, bkeys=None):
         for c in names:                                                  # the plates: corners at z 6 mm on a rigid board
             if nb and bsel[c].any():
                 rc = rm.RayCam(cams[c], coef[c], dC[c])
-                X = rc.to_plane_q(BCAM[c]["q"][bsel[c]], 6.0, BCAM[c]["T"][bsel[c]])
+                X = rc.to_plane_q(BCAM[c]["q"][bsel[c]], BCAM[c]["z"][bsel[c]], BCAM[c]["T"][bsel[c]])
                 g = np.nan_to_num(X[:, :2] / IN, nan=1e4)
                 r += list(((g - plate_xy(PP[bpi[c]], BCAM[c]["obj"][bsel[c]])) * B_W * BCAM[c]["w"][bsel[c]][:, None]).ravel())
         return np.array(r, float)
@@ -404,13 +420,18 @@ def fit(use, ids, bkeys=None):
 
 
 PINIT = plate_init() if USE_BOARDS else None
+for c in names:                                                          # plate corner heights: 6 mm above the local ground
+    if USE_BOARDS and len(BCAM[c]["q"]):
+        BCAM[c]["z"] = 6.0 + (TERR.height(plate_xy(PINIT[BCAM[c]["key"]], BCAM[c]["obj"]) * IN) if TERR is not None else 0.0)
+    else:
+        BCAM[c]["z"] = np.zeros(0)
 ALL = np.ones(len(OBS), bool)
 IDS = sorted({o[5] for o in OBS if o[3] == "cone"})
 t0 = time.time()
 RC, PJ, sol = fit(ALL, IDS)
 L = [f"RAY-SPACE GROUND CORRECTION  bundle {pm.FIT} (unchanged); degree {rm.DEG}, coefficient prior {SIG_COEF}, "
      f"seam {'step' if rm.SEAM_W == 0 else f'ramp over {np.degrees(rm.SEAM_W):.0f} deg'}; "
-     f"{'ground datum = plates / drone floor; ' if '--ground-datum' in args else ''}drone scale {opt('--drone-scale', 'plate')}; heights {opt('--height-source', 'tape')}; centre constraints {(('triangulated drone lenses only (distances, heights, height differences)' if opt('--height-source', 'tape') == 'drone' and '--no-tape-dist' in args else 'tape heights + triangulated drone lenses' if '--no-tape-dist' in args else 'tape + triangulated drone lenses') if TRI else 'tape + drone (distances, heights)') if USE_CENTRES else 'none'}; "
+     f"{'terrain ' + Path(opt('--terrain')).name + '; ' if TERR is not None else ''}{'ground datum = plates / drone floor; ' if '--ground-datum' in args else ''}drone scale {opt('--drone-scale', 'plate')}; heights {opt('--height-source', 'tape')}; centre constraints {(('triangulated drone lenses only (distances, heights, height differences)' if opt('--height-source', 'tape') == 'drone' and '--no-tape-dist' in args else 'tape heights + triangulated drone lenses' if '--no-tape-dist' in args else 'tape + triangulated drone lenses') if TRI else 'tape + drone (distances, heights)') if USE_CENTRES else 'none'}; "
      f"boards {('in the fit (weight ' + str(B_W) + ', every ' + str(B_STEP) + 'th corner, ' + str(len(BKEYS)) + ' plate poses, ' + str(len(PB)) + ' views' + (', + operator clicks' if '--board-weak' in args else '') + (', + seam-split views' if '--board-seam' in args else '') + ')') if USE_BOARDS else 'not in the fit'}; "
      f"wall tops {('in the fit (weight ' + str(WT_W) + (', ' + WT_HOLD + ' held out' if WT_HOLD else '') + ')') if USE_WALLTOP else 'not in the fit'}",
      f"{len(OBS)} labels ({collections.Counter(o[3] for o in OBS)}), {len(IDS)} latent cones; fit {time.time() - t0:.0f} s, "
@@ -459,7 +480,16 @@ def board_check(mapfn):
 
 
 rel_map = lambda c, uv, z: rel[c].to_paddock(uv, z_mm=z)
-ray_map = lambda c, uv, z: RC[c].to_paddock(uv, z)
+def tmap(rc, uv, z):
+    """a RayCam's mapping at height z above the LOCAL ground (iterated on the terrain), or above z = 0 without one."""
+    xy = rc.to_paddock(uv, z)
+    if TERR is not None:
+        for _ in range(5):
+            xy = rc.to_paddock(uv, z + TERR.height(np.nan_to_num(xy)))
+    return xy
+
+
+ray_map = lambda c, uv, z: tmap(RC[c], uv, z)
 
 
 def shape_check(mapfn, views):
@@ -491,10 +521,10 @@ if USE_BOARDS and B_FOLDS > 1:                                           # hones
         RCb, _, _ = fit(ALL, IDS, keep)
         Ph = [p_ for p_ in P if p_["station"] in hold]
         P_save = P; P = Ph
-        a_, _ = board_check(lambda c, uv, z: RCb[c].to_paddock(uv, z)); pa.append(a_)
+        a_, _ = board_check(lambda c, uv, z: tmap(RCb[c], uv, z)); pa.append(a_)
         a2, _ = board_check(rel_map); pr.append(a2)
         P = P_save
-        ps.append(shape_check(lambda c, uv, z: RCb[c].to_paddock(uv, z), Ph))
+        ps.append(shape_check(lambda c, uv, z: tmap(RCb[c], uv, z), Ph))
     pa, pr, ps = np.concatenate(pa), np.concatenate(pr), np.concatenate(ps)
     L.append(f"  HELD OUT by station ({B_FOLDS} folds): ray fit {np.median(pa):.0f} / {np.percentile(pa, 90):.0f} (n {len(pa)}), "
              f"release on the same corners {np.median(pr):.0f} / {np.percentile(pr, 90):.0f}; held-out plate shape median {np.median(ps):.1f} mm, p90 {np.percentile(ps, 90):.1f}")
@@ -617,7 +647,7 @@ for k, fold in enumerate(folds):
     pos_ray, pos_rel = collections.defaultdict(dict), collections.defaultdict(dict)
     for i, o in enumerate(OBS):
         if o[3] == "cone" and o[5] in fold:
-            pos_ray[o[5]][o[0]] = RCk[o[0]].to_paddock(o[1], CONE_Z)[0]
+            pos_ray[o[5]][o[0]] = tmap(RCk[o[0]], np.atleast_2d(o[1]), CONE_Z)[0]
             pos_rel[o[5]][o[0]] = rel[o[0]].to_paddock(o[1], z_mm=CONE_Z)
     for pos, out in ((pos_ray, pair_ray), (pos_rel, pair_rel)):
         for d in pos.values():
@@ -635,7 +665,7 @@ for c in rm.PANO:
     seam.append(f"{c} max {np.nanmax(j):.0f} mm, median {np.nanmedian(j):.0f} mm over v 0.55-0.95 H")
 L.append("CHECK stitch seam, ground jump at z 60 mm between the columns either side of u = W / 2: " + "; ".join(seam))
 (OUT / "RAYMAP.json").write_text(json.dumps(dict(note="raymap.py ray-space correction on the release bundle; refit_rays.py",
-                                                 bundle=str(pm.FIT), fit_sha256=__import__('hashlib').sha256(Path(pm.FIT).read_bytes()).hexdigest(), deg=rm.DEG, sig_coef=SIG_COEF, centres=USE_CENTRES,
+                                                 bundle=str(pm.FIT), terrain=(Path(opt("--terrain")).name if TERR is not None else None), fit_sha256=__import__('hashlib').sha256(Path(pm.FIT).read_bytes()).hexdigest(), deg=rm.DEG, sig_coef=SIG_COEF, centres=USE_CENTRES,
                                                  cameras={c: RC[c].todict() for c in names}), indent=1), encoding="utf-8")
 (OUT / "REFIT_RAYS.txt").write_text("\n".join(L) + "\n", encoding="utf-8")
 print("\n".join(L)); print("->", OUT)

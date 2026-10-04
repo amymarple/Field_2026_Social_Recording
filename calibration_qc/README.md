@@ -1079,3 +1079,7 @@ out 30 / 57 (rev c 31 / 62), handoffs 34 mm (37), CH01|CH02 52 (62); `--board-se
 the held-out plates worse (37 / 89) and stays out. My earlier "no plate seen by both panos there" came from counting
 detected views only - a detector's silence is not the field's.
 
+**Revision e, 2026-10-03: the ground relief.** `drone_terrain.py` (drone cloud, houses / poles / wall strips masked) ->
+`terrain_2026-10-02.json` (2 ft grid, sd 21 mm); `refit_rays.py --terrain` fits on the local ground and `paddock_map`
+maps z above the local ground. Plates held out 28 / 56, held-out cones 42 / 76, ball 43 / 91, handoffs 36 mm.
+

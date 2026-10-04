@@ -6,6 +6,10 @@ r"""Pixel <-> paddock. Turn a point in any camera's frame into paddock (x, y), a
     x_in, y_in = cams["CH03"].to_paddock((2100, 1700), z_mm=0, units="in")
     u, v      = cams["CH03"].to_paddock_inv((240, 120), z_mm=0, units="in")
 
+Since 2026-10-03 (rev e) load() returns ray-corrected cameras that carry the ground relief (terrain_2026-10-02.json):
+z_mm is then the height ABOVE THE LOCAL GROUND under the point (a rat's back = ~60 mm wherever it walks), not above a
+flat plane; the paddock floor varies by +-5 cm. load(rays=None) gives the 10-02b release with its flat plane.
+
 THE ONE THING THAT MATTERS: a pixel is a RAY, not a point. A camera cannot know how far along
 that ray the thing is, so every pixel -> paddock conversion has to assume a height. `z_mm` is
 that assumption: 0 = the ground, 6 = the top of the calibration plate, ~60 = a rat's back. Get it
@@ -202,6 +206,28 @@ class Camera:
                 f"h={self.centre[2]/1000:.2f}m>")
 
 
+class Terrain:
+    """ground height above the paddock's best ground plane (mm) on a grid (drone_terrain.py), bilinear, clamped at the
+    edges. height(xy_mm) -> mm."""
+
+    def __init__(self, path):
+        import json
+        j = json.loads(Path(path).read_text(encoding="utf-8"))
+        self.path = str(path)
+        self.x = np.asarray(j["x_in"], float) * MM_PER_IN; self.y = np.asarray(j["y_in"], float) * MM_PER_IN
+        self.z = np.asarray(j["z_mm"], float)
+
+    def height(self, xy_mm):
+        p = np.asarray(xy_mm, float).reshape(-1, 2)
+        fi = np.clip((p[:, 0] - self.x[0]) / (self.x[1] - self.x[0]), 0, len(self.x) - 1)
+        fj = np.clip((p[:, 1] - self.y[0]) / (self.y[1] - self.y[0]), 0, len(self.y) - 1)
+        fi = np.nan_to_num(fi); fj = np.nan_to_num(fj)
+        i0, j0 = np.floor(fi).astype(int), np.floor(fj).astype(int)
+        i1, j1 = np.minimum(i0 + 1, len(self.x) - 1), np.minimum(j0 + 1, len(self.y) - 1); a, b = fi - i0, fj - j0
+        return (self.z[j0, i0] * (1 - a) * (1 - b) + self.z[j0, i1] * a * (1 - b) + self.z[j1, i0] * (1 - a) * b
+                + self.z[j1, i1] * a * b)
+
+
 class RayCamera(Camera):
     """A camera whose RAYS carry the ray-space correction of raymap.py (refit_rays.py, 2026-10-03) instead of the
     release's ground warp: the correction is fitted on the ground labels with the centres held by the tape and the
@@ -212,12 +238,13 @@ class RayCamera(Camera):
     (CH01) / ~14 cm (CH02) at the far rows, so in that band two pixels map to one ground point and the inverse returns
     one of them."""
 
-    def __init__(self, base, coef, dC, deg, support_in=None, seam_w=0.0):
+    def __init__(self, base, coef, dC, deg, support_in=None, seam_w=0.0, terrain=None):
         super().__init__(base.name, base.model, base.intr, base.rvec, base.tvec, base.stored_size, correction=None)
         import raymap
         self._rc = raymap.RayCam(base, coef, dC, deg, seam_w)
         self.centre = self._rc.centre
         self.support_in = None if support_in is None else np.asarray(support_in, float)
+        self.terrain = terrain                                           # Terrain or None: z_mm is then above the LOCAL ground
 
     def rays(self, uv, space="upright"):
         p = np.asarray(uv, float).reshape(-1, 2)
@@ -236,13 +263,36 @@ class RayCamera(Camera):
         finally:
             self.correction = saved
 
-    def _ground(self, uv, z_mm):
-        d = self.rays(uv)
-        with np.errstate(divide="ignore", invalid="ignore"):
-            s = (z_mm - self.centre[2]) / d[:, 2]
-        X = self.centre + s[:, None] * d
-        X[~(s > 0)] = np.nan
+    def _ground(self, uv, z_mm, d=None):
+        """where the pixels' rays meet the height z_mm - above the local ground if the camera has a terrain."""
+        d = self.rays(uv) if d is None else d
+        z = np.full(len(d), float(z_mm)) if np.ndim(z_mm) == 0 else np.asarray(z_mm, float)
+        for it in range(6 if self.terrain is not None else 1):
+            zz = z if it == 0 else z + self.terrain.height(X[:, :2])
+            with np.errstate(divide="ignore", invalid="ignore"):
+                s = (zz - self.centre[2]) / d[:, 2]
+            X = self.centre + s[:, None] * d
+            X[~(s > 0)] = np.nan
         return X[:, :2]
+
+    def to_paddock(self, uv, z_mm=0.0, space="upright", units="mm", why=False):
+        if self.terrain is None:
+            return Camera.to_paddock(self, uv, z_mm, space, units, why)
+        p = np.asarray(uv, float).reshape(-1, 2)
+        pu = self.stored_to_upright(p) if space == "stored" else p
+        W, H = self.upright_size
+        status = np.array(["ok"] * len(pu), dtype=object)
+        inframe = (pu[:, 0] >= -0.5) & (pu[:, 0] < W - 0.5) & (pu[:, 1] >= -0.5) & (pu[:, 1] < H - 0.5)
+        xy = self._ground(pu, z_mm)
+        ground = np.isfinite(xy).all(1)
+        status[~self.in_support(np.where(ground[:, None], xy, 0))] = "outside verified support"
+        status[~ground] = "no ground"
+        status[~inframe] = "outside frame"
+        xy[status != "ok"] = np.nan
+        out = xy / (MM_PER_IN if units == "in" else 1.0)
+        if np.ndim(uv) == 1:
+            return (out[0], str(status[0])) if why else out[0]
+        return (out, status) if why else out
 
     def to_paddock_inv(self, xy, z_mm=0.0, space="upright", units="mm"):
         q = np.asarray(xy, float).reshape(-1, 2) * (MM_PER_IN if units == "in" else 1.0)
@@ -351,6 +401,10 @@ def load(fit=FIT, session=None, correct=True, rays="release"):
         if rj.get("fit_sha256") not in (None, have):
             raise SystemExit(f"{rp} was fitted on a different bundle (sha {rj['fit_sha256'][:12]} vs {have[:12]})")
         rel = load(fit, session, correct=True, rays=None)
+        terr = None
+        if rj.get("terrain"):                                            # the ground relief the correction was fitted with
+            tp = Path(rj["terrain"]); tp = tp if tp.is_absolute() else Path(__file__).resolve().parent / tp.name
+            terr = Terrain(tp)
         out = {}
         for cam, c in rel.items():
             r = rj["cameras"].get(cam)
@@ -359,7 +413,7 @@ def load(fit=FIT, session=None, correct=True, rays="release"):
             sup = None if c.correction is None else c.correction.get("support")
             sup_in = None if sup is None else fit_to_physical(np.asarray(sup, float) * MM_PER_IN, c.correction) / MM_PER_IN
             out[cam] = RayCamera(Camera(c.name, c.model, c.intr, c.rvec, c.tvec, c.stored_size), r["coef"], r["dC_mm"],
-                                 r["deg"], support_in=sup_in, seam_w=r.get("seam_w", 0.0))
+                                 r["deg"], support_in=sup_in, seam_w=r.get("seam_w", 0.0), terrain=terr)
         return out
     z = np.load(Path(fit), allow_pickle=False)
     if float(np.abs(z["cam_tvec"]).max()) < 100:

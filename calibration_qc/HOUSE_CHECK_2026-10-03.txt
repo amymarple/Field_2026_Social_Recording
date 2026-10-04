@@ -1,18 +1,18 @@
 HOUSE CHECK  cameras: release (RayCamera); labels D:\Documents\GitHub\Field2026_Social_analysis\cv\configs\landmarks\2026c (09-18); survey_2026-10-03.json
 
 HOUSE_2: eaves 60.8 cm, ridge 87.8 cm above the soil, eave lines +-27.7 cm from the ridge; 19 label pieces from CH01, CH02, CH06
-  joint fit: centre (341.9, 118.2) in, ridge at 92.8 deg from x, soil +92 mm below the calibration's ground
-    CH01: rays miss the rigid house by median 8 mm, p90 230 (n 169); pieces -> RX:eave- 7, RX:ridge 3, RY:rake-1-1 12, RY:rake+1-1 4, BY:base_v+1 66, BY:base_u+1 293, BY:base_v-1 167
-    CH02: rays miss the rigid house by median 22 mm, p90 35 (n 161); pieces -> RX:eave- 10, RX:ridge 22, RY:rake+1-1 33, RY:rake-1-1 35, BZ:corner-1+1 21, BZ:corner-1-1 21, BZ:corner+1-1 21
-    CH06: rays miss the rigid house by median 4 mm, p90 94 (n 233); pieces -> RX:eave- 11, RX:ridge 3, RX:eave+ 4, RY:rake-1-1 29, RY:rake+1+1 3
-  house centre from each camera alone (soil offset fixed to the joint value): CH01 (342.6, 119.6) in, 101.7 deg; CH02 (341.0, 117.5) in, 93.2 deg; CH06 (342.1, 118.8) in, 90.7 deg -> spread 38 mm from their mean, pairwise CH01-CH02 68, CH01-CH06 24, CH02-CH06 44 mm
-  straightness: rays of a label piece leave their best plane through the camera by median 0.065 deg, max 1.568 deg
+  joint fit: centre (341.8, 118.1) in, ridge at 95.0 deg from x, soil +92 mm below the calibration's ground
+    CH01: rays miss the rigid house by median 10 mm, p90 210 (n 169); pieces -> RX:eave- 6, RX:ridge 4, RY:rake-1-1 6, RY:rake+1-1 9, BY:base_v+1 60, BY:base_u+1 285, BY:base_v-1 151
+    CH02: rays miss the rigid house by median 20 mm, p90 36 (n 161); pieces -> RX:eave- 15, RX:ridge 19, RY:rake+1-1 37, RY:rake-1-1 30, BZ:corner-1+1 26, BZ:corner-1-1 9, BZ:corner+1-1 20
+    CH06: rays miss the rigid house by median 15 mm, p90 76 (n 233); pieces -> RX:eave- 17, RX:ridge 9, RX:eave+ 9, RY:rake-1+1 32, RY:rake+1+1 12
+  house centre from each camera alone (soil offset fixed to the joint value): CH01 (342.6, 119.2) in, 102.6 deg; CH02 (340.9, 117.3) in, 93.4 deg; CH06 (342.0, 119.0) in, 92.8 deg -> spread 39 mm from their mean, pairwise CH01-CH02 64, CH01-CH06 16, CH02-CH06 51 mm
+  straightness: rays of a label piece leave their best plane through the camera by median 0.062 deg, max 1.576 deg
 
 HOUSE_1: eaves 59.0 cm, ridge 88.2 cm above the soil, eave lines +-26.2 cm from the ridge; 19 label pieces from CH01, CH02, CH05
-  joint fit: centre (147.0, 122.0) in, ridge at 90.6 deg from x, soil +65 mm below the calibration's ground
-    CH01: rays miss the rigid house by median 27 mm, p90 34 (n 169); pieces -> RX:eave- 2, RX:ridge 28, RY:rake+1-1 24, RY:rake-1-1 27, BZ:corner-1+1 41, BZ:corner-1-1 30, BZ:corner+1-1 29
-    CH02: rays miss the rigid house by median 7 mm, p90 12 (n 165); pieces -> RX:eave- 9, RX:ridge 5, RY:rake-1-1 8, RY:rake+1-1 7, BZ:corner-1-1 4, BZ:corner+1-1 9, BZ:corner+1+1 9
-    CH05: rays miss the rigid house by median 23 mm, p90 75 (n 240); pieces -> RX:eave+ 19, RX:ridge 25, RX:eave- 7, RY:rake+1+1 25, RY:rake-1+1 31
-  house centre from each camera alone (soil offset fixed to the joint value): CH01 (147.7, 123.0) in, 90.0 deg; CH02 (146.8, 121.7) in, 89.7 deg; CH05 (146.7, 121.0) in, 89.7 deg -> spread 32 mm from their mean, pairwise CH01-CH02 39, CH01-CH05 57, CH02-CH05 19 mm
-  straightness: rays of a label piece leave their best plane through the camera by median 0.047 deg, max 1.292 deg
+  joint fit: centre (147.2, 121.7) in, ridge at 90.6 deg from x, soil +66 mm below the calibration's ground
+    CH01: rays miss the rigid house by median 27 mm, p90 37 (n 169); pieces -> RX:eave+ 1, RX:ridge 28, RY:rake-1+1 26, RY:rake+1+1 25, BZ:corner+1-1 42, BZ:corner+1+1 31, BZ:corner-1+1 31
+    CH02: rays miss the rigid house by median 5 mm, p90 11 (n 165); pieces -> RX:eave+ 9, RX:ridge 3, RY:rake+1+1 7, RY:rake-1+1 7, BZ:corner+1+1 3, BZ:corner-1+1 5, BZ:corner-1-1 5
+    CH05: rays miss the rigid house by median 22 mm, p90 77 (n 240); pieces -> RX:eave- 18, RX:ridge 23, RX:eave+ 8, RY:rake-1-1 35, RY:rake+1-1 43
+  house centre from each camera alone (soil offset fixed to the joint value): CH01 (147.9, 122.7) in, 89.9 deg; CH02 (146.9, 121.5) in, 89.8 deg; CH05 (146.9, 120.3) in, 89.3 deg -> spread 36 mm from their mean, pairwise CH01-CH02 41, CH01-CH05 67, CH02-CH05 31 mm
+  straightness: rays of a label piece leave their best plane through the camera by median 0.046 deg, max 1.293 deg
 

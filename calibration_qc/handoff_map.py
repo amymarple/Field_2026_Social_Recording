@@ -67,8 +67,12 @@ def load(cam):
     fr = json.loads((TRACK / f"ball20_{cam}.json").read_text(encoding="utf-8"))["frames"]
     i = np.arange(len(fr)); a, b = np.polyfit(i, [f[0] for f in fr], 1)
     sel = np.array([k for k, f in enumerate(fr) if f[3]])
-    c = cams[cam]; d = c.rays(to_0918(cam, [[fr[k][3]["cx"], fr[k][3]["cy"]] for k in sel])); s = (Z - c.centre[2]) / d[:, 2]
-    xy = pm.fit_to_physical((c.centre + s[:, None] * d)[:, :2], c.correction); xy[~(s > 0)] = np.nan
+    c = cams[cam]; uv = to_0918(cam, [[fr[k][3]["cx"], fr[k][3]["cy"]] for k in sel])
+    if getattr(c, "terrain", None) is not None:                          # ray cameras with a ground relief: Z above the LOCAL ground
+        xy = c._ground(uv, Z)
+    else:
+        d = c.rays(uv); s = (Z - c.centre[2]) / d[:, 2]
+        xy = pm.fit_to_physical((c.centre + s[:, None] * d)[:, :2], c.correction); xy[~(s > 0)] = np.nan
     t = (a * i + b)[sel] - off[cam]
     k = np.isfinite(xy).all(1)
     for t0, t1 in held:

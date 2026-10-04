@@ -278,7 +278,9 @@ Two Python trees of different vintage:
     09-19 overnight camera drift: handoffs 36 mm, ball 40 / 87, plates held out 32 / 62. Revision c: camera centres from
     the drone only at the pole-tape scale (`survey_2026-10-03.json`); `house_check.py` validates above the ground (houses
     agree across cameras to ~4 cm at 60-88 cm). Revision d adds the operator's 4-corner clicks of the plates the
-    detector missed: handoffs 34 mm, CH01|CH02 52, plates held out 30 / 57. Only rigid objects are exact
+    detector missed: handoffs 34 mm, CH01|CH02 52, plates held out 30 / 57. Revision e adds the ground relief
+    (`terrain_2026-10-02.json`): **`to_paddock(uv, z_mm)` now means z above the LOCAL ground** (floor +-5 cm); plates
+    held out 28 / 56, cones 42 / 76. Only rigid objects are exact
     references (the ChArUco plate, the houses);
     cone / cord positions and long tape runs are not (operator, 2026-10-03).
   - **Use it anywhere** (numpy/scipy/cv2 only, falls back to the repo copy when `E:` is absent):
