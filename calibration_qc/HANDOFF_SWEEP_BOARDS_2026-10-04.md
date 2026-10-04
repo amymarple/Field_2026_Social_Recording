@@ -51,7 +51,7 @@ cameras: the only above-ground two-camera data of the calibration besides the wa
 G:\calibration\qc\trial_sweep and \sweep20 hold older copies written before CALIB_ROOT was noticed (rule: F: only);
 F: is complete and authoritative.
 
-## 4. Code (G:\Field_2026_Social_Recording\calibration_qc; uncommitted at the time of writing - see git status)
+## 4. Code (calibration_qc; committed in b71d099)
 
 | file | what |
 |---|---|
