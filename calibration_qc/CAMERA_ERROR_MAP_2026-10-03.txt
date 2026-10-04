@@ -1,0 +1,12 @@
+CAMERA ERROR MAP  cameras: release; reviewed 20 Hz ball at 105 mm above the ground; cells 40 in; 96 (pair, cell) medians; primary = finest resolution; its own error by the three-cornered hat (3+ cameras) or <= d / sqrt(2) (2 cameras, primary the better)
+
+primary camera and its own error, mm (e = estimate, < = bound), per cell (x along the length, rows from y 240 at the top):
+  y 200-240 03:e 10 03:e 10 01:  -  01:  -  01:  -  01:  -  01:  -  01:  -  01:  -  01:  -  04:< 49 04:< 21
+  y 160-200 03:e 10 03:e 10 02:e 38 05:e 10 05:  -  01:  -  01:  -  01:< 25 06:< 17 01:< 18 04:< 30 04:e 10
+  y 120-160 03:e 10 03:e 10 02:< 18 05:< 17 05:e 10 01:< 42 01:< 55 06:< 14 06:e 10 06:<186 04:e 46 04:e 10
+  y  80-120 03:e 22 03:e 10 01:< 30 05:< 14 05:e 15 02:< 26 02:< 56 01:e 27 06:e 20 06:< 14 04:e 10 04:< 67
+  y  40- 80 03:e 45 03:e 23 02:< 12 05:< 15 02:< 17 02:< 58 02:  -  06:  -  06:< 18 06:  -  04:< 32 04:  - 
+  y   0- 40 03:< 67 03:< 20 02:< 80 02:  -  02:  -  02:  -  02:  -  02:  -  02:  -  02:  -  04:< 30 04:  - 
+
+primary camera's own error over the cells with ball data: median 18 mm, p90 57, max 186
+cells with an estimate (3+ cameras): 21, with a bound only (2 cameras): 28, no ball data: 23
