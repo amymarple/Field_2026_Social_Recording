@@ -1131,3 +1131,17 @@ tracked keypoint's real height (horizontal error per mm of height d / (H - z): 0
 the release - 2-3 at the far rows), and measure walls / houses in the same camera map (the house_check positions), not
 from the design. Per-day camera correction before any cross-day comparison. Before teardown: check the sync LED in all
 six cameras; a short ball pass through CH04 (the CH04|CH06 boundary is unmeasured).
+
+### The hand-held sweep boards as above-ground two-camera data (2026-10-02 .. 10-04)
+
+The 09-18 hand-held sweeps in front of CH03 and CH04 were decoded at 20 Hz in all four streams that saw them
+(`board_sweep20.py`), the panos' undecoded frames rescued (`board_sweep20_rescue.py`: offset-corrected and tracked
+priors, locate then decode, saddle refinement checked against the decoder - median 0.5-0.6 px, p99 1.4-2.6 on 240
+decoded frames - and against an even-square slip by correlating the rendered plate) and 77 hard frames clicked by the
+operator (`board_sweep20_click_gui.py`). `board_sweep20_instances.py` makes 406 two-camera instances (board 0.14-0.54 m
+up); `sweep_check.py` scores a bundle on them. Against 10-02b the sweep camera's board pose lands 38 / 69 px (median /
+p90) off the pano's corners, systematically per pair. A trial bundle with the boards in (`fit_cameras.py` FIT_SWEEP,
+warm start FIT_INIT) brings boards it has not seen to 19 px with the camera poses alone, ground checks unchanged; the
+boards' apparent size in the panos is not fixed by any bundle variant. Built on 10-02b, so superseded by the 10-03
+ray release as a candidate; the data and checks are handed over for the ray fit: `TRIAL_SWEEP_2026-10-02.md`,
+`HANDOFF_SWEEP_BOARDS_2026-10-04.md` (data under `<root>\qc\sweep20\` and `\trial_sweep\`).
