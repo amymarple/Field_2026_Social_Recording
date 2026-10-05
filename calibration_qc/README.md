@@ -1168,3 +1168,18 @@ definition, the methods paragraph and what not to claim. `REPRODUCE.md`: command
 The CH04|CH06 boundary has no camera overlap: behind HOUSE_2 only CH06 sees the floor (operator, 2026-10-04), so the
 freeze audit's suggested ball pass there cannot give a two-camera number; those cells are CH06-only and unmeasured,
 like the two wall strips.
+
+### Render handover to ChatGPT Astra (2026-10-05)
+
+The operator asked for a handover so that ChatGPT Astra can build a metric, photorealistic 3-D reconstruction of
+the paddock for Unity. Folder `Q:\hc997\SocialFieldRat2026\render\` (byte-checked against the sources): the
+drone SD card untouched (`drone_original\DCIM`, 39 files, 16.7 GB: 09-30 high pass and photos, 10-02 inside
+flights, 10-03 exterior passes) + the recovered PTSC_0018; the existing COLMAP reconstruction anchored to the
+paddock frame (`reconstruction\colmap_2026-10-02_all`, without the 3.4 GB feature databases); `geometry\` (survey,
+terrain, drone cords and landmark labels, house check, camera centres); `rig_cameras\` (`export_rig_cameras.py`:
+per camera the optical centre and every 16th pixel's ray in the paddock frame, model-agnostic, plus the frozen
+release files); `pictures\` (drone stills, house measurement photos, the pole sketch, one frame per rig camera in
+colour 09-30 and IR 09-18 / 09-17, context maps). The handover (`HANDOVER_ASTRA_paddock_render_2026-10-05.md`, copy
+here) fixes the frame of record (paddock frame, drone anchor convention, gravity tilt, paddock -> Unity), the inherited
+accuracy facts (board 1.6 mm locally, the 1.2 % board-vs-grid scale tension, a frame good to a few cm), a suggested
+route, and the validation Astra must report (rigid-object scale, frame, rig-camera view overlays, realism).
