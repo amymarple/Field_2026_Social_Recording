@@ -1,9 +1,20 @@
-"""Do the cameras' burned-in OSD clocks tick together? Test on the 2026-09-30 ball session, where each camera's clock
-offset against CH02 is known from the 20 Hz ball (held20.json: common clock = a * entry + b - offset).
-Per camera: decode the ball segment (same seek as ball_track20.py), the mean absolute frame-to-frame change inside the
-OSD's HH:MM:SS box marks a seconds tick; each tick's time on the common clock (half a frame before the first frame
-showing the new second), modulo 1 s. If the OSD clocks are one clock and the ball offsets are right, every camera's
-tick phase is the same."""
+# -*- coding: utf-8 -*-
+r"""Do the cameras' burned-in OSD clocks tick together? (2026-10-04, for video <-> ephys sync; a TEST, not a pipeline.)
+On the 2026-09-30 ball session each camera's clock offset against CH02 is known from the 20 Hz ball (held20.json:
+common clock = a * entry + b - offset). Per camera: decode the ball segment (seek as ball_track20.py); the OSD's
+HH:MM:SS box (stored-frame pixels, BOX), binarised at grey > 200 (the white text only), changes by > 0.4 % of its
+pixels at a seconds tick (at most one tick per 0.6 s); each tick's time on the common clock (half a frame before the
+first frame showing the new second), modulo 1 s. If the OSD clocks were one clock, every camera's tick phase would be
+the same.
+
+Result 2026-10-04 (520 s, 523-534 ticks per camera): tick phase minus CH02's - CH04 +2, CH06 -22, CH05 +218, CH01 -250,
+CH03 -409 ms; per-camera residual p90 13-208 ms (the phase itself to a few ms). So each camera's OSD is a continuous
+clock of its own (it removes the +-1 s per-file offset of the file names), but the cameras' OSD clocks differ by up
+to 0.4 s: every camera needs its own offset to the PC / ephys clock. Handoff: the analysis repo's
+implementation_plan/2026-10-05-video-clock-sync.md.
+
+Usage: python osd_tick_test.py [CH01,CH02,...]   -> prints, and writes <qc>\2026-09-30\ball\track20\osd_tick_test.json
+"""
 import json, sys
 from pathlib import Path
 import numpy as np, cv2
