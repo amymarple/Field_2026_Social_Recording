@@ -16,7 +16,9 @@ file.
 Every frame carries the camera's burned-in OSD clock (HH:MM:SS). Per hourly file:
 1. frame index <-> stored timestamp from the fragmented MP4's box headers only (moof / traf / tfdt / trun; the
    payload is skipped) - identical to ffprobe (`--check-index`: 72,000 frames, 0.000 ms difference);
-2. five 20-s windows over the file, decoded on the GPU and cropped to the OSD time text;
+2. five 20-s windows over the file, decoded on the GPU and cropped to the OSD time text; the OSD line is centred and
+   moves sideways between days (CH01-CH04: +16 px on 08-30 / 08-31 / 09-11 / 09-12, 0 on 09-01 .. 09-06; CH05 / CH06
+   never), so each window first finds the time string's offset (+-48 px, +-24 for CH05 / CH06);
 3. ticks = the first frame of each new second (the seconds-units cell changes; white glyph core and dark outline as
    two channels, so the text reads on white walls at night too); each tick's second counted from the frame spacing;
    HH:MM:SS read on three frames after each tick (nearest exemplar, +-3 px shifts, `osd_templates.npz`) and the
@@ -36,6 +38,8 @@ already in the CSV.
 - Reading: exemplars learned from CH01, CH03 and CH05 (one day and one night window each, operator-read); tested on
   the sibling cameras CH02, CH04, CH06 (never seen in learning), day and night: all six windows read the correct time
   (single-tick reads agree 0.65-1.00; the window consensus correct in every case).
+- Every date (08-30 .. 09-12, one window per camera and day, 60 windows): the window consensus readable in all,
+  single-tick reads agree 0.53-1.00 (CH03 by day the weakest).
 - Whole files (2026-09-05 04:00, all six cameras): 99-101 ticks per file, readings agreed 100 % in 29 of 30 windows,
   fit residual rms 16-25 ms (the frame interval's own quantisation is 14 ms), camera rates on their own clocks CH01 /
   CH02 19.997, CH03 / CH04 19.984, CH05 / CH06 20.000 fps (as the 20 Hz ball found).

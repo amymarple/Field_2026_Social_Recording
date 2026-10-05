@@ -43,13 +43,16 @@ WIN_S, N_WIN, SHIFT, HOLD = 20.0, 5, 3, 3
 # per camera: OSD time-text crop in the STORED frame (x0, x1, y0, y1), turn upright, digit cells (x0 of HH MM SS),
 # cell width, cell rows, font family (exemplars are per family)
 CAMS = {
-    "CH01": dict(crop=(1950, 2160, 3700, 4500), rot=True, cells=(87, 154, 254, 323, 423, 490), w=56, y=(37, 124), fam="pano"),
-    "CH02": dict(crop=(1950, 2160, 3700, 4500), rot=True, cells=(87, 154, 254, 323, 423, 490), w=56, y=(37, 124), fam="pano"),
-    "CH03": dict(crop=(2150, 2700, 20, 150), rot=False, cells=(53, 120, 220, 289, 389, 456), w=56, y=(17, 104), fam="rlc"),
-    "CH04": dict(crop=(2150, 2700, 20, 150), rot=False, cells=(53, 120, 220, 289, 389, 456), w=56, y=(17, 104), fam="rlc"),
-    "CH05": dict(crop=(1240, 1530, 5, 75), rot=False, cells=(17, 49, 113, 145, 209, 241), w=28, y=(12, 52), fam="px"),
-    "CH06": dict(crop=(1240, 1530, 5, 75), rot=False, cells=(17, 49, 113, 145, 209, 241), w=28, y=(12, 52), fam="px"),
+    "CH01": dict(crop=(1950, 2160, 3700, 4500), rot=True, cells=(87, 154, 254, 323, 423, 490), w=56, y=(37, 124), fam="pano", R=48),
+    "CH02": dict(crop=(1950, 2160, 3700, 4500), rot=True, cells=(87, 154, 254, 323, 423, 490), w=56, y=(37, 124), fam="pano", R=48),
+    "CH03": dict(crop=(2100, 2760, 20, 150), rot=False, cells=(103, 170, 270, 339, 439, 506), w=56, y=(17, 104), fam="rlc", R=48),
+    "CH04": dict(crop=(2100, 2760, 20, 150), rot=False, cells=(103, 170, 270, 339, 439, 506), w=56, y=(17, 104), fam="rlc", R=48),
+    "CH05": dict(crop=(1210, 1560, 5, 75), rot=False, cells=(47, 79, 143, 175, 239, 271), w=28, y=(12, 52), fam="px", R=24),
+    "CH06": dict(crop=(1210, 1560, 5, 75), rot=False, cells=(47, 79, 143, 175, 239, 271), w=28, y=(12, 52), fam="px", R=24),
 }
+# The OSD line is CENTRED and the weekday names differ in width (SUN, SAT, ...): the whole time string moves sideways
+# from day to day. The cells above are where it sits on a Saturday (2026-09-05); every window first finds its own
+# horizontal offset within +-R px (align()).
 # operator-read windows (2026-10-05): file, seek s, the OSD time shown by the window's FIRST frame. The first camera of
 # each pair teaches (--learn), the second is the test (--check-read).
 LEARN = {
@@ -164,9 +167,9 @@ def feat(g):
     return np.stack([(g > 210), (g < 60)]).astype(np.float32)
 
 
-def ticks(fr, cam):
+def ticks(fr, cam, dx=0):
     """first frame of each new second: the units-of-seconds cell changes (both channels), at most one per 0.6 s."""
-    F = np.stack([feat(c) for c in cell(fr, cam, 5, pad=0)])
+    F = np.stack([feat(c) for c in cell(fr, cam, 5, pad=0, dx=dx)])
     d = np.abs(np.diff(F, axis=0)).mean(axis=(1, 2, 3))
     thr = max(0.02, 6 * float(np.median(d)))
     out = []
@@ -176,9 +179,21 @@ def ticks(fr, cam):
     return out
 
 
-def cell(fr, cam, k, pad=SHIFT):
-    c = CAMS[cam]; x = c["cells"][k]; y0, y1 = c["y"]
+def cell(fr, cam, k, pad=SHIFT, dx=0):
+    c = CAMS[cam]; x = c["cells"][k] + dx; y0, y1 = c["y"]
     return fr[:, max(0, y0 - pad):y1 + pad, max(0, x - pad):x + c["w"] + pad]
+
+
+def align(fr, cam):
+    """the time string's horizontal offset in this window: the dx (every 2 px, no inner shift search) at which three
+    digit cells (HH units, MM units, SS units) on two frames match their best exemplars best. The reading then
+    searches +-3 px around it."""
+    R = CAMS[cam]["R"]; pick = fr[[2, len(fr) // 2]] if len(fr) > 6 else fr
+    best = (-1e9, 0)
+    for dx in range(-R, R + 1, 2):
+        s = sum(float(classify(cell(pick, cam, p, pad=0, dx=dx), cam)[2].mean()) for p in (1, 3, 5))
+        best = max(best, (s, dx))
+    return best[1]
 
 
 def _norm(a):
@@ -213,14 +228,14 @@ def classify(cells, cam):
                 if m.any():
                     best[:, d] = np.maximum(best[:, d], S[:, m].max(1))
     o = np.sort(best, 1)
-    return best.argmax(1), o[:, -1] - o[:, -2]
+    return best.argmax(1), o[:, -1] - o[:, -2], o[:, -1]
 
 
-def read_hms(fr, cam):
+def read_hms(fr, cam, dx=0):
     """HH:MM:SS (seconds of day) from a few frames of one second, or None."""
     digs = []
     for p in range(6):
-        d, _ = classify(cell(fr, cam, p), cam)
+        d, _, _ = classify(cell(fr, cam, p, dx=dx), cam)
         digs.append(int(np.bincount(d, minlength=10).argmax()))
     hh, mm, ss = 10 * digs[0] + digs[1], 10 * digs[2] + digs[3], 10 * digs[4] + digs[5]
     return 3600 * hh + 60 * mm + ss if hh < 24 and mm < 60 and ss < 60 else None
@@ -230,14 +245,15 @@ def read_window(fr, cam, fps=20.0):
     """-> ([(tick frame, seconds of day)], agreement): ticks by change detection, each tick's second counted from the
     frame spacing (a missed tick does not shift the count), the window's second = the median over its ticks of
     (read value - count); agreement = the fraction of reads equal to that."""
-    T = ticks(fr, cam)
+    dx = align(fr, cam)
+    T = ticks(fr, cam, dx)
     if len(T) < 3:
         return [], 0.0
     K = [int(round((t - T[0]) / fps)) for t in T]
     off = []
     for t, k in zip(T, K):
         pick = [i for i in (t + 2, t + 5, t + 8) if i < len(fr)]
-        v = read_hms(fr[pick], cam) if pick else None
+        v = read_hms(fr[pick], cam, dx) if pick else None
         if v is not None:
             off.append(v - k)
     if not off:
