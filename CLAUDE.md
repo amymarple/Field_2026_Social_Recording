@@ -236,6 +236,11 @@ processes and kills stalled ones (file not growing for `$StallSeconds` = 240), a
   closed segments for `ir_identity_labeler.html`.
 - Analysis PC: `verify_on_analysis.ps1` checks the local copy against the manifest (no field-PC load).
 - Campus PC with `Q:` mapped: `copy_ssd_to_server.ps1` (sneakernet SSD → BioHPC, additive only).
+- Derived data made by the analysis repo (Field2026_Social_analysis) also lives on BioHPC storage, next to the raw
+  tree: `Q:\hc997\SocialFieldRat2026\3rd_rat\analysis\` = `pc_time\` (expanded PC timestamps), `lfp\` (cohort-3
+  LFP, 203 sessions) and `sleep\` (sleep-state scores), each with `README.md` + verification files (copied and
+  verified 2026-10-06/07). Analyses read them from there; the BioHPC workdir is scratch only. Map:
+  `field2026-sync/COHORT3_DATA_GUIDE.md` section 2.
 
 ## Camera calibration
 
@@ -286,7 +291,7 @@ Two Python trees of different vintage:
     `ray_correction.json`, rev f kept as `ray_correction_2026-10-03f.json`). No further fitting. The calibration of record
     - use, final error (primary camera's own error 18 / 55 mm per 1 m cell at the keypoint height, 23 one-camera cells
     unmeasured; 2-6 cm handoff steps), methods paragraph, what not to claim - is `calibration_qc/CALIBRATION_FINAL_2026-10-04.md`;
-    reproduction `calibration_qc/REPRODUCE.md`; all calibration data backed up to `Q:\hc997\SocialFieldRat2026rd_rat\calibration\`.
+    reproduction `calibration_qc/REPRODUCE.md`; all calibration data backed up to `Q:\hc997\SocialFieldRat2026\3rd_rat\calibration\`.
     Also 2026-10-04: cords at the drone's positions (`refit_rays.py --drone-cords`, `drone_line_check.py`) tested and NOT
     adopted - rev f stands; `single_camera_check.py` maps each primary camera's own held-out plate stretch and cord offset;
     the place-cell audit (`calibration_qc/AUDIT_FABLE_PLACECELL_PRECISION_2026-10-04.md`): sufficient for place-cell analyses
