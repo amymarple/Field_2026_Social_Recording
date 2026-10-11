@@ -195,8 +195,97 @@ def selftest():
     return 0 if ok else 1
 
 
+ANALYSIS = Path(r"D:\Documents\GitHub\Field2026_Social_analysis")
+TABLE = ANALYSIS / "results" / "2026c" / "cv_field" / "reports" / "cv_field_frame_corrections_2026c.csv"
+
+
+def load_labels(paths):
+    """the operator's exported labels (any number of files and frames) -> {cam: {item: points}} in the pixels of the
+    in-box reference frame: every frame's clicks go through the analysis repo's per-lid-segment correction (frame px ->
+    the 09-04 12:00 reference px); a point labelled on several frames is averaged, a line's clicks are pooled"""
+    from datetime import datetime
+    for p in (ANALYSIS / "cv" / "cv_field", ANALYSIS / "cv"):
+        if str(p) not in sys.path:
+            sys.path.insert(0, str(p))
+    from frame_correction import Corrections
+    C = Corrections(table=TABLE)
+    out, used = {}, []
+    for path in paths:
+        for f in json.loads(Path(path).read_text(encoding="utf-8"))["frames"]:
+            cam, t = f["camera"], datetime.strptime(f["time"], "%Y-%m-%d %H:%M:%S")
+            for k, v in f["points"].items():
+                q = np.asarray(v, float).reshape(-1, 2)
+                q2, info = C.to_09_18(cam, t, q)
+                if q2 is None:
+                    raise SystemExit(f"{cam} {t}: no correction to the reference frame ({info.get('flag')})")
+                used.append((cam, f["time"], info.get("segment"), info.get("flag"), info.get("target_frame")))
+                out.setdefault(cam, {}).setdefault(k, []).append(q2)
+    lab = {cam: {k: (np.mean(np.vstack(v), axis=0) if k.startswith("floor corner") else np.vstack(v)) for k, v in d.items()}
+           for cam, d in out.items()}
+    return lab, sorted(set(used))
+
+
+def report(cam, lab, p, prior):
+    """per-item residuals (px and mm on the floor) and a leave-one-item-out stability of the floor map"""
+    L = []
+    cm = InboxCamera(cam, p, (0, 0), 90.0)
+    mm_px = (FLOOR_L / 2) / max(1.0, np.linalg.norm(project(p, corner(0, 1)[None])[0] - project(p, corner(0, 0)[None])[0]))
+    for k in sorted(lab):
+        r = residuals(p, {k: lab[k]}, prior, SIG)[:-5]
+        r = np.abs(r) if not k.startswith("floor corner") else np.linalg.norm(r.reshape(-1, 2), axis=1)
+        L.append(f"    {k:24s} n {len(np.atleast_2d(lab[k])):2d}: residual median {np.median(r):.1f} px, max {r.max():.1f} px (~{np.median(r) * mm_px:.1f} mm)")
+    g = np.stack(np.meshgrid(np.linspace(-FLOOR_W / 2, FLOOR_W / 2, 7), np.linspace(-FLOOR_L / 2, FLOOR_L / 2, 9)), -1).reshape(-1, 2)
+    uv = project(p, np.c_[g, np.full(len(g), 60.0)])
+    worst = []
+    for k in lab:
+        sub = {kk: vv for kk, vv in lab.items() if kk != k}
+        pk, _ = fit(sub, prior)
+        worst.append((np.max(np.linalg.norm(InboxCamera(cam, pk, (0, 0), 90.0).to_floor(uv, 60.0) - g, axis=1)), k))
+    worst.sort(reverse=True)
+    L.append(f"    leave one item out: the floor map at 60 mm moves by at most {worst[0][0]:.1f} mm (without '{worst[0][1]}'), "
+             f"median over items {np.median([w for w, _ in worst]):.1f} mm")
+    return L, mm_px
+
+
 if __name__ == "__main__":
     args = sys.argv[1:]
     if "--selftest" in args:
         raise SystemExit(selftest())
-    print(__doc__)
+    if "--labels" not in args:
+        print(__doc__); raise SystemExit(0)
+    import qc_paths, hashlib
+    from datetime import datetime
+    files = [a for a in args[args.index("--labels") + 1:] if not a.startswith("--")]
+    lab, used = load_labels(files)
+    prior = lens_prior()
+    poses = json.loads((qc_paths.QC_ROOT / "house_tie" / "house_tie.json").read_text(encoding="utf-8"))["house_poses"]
+    HP = {"HOUSE_2": poses["HOUSE_2_0918"], "HOUSE_1": poses["HOUSE_1_cohort"]}
+    L = [f"IN-BOX FLOOR FIT  {datetime.now():%Y-%m-%d %H:%M}; labels {', '.join(files)}; floor {FLOOR_W:.1f} x {FLOOR_L:.1f} mm (across x along); "
+         f"lens prior (CH05 / CH06 mean) f {prior[0]:.0f}, c ({prior[1]:.0f}, {prior[2]:.0f}), k1 {prior[3]:.3f}, k2 {prior[4]:.3f}",
+         "frames used (camera, time, lid segment, correction flag, target): " + "; ".join(f"{u[0]} {u[1]} seg {u[2]} {u[3]} -> {u[4]}" for u in used), ""]
+    ties = {}
+    for cam in sorted(lab):
+        p, sol = fit(lab[cam], prior)
+        h = HOUSE_OF[cam]; x = HP[h]
+        cmr = InboxCamera(cam, p, x[:2], x[2] % 180)
+        tilt = np.degrees(np.arccos(abs(cmr.R[2] @ np.array([0, 0, 1.0]))))
+        L.append(f"{cam} ({h}): camera {cmr.centre_F[2]:.0f} mm above the floor, over F ({cmr.centre_F[0]:.0f}, {cmr.centre_F[1]:.0f}) mm, "
+                 f"optical axis {tilt:.1f} deg off vertical; lens f {p[6]:.0f}, c ({p[7]:.0f}, {p[8]:.0f}), k1 {p[9]:.3f}, k2 {p[10]:.3f}")
+        rl, mm_px = report(cam, lab[cam], p, prior)
+        L += rl
+        L.append(f"    scale ~{mm_px:.2f} mm per px on the floor; house {h} at ({x[0]:.1f}, {x[1]:.1f}) in, ridge {x[2] % 180:.1f} deg; "
+                 f"floor centre -> paddock {np.round(cmr.floor_to_paddock([0, 0])[0] / IN, 1).tolist()} in")
+        ties[cam] = dict(kind="inbox", target_frame="09-04 12:00", house=h, house_xy_in=list(map(float, x[:2])), ridge_deg=float(x[2] % 180),
+                         params=p.tolist(), floor_mm=[FLOOR_W, FLOOR_L], camera_above_floor_mm=float(cmr.centre_F[2]))
+        L.append("")
+    out = qc_paths.QC_ROOT / "inbox_floor"; out.mkdir(parents=True, exist_ok=True)
+    (out / "INBOX_FLOOR_FIT.txt").write_text("\n".join(L) + "\n", encoding="utf-8")
+    (out / "inbox_floor_fit.json").write_text(json.dumps(dict(cameras=ties, labels=files), indent=1), encoding="utf-8")
+    print("\n".join(L))
+    if "--write-ties" in args:
+        tp = HERE / "cohort_ties_2026c.json"; T = json.loads(tp.read_text(encoding="utf-8"))
+        for cam, v in ties.items():
+            T["cameras"][cam] = dict(why="in-box camera: floor model (inbox_floor_fit.py) of the analysis repo's in-box reference frame",
+                                     frames={"2026-09-04 12:00:02": dict(v, labels_sha256={Path(f).name: hashlib.sha256(Path(f).read_bytes()).hexdigest() for f in files})})
+        tp.write_text(json.dumps(T, indent=1), encoding="utf-8")
+        print("->", tp)

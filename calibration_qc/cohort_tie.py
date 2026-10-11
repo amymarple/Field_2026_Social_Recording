@@ -69,6 +69,10 @@ class Ties:
         k = (cam, frame)
         if k not in self._cache:
             f = self.d["cameras"][cam]["frames"][frame]
+            if f.get("kind") == "inbox":                                  # CH07 / CH08: the house-floor model
+                import inbox_floor_fit
+                self._cache[k] = inbox_floor_fit.InboxCamera(cam, f["params"], f["house_xy_in"], f["ridge_deg"])
+                return self._cache[k]
             if self._cams is None:
                 self._cams = pm.load()
             self._cache[k] = turned(self._cams[cam], f["rotvec_rad"] + f.get("shift_mm", [0.0, 0.0, 0.0]),

@@ -12,8 +12,15 @@ the analysis repo's in-box reference frame 09-04 12:00:02 (cv/configs/cohort3_li
 The camera does not move inside a segment, so every frame of a camera shares its pixel coordinates: label each item
 once, on whichever frame shows it best. Names are IMAGE sides as the frame is shown (top / bottom / left / right).
 
+Empty houses (operator, 2026-10-10: label the floor when no rat is in the house, at night; find the times with WISER):
+--targets takes per-camera times, e.g. the midpoints of night stretches when WISER has no tag inside the house
+(analysis repo inbox_p0 box_occupancy_1s.csv.gz: n_house == 0, all tracked). Frames of another lid-closed segment than
+the in-box reference reach it through the analysis repo's per-segment correction (inbox_floor_fit.py maps the labels).
+
 Usage: python inbox_floor_gui.py [--date 2026-09-04] [--times 09:00:00,10:00:00,11:00:00,12:00:02,13:00:00]
-Output: <qc root>\inbox_floor\inbox_floor_labels.html (+ frames\); Export writes inbox_floor_labels.json
+       python inbox_floor_gui.py --targets "CH07@2026-09-04 00:16:33,CH08@2026-09-04 00:58:30,..." --name <page name>
+           [--guide-time 030100] [--segment "<text for the page>"]
+Output: <qc root>\inbox_floor\<name>.html (default inbox_floor_labels.html; + frames\); Export writes <name>.json
 """
 import sys, json, subprocess
 from datetime import datetime
@@ -27,6 +34,11 @@ def opt(name, default=None):
     return args[args.index(name) + 1] if name in args else default
 DATE = opt("--date", "2026-09-04")
 TIMES = opt("--times", "09:00:00,10:00:00,11:00:00,12:00:02,13:00:00").split(",")
+NAME = opt("--name", "inbox_floor_labels")
+GUIDE_T = opt("--guide-time", "1200")
+TARGETS = [(c.split("@")[0].strip(), datetime.strptime(c.split("@")[1].strip(), "%Y-%m-%d %H:%M:%S"))
+           for c in opt("--targets", "").split(",") if c.strip()] or None
+SEGMENT = opt("--segment", f"{DATE} {TIMES[0]} - {TIMES[-1]}")
 CAMS = ("CH07", "CH08")
 COHORT = Path(opt("--cohort-root", r"F:\3rd_rat"))
 LM = Path(r"D:\Documents\GitHub\Field2026_Social_analysis\cv\configs\landmarks\2026c")
@@ -36,27 +48,27 @@ OUT = qc_paths.QC_ROOT / "inbox_floor"; (OUT / "frames").mkdir(parents=True, exi
 def segment_file(cam, t):
     """the closed hourly file holding field-PC time t and the offset into it (s); the file name carries its start"""
     best = None
-    for f in sorted((COHORT / DATE / cam).glob(f"{cam}_{DATE}_*_to_*.mp4")):
-        s = datetime.strptime(f"{DATE} {f.stem.split('_')[2]}", "%Y-%m-%d %H-%M-%S")
+    day = f"{t:%Y-%m-%d}"
+    for f in sorted((COHORT / day / cam).glob(f"{cam}_{day}_*_to_*.mp4")):
+        s = datetime.strptime(f"{day} {f.stem.split('_')[2]}", "%Y-%m-%d %H-%M-%S")
         if s <= t:
             best = (f, (t - s).total_seconds())
     return best
 
 
 frames = []
-for cam in CAMS:
-    for hms in TIMES:
-        t = datetime.strptime(f"{DATE} {hms}", "%Y-%m-%d %H:%M:%S")
-        f, off = segment_file(cam, t)
-        name = f"{cam}_{t:%Y%m%d_%H%M%S}.jpg"
-        dst = OUT / "frames" / name
-        if not dst.exists():
-            subprocess.run([qc_paths.FFMPEG, "-v", "error", "-ss", f"{off:.3f}", "-i", str(f), "-frames:v", "1", "-q:v", "2", str(dst)], check=True)
-        frames.append(dict(camera=cam, time=f"{t:%Y-%m-%d %H:%M:%S}", name=name, file=f"frames/{name}", source=f.name, offset_s=off))
+targets = TARGETS or [(cam, datetime.strptime(f"{DATE} {hms}", "%Y-%m-%d %H:%M:%S")) for cam in CAMS for hms in TIMES]
+for cam, t in targets:
+    f, off = segment_file(cam, t)
+    name = f"{cam}_{t:%Y%m%d_%H%M%S}.jpg"
+    dst = OUT / "frames" / name
+    if not dst.exists():
+        subprocess.run([qc_paths.FFMPEG, "-v", "error", "-ss", f"{off:.3f}", "-i", str(f), "-frames:v", "1", "-q:v", "2", str(dst)], check=True)
+    frames.append(dict(camera=cam, time=f"{t:%Y-%m-%d %H:%M:%S}", name=name, file=f"frames/{name}", source=f.name, offset_s=off))
 
 guides = {}
 for cam in CAMS:
-    fs = sorted(LM.glob(f"landmarks_{cam}_{DATE.replace('-', '')}_1200*.json"))
+    fs = sorted(LM.glob(f"landmarks_{cam}_{DATE.replace('-', '')}_{GUIDE_T}*.json"))
     if fs:
         L = json.loads(fs[-1].read_text(encoding="utf-8"))["landmarks"]
         guides[cam] = {k: v for k, v in L.items() if k in ("FOODBOX", "DOORFRAME", "INNER_EDGES")}
@@ -80,12 +92,13 @@ groups = [
          hint="Optional: the two vertical sides of each door opening (left / right wall of the image), 2-3 clicks each, as "
               "far down as you can see them. They give the door's position along the wall."),
 ]
-task = (f"Label the floor of each house box: CH07 = inside house_2, CH08 = inside house_1; frames {DATE} {TIMES[0]} - {TIMES[-1]}, "
+task = (f"Label the floor of each house box: CH07 = inside house_2, CH08 = inside house_1; frames {SEGMENT}, "
         "one lid-closed segment, so the camera did not move: label each item once, on the frame where it is clearest. "
         "Top / bottom / left / right are sides of the image as shown. When done: Export, and give the json to Claude.")
 page = (Path(__file__).resolve().parent / "inbox_floor_gui_template.html").read_text(encoding="utf-8")
 page = (page.replace("__FRAMES__", json.dumps(frames)).replace("__GROUPS__", json.dumps(groups)).replace("__GUIDES__", json.dumps(guides))
-        .replace("__RUN__", json.dumps(f"inbox_floor_{DATE}")).replace("__TASK__", json.dumps(task)))
-(OUT / "inbox_floor_labels.html").write_text(page, encoding="utf-8")
-(OUT / "frames.json").write_text(json.dumps(frames, indent=1), encoding="utf-8")
-print(len(frames), "frames ->", OUT / "inbox_floor_labels.html")
+        .replace("__RUN__", json.dumps(f"inbox_floor_{DATE}" if NAME == "inbox_floor_labels" else NAME)).replace("__TASK__", json.dumps(task))
+        .replace("inbox_floor_labels.json", f"{NAME}.json"))
+(OUT / f"{NAME}.html").write_text(page, encoding="utf-8")
+(OUT / f"{NAME}_frames.json" if NAME != "inbox_floor_labels" else OUT / "frames.json").write_text(json.dumps(frames, indent=1), encoding="utf-8")
+print(len(frames), "frames ->", OUT / f"{NAME}.html")
