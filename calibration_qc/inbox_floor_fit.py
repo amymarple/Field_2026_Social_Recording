@@ -7,19 +7,25 @@ the floor / wall edges, the vertical wall joints; image sides as shown):
 - floor: the 62.55 x 45.72 cm body (survey_2026-10-03.json) minus 1/2-inch walls (operator, 2026-10-10) = 600.1 x
   432.0 mm; the long side runs along the ridge. The plane is the bedding surface the operator clicked (the wall foot as
   seen), so z = 0 is where the rats lie;
-- the vertical wall joints stand at the floor corners (their images meet below the lens);
-- lens: an RLC-520A like CH05 / CH06, whose release lenses agree (f 1995 / 2011 px, k1 -0.337 / -0.359): their mean is
-  the start and f / k1 / k2 are fitted with a prior (the labelled straight edges decide);
+- the vertical wall joints stand at the floor corners (their images meet below the lens): the operator's INNER_EDGES
+  of the analysis repo's 09-04 03:01 in-box labels (the same lid-closed segment as the 09-03/04 night frames), taken
+  as the joint of the image quadrant they start in;
+- lens: an RLC-520A like CH05 / CH06, whose release lenses agree (f 1995 / 2011 px, k1 -0.337 / -0.359): their mean,
+  FIXED. On one floor plane a free lens is not identifiable - the principal point wandered 250 px and dropping one
+  floor edge moved the map by 40-75 mm; fixed, the leave-one-item-out change is <= 10 mm. The free-lens fit is
+  reported as a sensitivity (its difference at head height is the lens-model uncertainty);
 - orientation: both images are the paddock map rotated 180 deg, not mirrored (operator: CH07 2026-10-10, CH08 "also"):
   image right = paddock -x, image up = paddock -y (toward row A).
 Frame F (house floor): origin the floor centre, x = image right (across the ridge), y = image up (along it), z up; then
-paddock = house centre + x (-sin r, cos r) + y (-cos r, -sin r), r the ridge angle (house_2 92.0 deg, the 09-18 fit;
-house_1 88.5 deg, its cohort pose; analysis repo CAMERA_GEOMETRY_2026c.md section 4).
+paddock = house centre + x (-sin r, cos r) + y (-cos r, -sin r), r the ridge angle; the house poses the analysis repo
+uses (CAMERA_GEOMETRY_2026c.md section 4): house_2 (342.4, 117.7) in, 92.0 deg (rev g house check, never moved);
+house_1 cv/configs/house1_cohort_pose_2026c.json (142.2, 123.5) in, 88.5 deg. Their ridge angles are good to ~2 deg
+(~1 cm at the box ends).
 
 The fit is for the in-box reference frame (09-04 12:00:02 segment); the analysis repo's correction table maps every other
 lid-closed segment to it (frame_correction.py), so cohort pixels reach this model through Corrections.to_09_18.
 
-Usage: python inbox_floor_fit.py --labels <inbox_floor_labels.json> [--write-ties]   |   --selftest
+Usage: python inbox_floor_fit.py --labels <inbox_floor_labels.json> [<more.json>] [--write-ties]   |   --selftest
 Output: <qc root>\inbox_floor\INBOX_FLOOR_FIT.txt (+ the in-box entries of cohort_ties_2026c.json with --write-ties)
 """
 import sys, json
@@ -98,7 +104,8 @@ def start(prior, h=650.0):
     return np.r_[cv2.Rodrigues(R)[0].ravel(), t, prior]
 
 
-SIG = np.array([60.0, 80.0, 80.0, 0.05, 0.03])                           # lens prior widths: f, cx, cy px; k1, k2
+SIG_FREE = np.array([60.0, 80.0, 80.0, 0.05, 0.03])                      # lens prior widths: f, cx, cy px; k1, k2
+SIG = SIG_FREE / 1000.0                                                  # the lens is FIXED to the prior (see the docstring)
 
 
 def fit(lab, prior):
@@ -168,17 +175,27 @@ def selftest():
         print(f"[{'PASS' if cond else 'FAIL'}] {name} {detail}")
     prior = lens_prior()
     truth = start(prior, 680.0); truth[:3] = cv2.Rodrigues(cv2.Rodrigues(truth[:3])[0] @ cv2.Rodrigues(np.radians([6.0, -8.0, 2.0]))[0])[0].ravel()
-    truth[3:6] += [30.0, -40.0, 0.0]; truth[6] *= 1.02; truth[9] += 0.02
-    rng = np.random.default_rng(1); lab = {}
-    for q, (sx, sy) in Q.items():
-        if q != "top-right":                                             # one corner hidden (the food box)
-            lab[f"floor corner {q}"] = project(truth, corner(sx, sy)[None])[0] + rng.normal(0, 1.5, 2)
-    for e, (a, b) in EDGES.items():
-        t = np.linspace(0.15, 0.85, 5)[:, None]
-        lab[f"floor edge {e}"] = project(truth, corner(*a) + t * (corner(*b) - corner(*a))) + rng.normal(0, 1.5, (5, 2))
-    for q, (sx, sy) in Q.items():
-        t = np.linspace(0.05, 0.6, 3)[:, None]
-        lab[f"wall joint {q}"] = project(truth, corner(sx, sy) + t * np.array([0, 0, JOINT_TOP_MM])) + rng.normal(0, 1.5, (3, 2))
+    truth[3:6] += [30.0, -40.0, 0.0]                                     # the lens = the prior (it is fixed in the fit)
+
+    def synth(tr):
+        rng = np.random.default_rng(1); lab = {}
+        for q, (sx, sy) in Q.items():
+            if q != "top-right":                                         # one corner hidden (the food box)
+                lab[f"floor corner {q}"] = project(tr, corner(sx, sy)[None])[0] + rng.normal(0, 1.5, 2)
+        for e, (a, b) in EDGES.items():
+            t = np.linspace(0.15, 0.85, 5)[:, None]
+            lab[f"floor edge {e}"] = project(tr, corner(*a) + t * (corner(*b) - corner(*a))) + rng.normal(0, 1.5, (5, 2))
+        for q, (sx, sy) in Q.items():
+            t = np.linspace(0.05, 0.6, 3)[:, None]
+            lab[f"wall joint {q}"] = project(tr, corner(sx, sy) + t * np.array([0, 0, JOINT_TOP_MM])) + rng.normal(0, 1.5, (3, 2))
+        return lab
+    global SIG
+    tl = truth.copy(); tl[6] *= 1.02; tl[9] += 0.02                     # the free-lens path: a lens off the prior
+    s0, SIG = SIG, SIG_FREE
+    pl, _ = fit(synth(tl), prior); SIG = s0
+    rec("lens free: f and k1 move toward a lens off the prior", pl[6] > prior[0] + 10 and pl[9] > prior[3] + 0.005,
+        f"(f {pl[6]:.0f} vs {tl[6]:.0f}, k1 {pl[9]:.3f} vs {tl[9]:.3f})")
+    lab = synth(truth)
     p, sol = fit(lab, prior)
     cm = InboxCamera("T", p, (342.4, 117.7), 92.0); ct = InboxCamera("T", truth, (342.4, 117.7), 92.0)
     g = np.stack(np.meshgrid(np.linspace(-200, 200, 9), np.linspace(-280, 280, 9)), -1).reshape(-1, 2)
@@ -222,6 +239,19 @@ def load_labels(paths):
                 out.setdefault(cam, {}).setdefault(k, []).append(q2)
     lab = {cam: {k: (np.mean(np.vstack(v), axis=0) if k.startswith("floor corner") else np.vstack(v)) for k, v in d.items()}
            for cam, d in out.items()}
+    LM = ANALYSIS / "cv" / "configs" / "landmarks" / "2026c"                # + the wall joints (INNER_EDGES) of 09-04 03:01
+    t301 = datetime(2026, 9, 4, 3, 1, 0)
+    for cam in lab:
+        fj = LM / f"landmarks_{cam}_20260904_030100.json"
+        if not fj.exists():
+            continue
+        for piece in json.loads(fj.read_text(encoding="utf-8"))["landmarks"].get("INNER_EDGES", []):
+            q2, info = C.to_09_18(cam, t301, np.asarray(piece, float))
+            if q2 is None:
+                continue
+            k = f"wall joint {'top' if q2[0, 1] < 960 else 'bottom'}-{'left' if q2[0, 0] < 1600 else 'right'}"
+            lab[cam][k] = np.vstack([lab[cam].get(k, np.zeros((0, 2))), q2])
+            used.append((cam, f"{t301:%Y-%m-%d %H:%M:%S} (INNER_EDGES)", info.get("segment"), info.get("flag"), info.get("target_frame")))
     return lab, sorted(set(used))
 
 
@@ -258,8 +288,8 @@ if __name__ == "__main__":
     files = [a for a in args[args.index("--labels") + 1:] if not a.startswith("--")]
     lab, used = load_labels(files)
     prior = lens_prior()
-    poses = json.loads((qc_paths.QC_ROOT / "house_tie" / "house_tie.json").read_text(encoding="utf-8"))["house_poses"]
-    HP = {"HOUSE_2": poses["HOUSE_2_0918"], "HOUSE_1": poses["HOUSE_1_cohort"]}
+    p1 = json.loads((ANALYSIS / "cv" / "configs" / "house1_cohort_pose_2026c.json").read_text(encoding="utf-8"))
+    HP = {"HOUSE_2": [342.4, 117.7, 92.0], "HOUSE_1": [*p1["centre_in"], p1["ridge_deg"]]}
     L = [f"IN-BOX FLOOR FIT  {datetime.now():%Y-%m-%d %H:%M}; labels {', '.join(files)}; floor {FLOOR_W:.1f} x {FLOOR_L:.1f} mm (across x along); "
          f"lens prior (CH05 / CH06 mean) f {prior[0]:.0f}, c ({prior[1]:.0f}, {prior[2]:.0f}), k1 {prior[3]:.3f}, k2 {prior[4]:.3f}",
          "frames used (camera, time, lid segment, correction flag, target): " + "; ".join(f"{u[0]} {u[1]} seg {u[2]} {u[3]} -> {u[4]}" for u in used), ""]
@@ -273,6 +303,13 @@ if __name__ == "__main__":
                  f"optical axis {tilt:.1f} deg off vertical; lens f {p[6]:.0f}, c ({p[7]:.0f}, {p[8]:.0f}), k1 {p[9]:.3f}, k2 {p[10]:.3f}")
         rl, mm_px = report(cam, lab[cam], p, prior)
         L += rl
+        s0, SIG = SIG, SIG_FREE                                          # sensitivity: the lens free (with its prior)
+        pf, _ = fit(lab[cam], prior); SIG = s0
+        g = np.stack(np.meshgrid(np.linspace(-FLOOR_W / 2, FLOOR_W / 2, 7), np.linspace(-FLOOR_L / 2, FLOOR_L / 2, 9)), -1).reshape(-1, 2)
+        uv = project(p, np.c_[g, np.full(len(g), 60.0)])
+        dl = np.linalg.norm(InboxCamera(cam, pf, (0, 0), 90.0).to_floor(uv, 60.0) - g, axis=1)
+        L.append(f"    lens free instead (prior widths f 60 px, c 80 px, k1 0.05, k2 0.03): f {pf[6]:.0f}, c ({pf[7]:.0f}, {pf[8]:.0f}), "
+                 f"k1 {pf[9]:.3f}, k2 {pf[10]:.3f}; the floor map at 60 mm differs by median {np.median(dl):.1f} mm, max {dl.max():.1f} mm")
         L.append(f"    scale ~{mm_px:.2f} mm per px on the floor; house {h} at ({x[0]:.1f}, {x[1]:.1f}) in, ridge {x[2] % 180:.1f} deg; "
                  f"floor centre -> paddock {np.round(cmr.floor_to_paddock([0, 0])[0] / IN, 1).tolist()} in")
         ties[cam] = dict(kind="inbox", target_frame="09-04 12:00", house=h, house_xy_in=list(map(float, x[:2])), ridge_deg=float(x[2] % 180),
