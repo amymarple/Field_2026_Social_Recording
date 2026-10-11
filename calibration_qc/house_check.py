@@ -145,50 +145,55 @@ def assign(PC, edges, x):
     return out
 
 
-L = [f"HOUSE CHECK  cameras: {RAYS} ({type(next(iter(cams.values()))).__name__}); labels {LM} (09-18); survey_2026-10-03.json", ""]
-for h in ("HOUSE_2", "HOUSE_1"):
-    edges, he, hr, run = house_edges(h)
-    PC = [p for c in ("CH01", "CH02", "CH03", "CH04", "CH05", "CH06") if c in cams for p in pieces(c, h)]
-    if not PC:
-        continue
-    L.append(f"{h}: eaves {he / 10:.1f} cm, ridge {hr / 10:.1f} cm above the soil, eave lines +-{run / 10:.1f} cm from the ridge; "
-             f"{len(PC)} label pieces from " + ", ".join(sorted({p['cam'] for p in PC})))
-    starts = []                                                          # coarse grid first (the fit has local minima:
-    for th0 in (0.0, 90.0, 180.0, 270.0):                                # a label piece can latch onto the wrong eave)
-        for dx in np.arange(-12, 13, 3.0):
-            for dy in np.arange(-9, 10, 3.0):
-                x = np.array([DESIGN_XY[h][0] + dx, DESIGN_XY[h][1] + dy, th0, 50.0])
-                starts.append((np.median(np.concatenate([a[2] for a in assign(PC, edges, x)])), x))
-    starts.sort(key=lambda t: t[0])
-    best = None
-    for _, x0 in starts[:6]:                                             # houses stand square to the paddock: +-15 deg
-        x = fit(PC, edges, x0)
-        r = np.concatenate([a[2] for a in assign(PC, edges, x)])
-        if best is None or np.median(r) < best[1]:
-            best = (x, np.median(r))
-    x = best[0]; A = assign(PC, edges, x)
-    L.append(f"  joint fit: centre ({x[0]:.1f}, {x[1]:.1f}) in, ridge at {x[2] % 180:.1f} deg from x, soil {x[3]:+.0f} mm below the calibration's ground")
-    for c in sorted({p["cam"] for p in PC}):
-        r = np.concatenate([d for pc, n, d in A if pc["cam"] == c])
-        L.append(f"    {c}: rays miss the rigid house by median {np.median(r):.0f} mm, p90 {np.percentile(r, 90):.0f} (n {len(r)}); pieces -> "
-                 + ", ".join(f"{pc['key'].replace('ROOF_', 'R').replace('BASE_', 'B')}:{n} {np.median(d):.0f}" for pc, n, d in A if pc["cam"] == c))
-    per = {}
-    for c in sorted({p["cam"] for p in PC}):
-        sub = [p for p in PC if p["cam"] == c]
-        if len(sub) >= 2:
-            xc = fit(sub, edges, x, free=(0, 1, 2))
-            per[c] = xc
-    if len(per) >= 2:
-        P = np.array([[v[0], v[1]] for v in per.values()]) * IN
-        L.append("  house centre from each camera alone (soil offset fixed to the joint value): "
-                 + "; ".join(f"{c} ({v[0]:.1f}, {v[1]:.1f}) in, {v[2] % 180:.1f} deg" for c, v in per.items())
-                 + f" -> spread {np.max(np.linalg.norm(P - P.mean(0), axis=1)):.0f} mm from their mean, pairwise "
-                 + ", ".join(f"{a}-{b} {np.linalg.norm((per[a][:2] - per[b][:2]) * IN):.0f}" for i, a in enumerate(per) for b in list(per)[i + 1:]) + " mm")
-    pl = []
-    for pc in PC:
-        _, S, Vt = np.linalg.svd(pc["d"]); n = Vt[-1]
-        pl.append(np.degrees(np.max(np.abs(np.arcsin(np.clip(pc["d"] @ n, -1, 1))))))
-    L.append(f"  straightness: rays of a label piece leave their best plane through the camera by median {np.median(pl):.3f} deg, max {np.max(pl):.3f} deg")
-    L.append("")
-(OUT / f"HOUSE_CHECK_{Path(RAYS).stem if RAYS not in ('release', 'candidate', 'warp') else RAYS}.txt").write_text("\n".join(L) + "\n", encoding="utf-8")
-print("\n".join(L))
+def main():
+    L = [f"HOUSE CHECK  cameras: {RAYS} ({type(next(iter(cams.values()))).__name__}); labels {LM} (09-18); survey_2026-10-03.json", ""]
+    for h in ("HOUSE_2", "HOUSE_1"):
+        edges, he, hr, run = house_edges(h)
+        PC = [p for c in ("CH01", "CH02", "CH03", "CH04", "CH05", "CH06") if c in cams for p in pieces(c, h)]
+        if not PC:
+            continue
+        L.append(f"{h}: eaves {he / 10:.1f} cm, ridge {hr / 10:.1f} cm above the soil, eave lines +-{run / 10:.1f} cm from the ridge; "
+                 f"{len(PC)} label pieces from " + ", ".join(sorted({p['cam'] for p in PC})))
+        starts = []                                                          # coarse grid first (the fit has local minima:
+        for th0 in (0.0, 90.0, 180.0, 270.0):                                # a label piece can latch onto the wrong eave)
+            for dx in np.arange(-12, 13, 3.0):
+                for dy in np.arange(-9, 10, 3.0):
+                    x = np.array([DESIGN_XY[h][0] + dx, DESIGN_XY[h][1] + dy, th0, 50.0])
+                    starts.append((np.median(np.concatenate([a[2] for a in assign(PC, edges, x)])), x))
+        starts.sort(key=lambda t: t[0])
+        best = None
+        for _, x0 in starts[:6]:                                             # houses stand square to the paddock: +-15 deg
+            x = fit(PC, edges, x0)
+            r = np.concatenate([a[2] for a in assign(PC, edges, x)])
+            if best is None or np.median(r) < best[1]:
+                best = (x, np.median(r))
+        x = best[0]; A = assign(PC, edges, x)
+        L.append(f"  joint fit: centre ({x[0]:.1f}, {x[1]:.1f}) in, ridge at {x[2] % 180:.1f} deg from x, soil {x[3]:+.0f} mm below the calibration's ground")
+        for c in sorted({p["cam"] for p in PC}):
+            r = np.concatenate([d for pc, n, d in A if pc["cam"] == c])
+            L.append(f"    {c}: rays miss the rigid house by median {np.median(r):.0f} mm, p90 {np.percentile(r, 90):.0f} (n {len(r)}); pieces -> "
+                     + ", ".join(f"{pc['key'].replace('ROOF_', 'R').replace('BASE_', 'B')}:{n} {np.median(d):.0f}" for pc, n, d in A if pc["cam"] == c))
+        per = {}
+        for c in sorted({p["cam"] for p in PC}):
+            sub = [p for p in PC if p["cam"] == c]
+            if len(sub) >= 2:
+                xc = fit(sub, edges, x, free=(0, 1, 2))
+                per[c] = xc
+        if len(per) >= 2:
+            P = np.array([[v[0], v[1]] for v in per.values()]) * IN
+            L.append("  house centre from each camera alone (soil offset fixed to the joint value): "
+                     + "; ".join(f"{c} ({v[0]:.1f}, {v[1]:.1f}) in, {v[2] % 180:.1f} deg" for c, v in per.items())
+                     + f" -> spread {np.max(np.linalg.norm(P - P.mean(0), axis=1)):.0f} mm from their mean, pairwise "
+                     + ", ".join(f"{a}-{b} {np.linalg.norm((per[a][:2] - per[b][:2]) * IN):.0f}" for i, a in enumerate(per) for b in list(per)[i + 1:]) + " mm")
+        pl = []
+        for pc in PC:
+            _, S, Vt = np.linalg.svd(pc["d"]); n = Vt[-1]
+            pl.append(np.degrees(np.max(np.abs(np.arcsin(np.clip(pc["d"] @ n, -1, 1))))))
+        L.append(f"  straightness: rays of a label piece leave their best plane through the camera by median {np.median(pl):.3f} deg, max {np.max(pl):.3f} deg")
+        L.append("")
+    (OUT / f"HOUSE_CHECK_{Path(RAYS).stem if RAYS not in ('release', 'candidate', 'warp') else RAYS}.txt").write_text("\n".join(L) + "\n", encoding="utf-8")
+    print("\n".join(L))
+
+
+if __name__ == "__main__":
+    main()

@@ -299,6 +299,12 @@ Two Python trees of different vintage:
     Only rigid objects are exact
     references (the ChArUco plate, the houses);
     cone / cord positions and long tape runs are not (operator, 2026-10-03).
+    **2026-10-10 - cohort-time CH05 (not a refit):** house_1 was moved on 09-18, so CH05's cohort frames cannot be
+    registered to its calibration frame; `house_tie.py` measures CH05's turn since its 09-04 reference frames on house_1
+    (cohort pose from CH01 + CH02) and pole B1, differentially against 09-18 (validated on CH06: 5-7 mm median at head
+    height), and `cohort_tie.py` + `cohort_ties_2026c.json` apply it to the release camera. The analysis repo's
+    `frame_correction.Corrections.to_paddock` uses it and covers CH05/CH06 all day. In-box CH07/CH08: floor labelling page
+    `inbox_floor_gui.py` (in progress; floor 60.0 x 43.2 cm, images the paddock rotated 180 deg - operator).
   - **Use it anywhere** (numpy/scipy/cv2 only, falls back to the repo copy when `E:` is absent):
     `sys.path.insert(0, "<repo>/calibration_qc"); from paddock_map import load; cams = load();
     cams["CH01"].to_paddock((u, v), z_mm=0, units="in")`. `to_paddock` returns NaN outside the

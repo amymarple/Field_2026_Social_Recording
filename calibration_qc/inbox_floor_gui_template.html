@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>In-box Floor Labels</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Frame on the left at full height, the named items on the right; flag orange = the active item, green = labelled here. */
+:root { --night: #0f1316; --panel: #171d21; --ink: #e5eaed; --muted: #8d9aa2; --line: #2c363d; --flag: #ff8a3d; --done: #4cc48a;
+  --f-display: "Archivo", "Arial Narrow", Arial, sans-serif; --f-data: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace; color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--night); color: var(--ink); font-family: var(--f-display); display: grid; grid-template-columns: 1fr 340px; grid-template-rows: auto 1fr; }
+header { grid-column: 1 / 3; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--panel); }
+h1 { font-size: 1rem; font-weight: 800; font-stretch: 85%; margin: 0; }
+.mono { font-family: var(--f-data); font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+button { font: 600 .82rem var(--f-display); font-stretch: 85%; color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 6px; padding: 5px 9px; cursor: pointer; }
+button:hover { border-color: var(--muted); }
+button.on { border-color: var(--flag); color: var(--flag); }
+button.has { background: rgba(76, 196, 138, .16); border-color: var(--done); }
+button.on.has { color: var(--flag); }
+button:focus-visible { outline: 2px solid var(--flag); outline-offset: 1px; }
+.go { background: var(--flag); color: #1a0d05; border-color: var(--flag); font-weight: 800; }
+#stage { position: relative; overflow: hidden; background: #000; }
+#cv { position: absolute; inset: 0; width: 100%; height: 100%; cursor: crosshair; }
+aside { overflow-y: auto; padding: 10px 12px 24px; border-left: 1px solid var(--line); background: var(--panel); display: grid; gap: 12px; align-content: start; }
+aside h2 { font-size: .74rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 4px; }
+.quad { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.row { display: flex; flex-wrap: wrap; gap: 4px; }
+.hint { font-size: .8rem; color: var(--muted); line-height: 1.4; }
+.frames { display: flex; flex-wrap: wrap; gap: 4px; }
+.frames button { font-family: var(--f-data); font-size: .72rem; padding: 3px 6px; }
+#sel { font-family: var(--f-data); font-size: .8rem; }
+label.tog { font-size: .8rem; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+@media (max-width: 860px) { body { grid-template-columns: 1fr; grid-template-rows: auto 62vh auto; } header { grid-column: 1; } aside { border-left: 0; border-top: 1px solid var(--line); } }
+</style></head><body>
+<header>
+  <h1>In-box Floor Labels</h1>
+  <span class="mono" id="where"></span>
+  <button type="button" id="prev">&larr; frame</button><button type="button" id="next">frame &rarr;</button>
+  <span class="mono" id="count"></span>
+  <label class="tog"><input type="checkbox" id="guides" checked> earlier labels (dashed)</label>
+  <button type="button" class="go" id="export">Export inbox_floor_labels.json</button>
+</header>
+<div id="stage"><canvas id="cv"></canvas></div>
+<aside>
+  <div class="hint" id="task" style="color:var(--ink)"></div>
+  <div><h2>Active</h2><div id="sel">none</div>
+    <div class="row" style="margin-top:6px"><button type="button" id="rename">Rename selected to active (R)</button></div></div>
+  <div id="groups"></div>
+  <div class="hint">Pick an item, then click it in the frame (a line takes several clicks along it). Drag a placed point to move it; Shift + arrows nudge the selected point; select a point, pick the right name and press R to rename it. Delete removes the selected point. Wheel zooms, drag pans, Z resets the view, &larr; &rarr; change frame.</div>
+  <div><h2>Frames</h2><div class="frames" id="frames"></div></div>
+</aside>
+<script>
+const FRAMES = __FRAMES__, GROUPS = __GROUPS__, GUIDES = __GUIDES__, RUN = __RUN__, TASK = __TASK__, KEY = "inbox_floor_labels_" + RUN;
+const KIND = {}; GROUPS.forEach(gr => gr.items.forEach(it => KIND[it.name] = it.kind));
+const $ = id => document.getElementById(id), cv = $("cv"), g = cv.getContext("2d");
+let fi = 0, active = null, selected = null, img = new Image(), view = { s: 1, ox: 0, oy: 0 }, drag = null;
+let labels = {}; try { labels = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { labels = {}; }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(labels)); } catch (e) {} };
+const cur = () => FRAMES[fi], pts = () => (labels[cur().name] = labels[cur().name] || {});
+const isLine = n => KIND[n] === "line";
+$("task").textContent = TASK;
+$("groups").innerHTML = GROUPS.map(gr => `<div><h2>${gr.title}</h2><div class="${gr.quad ? "quad" : "row"}">` +
+  gr.items.map(it => `<button type="button" data-lm="${it.name}">${it.label}</button>`).join("") + `</div>` +
+  (gr.hint ? `<div class="hint" style="margin-top:4px">${gr.hint}</div>` : "") + `</div>`).join("");
+$("frames").innerHTML = FRAMES.map((f, i) => `<button type="button" data-f="${i}">${f.camera} ${f.time.slice(5)}</button>`).join("");
+function fit() { const r = cv.getBoundingClientRect(); cv.width = r.width * devicePixelRatio; cv.height = r.height * devicePixelRatio;
+  if (img.naturalWidth) { const s = Math.min(cv.width / img.naturalWidth, cv.height / img.naturalHeight); view = { s, ox: (cv.width - img.naturalWidth * s) / 2, oy: (cv.height - img.naturalHeight * s) / 2 }; } draw(); }
+function load(i) { fi = (i + FRAMES.length) % FRAMES.length; selected = null; img = new Image(); img.onload = fit; img.src = cur().file; refresh(); }
+function toImg(e) { if (!(view.s > 0) || !cv.width) fit(); const r = cv.getBoundingClientRect(); const x = (e.clientX - r.left) * devicePixelRatio, y = (e.clientY - r.top) * devicePixelRatio;
+  return [(x - view.ox) / view.s, (y - view.oy) / view.s, x, y]; }
+const sx = u => u * view.s + view.ox, sy = v => v * view.s + view.oy;
+function draw() {
+  g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = "#000"; g.fillRect(0, 0, cv.width, cv.height);
+  if (!img.naturalWidth) return;
+  g.setTransform(view.s, 0, 0, view.s, view.ox, view.oy); g.drawImage(img, 0, 0);
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  const P = pts(); g.font = `${13 * devicePixelRatio}px "IBM Plex Mono", monospace`;
+  if ($("guides").checked) {                                             // the earlier in-box labels of this camera: guides only
+    g.strokeStyle = "rgba(255, 210, 61, .75)"; g.lineWidth = 1.5 * devicePixelRatio; g.setLineDash([6 * devicePixelRatio, 5 * devicePixelRatio]);
+    for (const pieces of Object.values(GUIDES[cur().camera] || {})) for (const p of pieces) {
+      g.beginPath(); p.forEach(([u, v], i) => i ? g.lineTo(sx(u), sy(v)) : g.moveTo(sx(u), sy(v))); g.stroke(); }
+    g.setLineDash([]);
+  }
+  for (const [n, val] of Object.entries(P)) {
+    if (isLine(n)) {
+      const xy = val.map(([u, v]) => [sx(u), sy(v)]);
+      g.strokeStyle = "#5fb4ff"; g.lineWidth = 2 * devicePixelRatio; g.beginPath(); xy.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.stroke();
+      xy.forEach(([x, y], i) => { const sel = selected === `${n}#${i}`; g.fillStyle = sel ? "#ff8a3d" : "#5fb4ff"; g.beginPath(); g.arc(x, y, (sel ? 7 : 5) * devicePixelRatio, 0, 7); g.fill(); });
+      if (xy.length) { g.fillStyle = "rgba(0,0,0,.65)"; const w = g.measureText(n).width; g.fillRect(xy[0][0] + 10, xy[0][1] - 16 * devicePixelRatio, w + 8, 20 * devicePixelRatio);
+        g.fillStyle = "#5fb4ff"; g.fillText(n, xy[0][0] + 14, xy[0][1] - 1 * devicePixelRatio); }
+      continue;
+    }
+    const [u, v] = val, x = sx(u), y = sy(v), sel = n === selected, r = 9 * devicePixelRatio;
+    g.strokeStyle = sel ? "#ff8a3d" : "#4cc48a"; g.lineWidth = 2 * devicePixelRatio;
+    g.beginPath(); g.arc(x, y, r, 0, 7); g.moveTo(x - r * 1.6, y); g.lineTo(x + r * 1.6, y); g.moveTo(x, y - r * 1.6); g.lineTo(x, y + r * 1.6); g.stroke();
+    g.fillStyle = "rgba(0,0,0,.65)"; const w = g.measureText(n).width; g.fillRect(x + r + 3, y - 16 * devicePixelRatio, w + 8, 20 * devicePixelRatio);
+    g.fillStyle = sel ? "#ff8a3d" : "#e5eaed"; g.fillText(n, x + r + 7, y - 1 * devicePixelRatio);
+  }
+}
+function camLabels(cam) {                                               // everything labelled on any frame of this camera
+  const out = {}; FRAMES.filter(f => f.camera === cam).forEach(f => Object.keys(labels[f.name] || {}).forEach(n => out[n] = true)); return out; }
+function refresh() {
+  const f = cur(), P = pts(), C = camLabels(f.camera);
+  $("where").textContent = `${f.camera} · ${f.time} · ${fi + 1}/${FRAMES.length}`;
+  const total = Object.values(labels).reduce((a, p) => a + Object.keys(p).length, 0);
+  $("count").textContent = `${Object.keys(P).length} here · ${Object.keys(C).length} on ${f.camera} · ${total} in all`;
+  document.querySelectorAll("[data-lm]").forEach(b => { b.classList.toggle("on", b.dataset.lm === active); b.classList.toggle("has", !!C[b.dataset.lm]); });
+  document.querySelectorAll("[data-f]").forEach(b => { const n = FRAMES[+b.dataset.f].name; b.classList.toggle("on", +b.dataset.f === fi);
+    b.classList.toggle("has", !!labels[n] && Object.keys(labels[n]).length > 0); });
+  $("sel").textContent = active ? `${active}${selected ? " · selected: " + selected : ""}` : (selected ? "selected: " + selected : "none");
+  draw();
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-lm]"); if (b) { active = active === b.dataset.lm ? null : b.dataset.lm; refresh(); return; }
+  const f = e.target.closest("[data-f]"); if (f) { load(+f.dataset.f); return; }
+});
+$("guides").addEventListener("change", draw);
+function hitAt(u, v) {
+  const near = ([pu, pv]) => Math.hypot((pu - u) * view.s, (pv - v) * view.s) < 12 * devicePixelRatio;
+  for (const [n, val] of Object.entries(pts())) {
+    if (isLine(n)) { const i = val.findIndex(near); if (i >= 0) return `${n}#${i}`; }
+    else if (near(val)) return n;
+  }
+  return null;
+}
+function getP(key) { const [n, i] = key.split("#"), P = pts(); return i === undefined ? P[n] : P[n][+i]; }
+function setP(key, q) { const [n, i] = key.split("#"), P = pts(); if (i === undefined) P[n] = q; else P[n][+i] = q; }
+cv.addEventListener("mousedown", e => { const [u, v, x, y] = toImg(e), hit = hitAt(u, v);
+  drag = { x, y, ox: view.ox, oy: view.oy, moved: false, key: hit };
+  if (hit) { selected = hit; refresh(); } });
+window.addEventListener("mousemove", e => { if (!drag) return; const [u, v, x, y] = toImg(e);
+  if (Math.hypot(x - drag.x, y - drag.y) > 4 * devicePixelRatio) drag.moved = true;
+  if (!drag.moved) return;
+  if (drag.key) { setP(drag.key, [Math.round(u * 10) / 10, Math.round(v * 10) / 10]); draw(); }
+  else { view.ox = drag.ox + x - drag.x; view.oy = drag.oy + y - drag.y; draw(); } });
+window.addEventListener("mouseup", e => {
+  if (!drag) return; const { moved, key } = drag; drag = null;
+  if (key) { if (moved) save(); refresh(); return; }
+  if (moved || e.target !== cv) return;
+  const [u, v] = toImg(e), P = pts();
+  if (!active) { $("sel").textContent = "pick an item on the right first"; return; }
+  if (!isFinite(u) || !isFinite(v)) { $("sel").textContent = "the frame has no size yet - resize the window and click again"; return; }
+  const q = [Math.round(u * 10) / 10, Math.round(v * 10) / 10];
+  if (isLine(active)) { P[active] = (P[active] || []).concat([q]); selected = `${active}#${P[active].length - 1}`; }
+  else { P[active] = q; selected = active; }
+  save(); refresh();
+});
+cv.addEventListener("wheel", e => { e.preventDefault(); const [, , x, y] = toImg(e), k = Math.exp(-e.deltaY * 0.0015);
+  view.ox = x - (x - view.ox) * k; view.oy = y - (y - view.oy) * k; view.s *= k; draw(); }, { passive: false });
+document.addEventListener("keydown", e => {
+  if (e.shiftKey && selected && e.key.startsWith("Arrow")) {
+    e.preventDefault(); const q = getP(selected).slice(), d = 0.5;
+    if (e.key === "ArrowLeft") q[0] -= d; if (e.key === "ArrowRight") q[0] += d; if (e.key === "ArrowUp") q[1] -= d; if (e.key === "ArrowDown") q[1] += d;
+    setP(selected, q.map(x => Math.round(x * 10) / 10)); save(); draw(); return;
+  }
+  if (e.key === "ArrowRight") load(fi + 1); else if (e.key === "ArrowLeft") load(fi - 1);
+  else if ((e.key === "Delete" || e.key === "Backspace") && selected) {
+    const P = pts(), [n, i] = selected.split("#");
+    if (i !== undefined) { P[n].splice(+i, 1); if (!P[n].length) delete P[n]; } else delete P[n];
+    selected = null; save(); refresh(); }
+  else if (e.key === "Escape") { active = null; selected = null; refresh(); } else if (e.key === "z" || e.key === "Z") fit();
+  else if (e.key === "r" || e.key === "R") rename();
+});
+function rename() {
+  if (!selected || !active) { $("sel").textContent = "select a point and pick the right name first"; return; }
+  const [n, i] = selected.split("#"), P = pts(), q = getP(selected);
+  if (isLine(n) !== isLine(active)) { $("sel").textContent = "a point and a line cannot swap names"; return; }
+  if (i === undefined) { delete P[n]; P[active] = q; selected = active; }
+  else { P[n].splice(+i, 1); if (!P[n].length) delete P[n]; P[active] = (P[active] || []).concat([q]); selected = `${active}#${P[active].length - 1}`; }
+  save(); refresh();
+}
+$("rename").onclick = rename;
+$("prev").onclick = () => load(fi - 1); $("next").onclick = () => load(fi + 1);
+$("export").onclick = () => {
+  const out = { run: RUN, frames: FRAMES.map(f => ({ camera: f.camera, time: f.time, name: f.name, points: labels[f.name] || {} })).filter(f => Object.keys(f.points).length) };
+  const a = document.createElement("a"); a.href = "data:application/json;charset=utf-8," + encodeURIComponent(JSON.stringify(out, null, 1));
+  a.download = "inbox_floor_labels.json"; a.click();
+};
+window.addEventListener("resize", fit); if (window.ResizeObserver) new ResizeObserver(fit).observe($("stage")); load(0);
+</script></body></html>

@@ -1,0 +1,90 @@
+HOUSE TIE  cameras: release (rev g); labels D:\Documents\GitHub\Field2026_Social_analysis\cv\configs\landmarks\2026c; poles D:\Field2026_analysis_out\2026c\cv_field_ch01_occlusion_20261006_1555\occluders.json; head height z = 60 mm above the local ground
+
+09-18 house poses (house_check.py's fit, pieces cut into straight runs): HOUSE_1 (147.2, 121.6) in, 90.3 deg, soil +62 mm; HOUSE_2 (342.3, 117.8) in, 93.6 deg, soil +91 mm
+house_1 cohort pose, house1_cohort_pose_2026c.json (unsplit pieces): (142.2, 123.5) in, 88.5 deg, soil +45 mm
+house_1 cohort pose refitted here (CH01 + CH02 09-04 12:00): (142.3, 123.5) in, 88.5 deg, soil +44 mm; CH01 alone (142.2, 123.6) in, 88.7 deg, miss median 10 mm; CH02 alone (142.2, 123.4) in, 88.4 deg, miss median 4 mm; CH01 - CH02 7 mm
+poles: B1 foot (131.2, 125.2) in -> top (115.4, 127.0) in at 2384 mm, r 75 mm; B3 foot (357.3, 119.5) in -> top (367.7, 117.3) in at 2390 mm, r 71 mm
+
+CH05: pole B1 as the camera saw it on 09-18: the CH01 + CH02 cylinder missed by median 38 mm; shifted by 150 mm at the foot, 130 mm at the top -> miss 1 mm
+CH06: pole B3 as the camera saw it on 09-18: the CH01 + CH02 cylinder missed by median 41 mm; shifted by 39 mm at the foot, 160 mm at the top -> miss 1 mm
+
+CH05 20260918_141000  control: the calibration frame, house_1's 09-18 pose (expect no motion)
+  242 roof samples (7 straight runs), 53 pole-edge samples; unmoved camera: roof miss median 15 mm, p90 23; pole miss median 1 mm, p90 4
+  centre  : centre moves 0 mm, turn 1.18 deg (w = [0.36, -0.35, 1.07] +- [0.05, 0.05, 0.22] deg); roof miss median 9 / p90 22 mm, pole 2 / 6 mm
+         pixel shift median 24.2 px, max 40.5; ground at z = 60 mm moved median 30 mm, max 70; affine residual median 0.77 px, max 6.15
+  pole top: centre moves 14 mm, turn 1.18 deg (w = [-0.08, -0.3, 1.13] +- [0.07, 0.06, 0.24] deg); roof miss median 10 / p90 22 mm, pole 2 / 3 mm
+         pixel shift median 21.7 px, max 40.9; ground at z = 60 mm moved median 27 mm, max 73; affine residual median 1.54 px, max 5.38
+  rigid   : centre moves 113 mm, turn 3.26 deg (w = [-0.56, 3.11, 0.81] +- [0.17, 0.15, 0.08] deg), shift 113 mm (t = [98.0, 26.0, -50.0] +- [4.0, 5.0, 2.0] mm); roof miss median 4 / p90 7 mm, pole 3 / 7 mm
+         pixel shift median 29.1 px, max 67.8; ground at z = 60 mm moved median 38 mm, max 187; affine residual median 7.53 px, max 41.42
+  centre vs pole top at z = 60 mm: median 6 mm, p90 13, max 23 (over the frame's ground)
+  centre vs rigid at z = 60 mm: median 48 mm, p90 107, max 224 (over the frame's ground)
+
+CH05 20260904_120002  THE TIE: house_1's cohort pose (CH01 + CH02, 09-04 12:00, same lid segment)
+  243 roof samples (8 straight runs), 71 pole-edge samples; unmoved camera: roof miss median 65 mm, p90 78; pole miss median 11 mm, p90 16
+  centre  : centre moves 0 mm, turn 2.52 deg (w = [-0.01, -2.48, 0.49] +- [0.04, 0.03, 0.16] deg); roof miss median 6 / p90 12 mm, pole 4 / 14 mm
+         pixel shift median 83.1 px, max 91.2; ground at z = 60 mm moved median 105 mm, max 187; affine residual median 4.70 px, max 22.38
+  pole top: centre moves 29 mm, turn 2.45 deg (w = [-0.25, -2.36, 0.62] +- [0.07, 0.06, 0.29] deg); roof miss median 10 / p90 17 mm, pole 4 / 13 mm
+         pixel shift median 85.2 px, max 97.0; ground at z = 60 mm moved median 105 mm, max 226; affine residual median 4.92 px, max 20.33
+  rigid   : centre moves 79 mm, turn 1.28 deg (w = [-1.23, -0.17, 0.31] +- [0.12, 0.12, 0.07] deg), shift 79 mm (t = [65.0, 35.0, -29.0] +- [3.0, 4.0, 2.0] mm); roof miss median 3 / p90 6 mm, pole 4 / 12 mm
+         pixel shift median 60.0 px, max 69.8; ground at z = 60 mm moved median 75 mm, max 126; affine residual median 5.94 px, max 27.44
+  centre vs pole top at z = 60 mm: median 12 mm, p90 25, max 42 (over the frame's ground)
+  centre vs rigid at z = 60 mm: median 38 mm, p90 79, max 190 (over the frame's ground)
+
+CH05 20260904_030100  other lid segment (before the 09-04 AM round): lid placement + camera
+  239 roof samples (7 straight runs), 51 pole-edge samples; unmoved camera: roof miss median 63 mm, p90 76; pole miss median 13 mm, p90 25
+  centre  : centre moves 0 mm, turn 2.52 deg (w = [-0.13, -2.43, 0.65] +- [0.05, 0.04, 0.24] deg); roof miss median 7 / p90 12 mm, pole 9 / 18 mm
+         pixel shift median 82.4 px, max 91.6; ground at z = 60 mm moved median 104 mm, max 193; affine residual median 4.59 px, max 21.94
+  pole top: centre moves 29 mm, turn 2.55 deg (w = [-0.47, -2.31, 0.96] +- [0.09, 0.06, 0.32] deg); roof miss median 10 / p90 16 mm, pole 8 / 14 mm
+         pixel shift median 85.7 px, max 100.4; ground at z = 60 mm moved median 105 mm, max 240; affine residual median 4.77 px, max 19.51
+  rigid   : centre moves 85 mm, turn 2.04 deg (w = [-2.0, -0.34, 0.26] +- [0.1, 0.11, 0.07] deg), shift 85 mm (t = [59.0, 54.0, -29.0] +- [3.0, 3.0, 2.0] mm); roof miss median 2 / p90 7 mm, pole 3 / 15 mm
+         pixel shift median 64.6 px, max 73.3; ground at z = 60 mm moved median 80 mm, max 156; affine residual median 6.65 px, max 36.10
+  centre vs pole top at z = 60 mm: median 13 mm, p90 28, max 48 (over the frame's ground)
+  centre vs rigid at z = 60 mm: median 42 mm, p90 83, max 210 (over the frame's ground)
+
+CH06 20260918_141000  control: the calibration frame, house_2's 09-18 pose (expect no motion)
+  236 roof samples (8 straight runs), 60 pole-edge samples; unmoved camera: roof miss median 7 mm, p90 13; pole miss median 1 mm, p90 3
+  centre  : centre moves 0 mm, turn 0.78 deg (w = [-0.11, 0.25, 0.73] +- [0.02, 0.02, 0.1] deg); roof miss median 5 / p90 11 mm, pole 3 / 5 mm
+         pixel shift median 14.0 px, max 26.3; ground at z = 60 mm moved median 18 mm, max 43; affine residual median 0.49 px, max 2.67
+  pole top: centre moves 9 mm, turn 0.90 deg (w = [0.18, 0.24, 0.85] +- [0.03, 0.02, 0.09] deg); roof miss median 4 / p90 11 mm, pole 3 / 4 mm
+         pixel shift median 14.6 px, max 29.4; ground at z = 60 mm moved median 18 mm, max 50; affine residual median 1.15 px, max 4.38
+  rigid   : centre moves 21 mm, turn 0.98 deg (w = [0.37, 0.5, 0.76] +- [0.15, 0.2, 0.1] deg), shift 21 mm (t = [6.0, -15.0, -14.0] +- [6.0, 4.0, 3.0] mm); roof miss median 5 / p90 9 mm, pole 1 / 5 mm
+         pixel shift median 14.8 px, max 28.2; ground at z = 60 mm moved median 19 mm, max 50; affine residual median 1.67 px, max 7.11
+  centre vs pole top at z = 60 mm: median 5 mm, p90 9, max 16 (over the frame's ground)
+  centre vs rigid at z = 60 mm: median 7 mm, p90 21, max 45 (over the frame's ground)
+
+CH06 20260904_120002  check against the analysis repo's image tie (house_2 never moved)
+  233 roof samples (7 straight runs), 58 pole-edge samples; unmoved camera: roof miss median 8 mm, p90 30; pole miss median 21 mm, p90 28
+  centre  : centre moves 0 mm, turn 1.09 deg (w = [0.69, 0.19, 0.83] +- [0.03, 0.02, 0.11] deg); roof miss median 4 / p90 12 mm, pole 3 / 5 mm
+         pixel shift median 24.8 px, max 40.5; ground at z = 60 mm moved median 33 mm, max 71; affine residual median 0.75 px, max 3.79
+  pole top: centre moves 8 mm, turn 1.37 deg (w = [0.95, 0.18, 0.96] +- [0.03, 0.02, 0.09] deg); roof miss median 4 / p90 13 mm, pole 2 / 5 mm
+         pixel shift median 28.1 px, max 47.0; ground at z = 60 mm moved median 38 mm, max 84; affine residual median 1.06 px, max 5.61
+  rigid   : centre moves 26 mm, turn 1.44 deg (w = [1.15, 0.05, 0.87] +- [0.18, 0.24, 0.13] deg), shift 26 mm (t = [-5.0, -14.0, -20.0] +- [7.0, 5.0, 4.0] mm); roof miss median 5 / p90 9 mm, pole 1 / 5 mm
+         pixel shift median 29.6 px, max 48.9; ground at z = 60 mm moved median 40 mm, max 109; affine residual median 1.74 px, max 9.46
+  centre vs pole top at z = 60 mm: median 4 mm, p90 9, max 15 (over the frame's ground)
+  centre vs rigid at z = 60 mm: median 8 mm, p90 28, max 56 (over the frame's ground)
+  vs the analysis repo's image registration (centre): 16.8 px median, p90 25.7, max 32.3; at z = 60 mm 22 mm median, p90 36, max 76
+  vs the analysis repo's image registration (pole top): 17.6 px median, p90 28.2, max 35.0; at z = 60 mm 23 mm median, p90 39, max 70
+  vs the analysis repo's image registration (rigid): 14.8 px median, p90 24.3, max 30.7; at z = 60 mm 19 mm median, p90 32, max 50
+
+CH06 20260904_030100  check against the analysis repo's night table (03:00 sample)
+  234 roof samples (7 straight runs), 62 pole-edge samples; unmoved camera: roof miss median 10 mm, p90 30; pole miss median 23 mm, p90 31
+  centre  : centre moves 0 mm, turn 1.21 deg (w = [0.71, 0.29, 0.94] +- [0.03, 0.03, 0.13] deg); roof miss median 7 / p90 13 mm, pole 3 / 5 mm
+         pixel shift median 27.1 px, max 45.1; ground at z = 60 mm moved median 35 mm, max 77; affine residual median 0.86 px, max 4.28
+  pole top: centre moves 10 mm, turn 1.50 deg (w = [1.01, 0.27, 1.08] +- [0.03, 0.02, 0.12] deg); roof miss median 6 / p90 13 mm, pole 2 / 4 mm
+         pixel shift median 30.3 px, max 51.7; ground at z = 60 mm moved median 40 mm, max 90; affine residual median 1.22 px, max 6.32
+  rigid   : centre moves 53 mm, turn 2.09 deg (w = [1.21, -1.27, 1.13] +- [0.18, 0.26, 0.13] deg), shift 53 mm (t = [-47.0, -16.0, -19.0] +- [7.0, 5.0, 4.0] mm); roof miss median 6 / p90 9 mm, pole 2 / 4 mm
+         pixel shift median 33.8 px, max 54.9; ground at z = 60 mm moved median 43 mm, max 161; affine residual median 3.81 px, max 22.53
+  centre vs pole top at z = 60 mm: median 5 mm, p90 10, max 17 (over the frame's ground)
+  centre vs rigid at z = 60 mm: median 20 mm, p90 47, max 127 (over the frame's ground)
+  vs the analysis repo's image registration (centre): 16.5 px median, p90 27.4, max 34.3; at z = 60 mm 22 mm median, p90 38, max 62
+  vs the analysis repo's image registration (pole top): 17.0 px median, p90 30.6, max 38.9; at z = 60 mm 23 mm median, p90 40, max 76
+  vs the analysis repo's image registration (rigid): 16.4 px median, p90 27.3, max 33.8; at z = 60 mm 20 mm median, p90 40, max 89
+
+DIFFERENTIAL (cohort fit minus the 09-18 control fit, camera-centre turns)
+  CH05 20260904_120002: turn 2.24 deg (w = [-0.39, -2.12, -0.57] deg); roof miss median 13 / p90 19 mm, pole 3 / 10 mm; pixel shift median 73.9 px; ground at z = 60 mm moved median 93 mm; vs the direct fit 31 mm median, p90 50; affine residual median 4.40 px, max 19.60
+  CH05 20260904_030100: turn 2.18 deg (w = [-0.51, -2.08, -0.42] deg); roof miss median 13 / p90 18 mm, pole 7 / 12 mm; pixel shift median 72.2 px; ground at z = 60 mm moved median 91 mm; vs the direct fit 31 mm median, p90 50; affine residual median 4.29 px, max 19.06
+  CH06 20260904_120002: turn 0.80 deg (w = [0.79, -0.06, 0.1] deg); roof miss median 7 / p90 15 mm, pole 1 / 2 mm; pixel shift median 25.9 px; ground at z = 60 mm moved median 35 mm; vs the direct fit 18 mm median, p90 30; affine residual median 0.92 px, max 3.84
+    vs the analysis repo's image registration: 4.0 px median, p90 7.5, max 12.2; at z = 60 mm 5 mm median, p90 13, max 38
+  CH06 20260904_030100: turn 0.85 deg (w = [0.82, 0.03, 0.21] deg); roof miss median 8 / p90 15 mm, pole 1 / 2 mm; pixel shift median 26.9 px; ground at z = 60 mm moved median 36 mm; vs the direct fit 18 mm median, p90 30; affine residual median 0.94 px, max 4.03
+    vs the analysis repo's image registration: 4.9 px median, p90 10.1, max 13.6; at z = 60 mm 7 mm median, p90 17, max 37
+

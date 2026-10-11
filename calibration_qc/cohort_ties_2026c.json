@@ -1,0 +1,112 @@
+{
+ "_about": "Cohort-3 (2026c) ties of cameras whose cohort frames cannot be registered to their calibration frame: the release camera (rev g) turned about its centre by rotvec_rad (paddock frame) gives the camera as it stood at that reference frame. Read with cohort_tie.py. Made by house_tie.py --write-ties.",
+ "made": "2026-10-10T23:18",
+ "z_mm_for_checks": 60.0,
+ "release_sha256": {
+  "camera_fit.npz": "6e4b54e9264a3675e810d52d5b02aa03fe8af3cf2618282a08935b7c9840f3db",
+  "ray_correction.json": "37615ee265817eb4e2fbd92a3ce484f5e093b9f10d0b2f1d6e7ad7f9b66d5cec"
+ },
+ "inputs": {
+  "labels": "D:\\Documents\\GitHub\\Field2026_Social_analysis\\cv\\configs\\landmarks\\2026c",
+  "poles": "D:\\Field2026_analysis_out\\2026c\\cv_field_ch01_occlusion_20261006_1555\\occluders.json",
+  "house1_cohort_pose_json": "D:\\Documents\\GitHub\\Field2026_Social_analysis\\cv\\configs\\house1_cohort_pose_2026c.json",
+  "labels_sha256": {
+   "landmarks_CH01_20260904_120002.json": "a200315633ea09d9e8faa961e50763888b91d8d7da8ff76fae6da50f3a7a7bad",
+   "landmarks_CH02_20260904_120002.json": "02a776694426798b165958b7e979fe14279cd6a30a73d223fa2879023a012103",
+   "landmarks_CH05_20260904_030100.json": "cc15daa0f0df961edce277f1a94efad45b21225a9572f15587b23be5e0a6ceee",
+   "landmarks_CH05_20260904_120002.json": "e2609078385c8a0d7f2fde14ef96e6a32d53092106ae52bca436a95109f0af51",
+   "landmarks_CH06_20260904_030100.json": "babb93978dda505a1b8719c299d00d14622f0c2f11eabaf4606571e7348e24f2",
+   "landmarks_CH06_20260904_120002.json": "e75b5d6a3bd6c27aafef370ffb0900a11840176be0ad7d66b596e55a8cda426a",
+   "landmarks_CH01_20260918_135730.json": "8ad2e110ce4351d1e844a2a85eb3aec16c99bfeb8790a8831b3c52c871895642",
+   "landmarks_CH02_20260918_152230.json": "b55d9288b52a59f279b0a6409c2e251da108e085d76e134d4588362b789f9248",
+   "landmarks_CH05_20260918_141000.json": "240e4c9315f321d98030760932c9151dde22619c40f6d97e4845ec9114338b4f",
+   "landmarks_CH06_20260918_141000.json": "06c486ad4572f55ea4c9264129e4d01bfb59653919f592721c14e825853f5172"
+  }
+ },
+ "method": "house_1 (rigid house_check model) at its cohort pose refitted from the CH01 + CH02 09-04 12:00 labels (142.3, 123.5) in, ridge 88.5 deg, soil +44 mm, and pole B1 as CH05 itself saw it on 09-18 (the CH01 + CH02 cylinder shifted to CH05's 09-18 pole edges); the camera turned about its centre to fit the roof and pole edges of the 09-04 frame; minus the same fit on the 09-18 frame against the house's 09-18 pose (the common disagreement between CH05's own view and the CH01 + CH02 house pose cancels). Label pieces cut into straight runs (the ROOF_Y pieces are whole gable outlines).",
+ "validation": {
+  "CH06 (house_2 never moved; analysis repo image registration 09-18 <-> 09-04 as the reference)": {
+   "20260904_120002": {
+    "turn_deg": 0.8032790495038562,
+    "ground_moved_med_mm": 34.796217773171286,
+    "vs_direct_fit_med_mm": 17.90909403845263,
+    "vs_direct_fit_p90_mm": 29.734553890896056,
+    "roof_miss_med_mm": 7.363372148619114,
+    "pole_miss_med_mm": 1.3612745290794663,
+    "vs_image_registration_med_px": 4.017629735401718,
+    "vs_image_registration_med_mm": 5.410199045161145,
+    "vs_image_registration_p90_mm": 13.448908844633213
+   },
+   "20260904_030100": {
+    "turn_deg": 0.8468261200679781,
+    "ground_moved_med_mm": 35.7599462340414,
+    "vs_direct_fit_med_mm": 17.928402686885605,
+    "vs_direct_fit_p90_mm": 29.75719823862813,
+    "roof_miss_med_mm": 8.127920336678418,
+    "pole_miss_med_mm": 1.3205868918986354,
+    "vs_image_registration_med_px": 4.869879077081163,
+    "vs_image_registration_med_mm": 6.601532740622319,
+    "vs_image_registration_p90_mm": 16.73663864441549
+   }
+  },
+  "CH05 03:01 vs 12:00 (one lid round apart)": {
+   "turn_difference_deg": 0.19951185355835413
+  },
+  "CH05 direct fit, pivot camera centre vs pole top (model uncertainty)": "see HOUSE_TIE.txt"
+ },
+ "cameras": {
+  "CH05": {
+   "why": "house_1 was moved on 09-18 (the calibration day): no image registration ties CH05's cohort frames to 09-18",
+   "frames": {
+    "2026-09-04 03:01:00": {
+     "target_frame": "09-04 03:01",
+     "label_file": "landmarks_CH05_20260904_030100.json",
+     "rotvec_rad": [
+      -0.008882032653232941,
+      -0.03626560729799615,
+      -0.007320703041805959
+     ],
+     "pivot_mm": null,
+     "turn_deg": 2.1800102730345206,
+     "ground_moved_med_mm": 91.39699798237635,
+     "affine_frame_to_revg_px": [
+      [
+       0.9991342624181291,
+       -0.002952775997176131,
+       25.435667446482466
+      ],
+      [
+       0.005878262337122872,
+       0.9989518850357803,
+       -73.1506223779884
+      ]
+     ]
+    },
+    "2026-09-04 12:00:02": {
+     "target_frame": "09-04 12:00",
+     "label_file": "landmarks_CH05_20260904_120002.json",
+     "rotvec_rad": [
+      -0.0068530241983725,
+      -0.03708798509818412,
+      -0.010028744620733832
+     ],
+     "pivot_mm": null,
+     "turn_deg": 2.2360468358307664,
+     "ground_moved_med_mm": 93.41716883106749,
+     "affine_frame_to_revg_px": [
+      [
+       0.9992906269366881,
+       -0.005663735630694432,
+       24.676195970965747
+      ],
+      [
+       0.008780943666122481,
+       0.9989105527391534,
+       -78.59801583569076
+      ]
+     ]
+    }
+   }
+  }
+ }
+}

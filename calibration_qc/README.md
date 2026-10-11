@@ -1183,3 +1183,36 @@ colour 09-30 and IR 09-18 / 09-17, context maps). The handover (`HANDOVER_ASTRA_
 here) fixes the frame of record (paddock frame, drone anchor convention, gravity tilt, paddock -> Unity), the inherited
 accuracy facts (board 1.6 mm locally, the 1.2 % board-vs-grid scale tension, a frame good to a few cm), a suggested
 route, and the validation Astra must report (rigid-object scale, frame, rig-camera view overlays, realism).
+
+### CH05 at cohort times: the house tie (2026-10-10)
+
+The operator asked for CH05-CH08 to be mapped into the paddock like CH01-CH04 (and the IMU-video session needs the
+houses by day). The analysis repo's correction table ties CH06's cohort frames to its 09-18 calibration frame by image
+registration, but not CH05's: house_1, the only rigid thing CH05 sees besides the pole it hangs from, was moved on 09-18.
+`house_tie.py` measures CH05's turn between its 09-04 reference frames and the calibration on two rigid objects of
+known 3-D pose: house_1 at its cohort pose (house_check.py's rigid model refitted from the CH01 + CH02 09-04 12:00
+labels: (142.3, 123.5) in, ridge 88.5 deg, CH01 and CH02 alone 7 mm apart) and pole B1. Findings on the way:
+- The operator's `HOUSE_n_ROOF_Y` pieces are whole gable outlines (eave corner -> ridge end -> eave corner); scored as
+  one straight edge, half of each misses its rake by 10-20 cm. The pieces are now cut into straight runs (house_tie.py;
+  `house_check.py` is unchanged in its numbers - its report part moved into `main()` so it can be imported).
+- The roof alone cannot tell a camera turn from a camera shift (2.5 deg vs 23 cm with a pole lean, 11 cm apart at head
+  height). CH01 / CH02 track B1 and B3 between 09-04 and 09-18 to 1-2 px, so the poles did not lean: the camera can
+  only have turned (on its bracket or the crossbeam at the pole top; the two pivots agree to ~1 cm).
+- rev g's CH05 / CH06 miss the CH01 + CH02 pole cylinders by ~4 cm in their own 09-18 frames (the pole runs into the
+  frame's bottom edge, 0.6-0.9 m from the lens); each camera's pole is therefore shifted to its own 09-18 view and
+  used differentially.
+- Even on the 09-18 frames a ~1 deg turn is fitted (the camera's own view of the house vs the house pose from CH01 +
+  CH02, mostly the ridge direction). The DIFFERENTIAL tie (cohort fit minus 09-18 fit) removes it. Validated on CH06,
+  whose house never moved: against the analysis repo's image registration 09-04 <-> 09-18 it agrees to 4-5 px, 5-7 mm
+  median / 13-17 mm p90 at head height (the direct fit: 22 mm).
+CH05 turned 2.2 deg between 09-04 and 09-18 (~9 cm on the ground under it); the 03:01 and 12:00 frames (one lid round
+apart) agree to 0.2 deg. `cohort_ties_2026c.json` (house_tie.py --write-ties, sha-bound to the release) holds the turn
+per reference frame; `cohort_tie.py` applies it (`cohort_tie.load().find("CH05", "09-04 03:01")` -> a paddock_map
+camera). Report: `HOUSE_TIE_2026-10-10.txt`. The analysis repo's `frame_correction.Corrections.to_paddock` uses it for
+CH05 and now covers CH05 / CH06 all day, segmented at the lid events (they register on the roof, which is the lid).
+Not covered by the CH06 check: the house_1 cohort pose itself (~1 cm) and lid placement between rounds.
+
+`inbox_floor_gui.py` (+ `inbox_floor_gui_template.html`): the labelling page for the in-box cameras' floor (CH07 in
+house_2, CH08 in house_1; floor corners, floor edges, vertical wall joints, door sides) on the 09-04 08:31-13:35
+lid-closed segment, the segment of the analysis repo's in-box reference frame. Floor: the 62.55 x 45.72 cm body
+minus 1/2-inch walls (operator) = 60.0 x 43.2 cm; CH07 and CH08 images are the paddock rotated 180 deg (operator).
