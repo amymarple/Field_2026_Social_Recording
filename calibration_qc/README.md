@@ -1216,3 +1216,24 @@ Not covered by the CH06 check: the house_1 cohort pose itself (~1 cm) and lid pl
 house_2, CH08 in house_1; floor corners, floor edges, vertical wall joints, door sides) on the 09-04 08:31-13:35
 lid-closed segment, the segment of the analysis repo's in-box reference frame. Floor: the 62.55 x 45.72 cm body
 minus 1/2-inch walls (operator) = 60.0 x 43.2 cm; CH07 and CH08 images are the paddock rotated 180 deg (operator).
+
+### In-box CH07 / CH08: the house-floor model (2026-10-11)
+
+`inbox_floor_fit.py` maps the in-box cameras' reference frame (the analysis repo's 09-04 12:00:02 in-box frame; every
+other lid-closed segment reaches it through that repo's correction table) to the house floor and the paddock.
+- Labels: the operator's floor corners and floor / wall edges on empty-house night frames of 09-03/04, chosen with
+  WISER (analysis repo inbox_p0 `box_occupancy_1s.csv.gz`; every frame checked by eye), plus the operator's 03:01
+  `INNER_EDGES` (the vertical wall joints) of the same lid-closed segment.
+- Floor 60.0 x 43.2 cm (body minus 1/2-inch walls, operator).
+- Lens fixed to the CH05 / CH06 RLC-520A mean: on one plane a free lens is not identifiable (the principal point
+  wandered 250 px; leaving out one floor edge moved the map 40-75 mm). Fixed, leaving any one item out moves the map
+  <= 10 mm (CH07) / 3 mm (CH08); lens free vs fixed differs by 11 / 6 mm median at head height.
+- Result: click residuals 1-3 mm median; cameras 683 / 679 mm above the floor, 11-12 deg off vertical.
+- Checks: 79.6 px per inch at head height against the identity session's independent WISER <-> clicks fit of 79.3.
+  On 09-04 12:00 the video's pile of three and lone rat in house_1 lie at the same ends as WISER's SF07 / SF08 / SF12
+  and SF10, which confirms the operator's "rotated 180 deg, not mirrored" for CH08 as well as CH07.
+- Delivery: the model goes into `cohort_ties_2026c.json` (kind "inbox"), so `cohort_tie` and the analysis repo's
+  `Corrections.to_paddock` map CH07 / CH08 at any cohort time (z above the house floor; NaN outside it).
+- Not covered: the house poses' ridge angle (~2 deg, ~1 cm at the box ends) and the wall-thickness estimate
+  (+-6 mm at the walls).
+With this, CH01-CH08 all map into the paddock at cohort times.

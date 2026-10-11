@@ -303,8 +303,10 @@ Two Python trees of different vintage:
     registered to its calibration frame; `house_tie.py` measures CH05's turn since its 09-04 reference frames on house_1
     (cohort pose from CH01 + CH02) and pole B1, differentially against 09-18 (validated on CH06: 5-7 mm median at head
     height), and `cohort_tie.py` + `cohort_ties_2026c.json` apply it to the release camera. The analysis repo's
-    `frame_correction.Corrections.to_paddock` uses it and covers CH05/CH06 all day. In-box CH07/CH08: floor labelling page
-    `inbox_floor_gui.py` (in progress; floor 60.0 x 43.2 cm, images the paddock rotated 180 deg - operator).
+    `frame_correction.Corrections.to_paddock` uses it and covers CH05/CH06 all day. **2026-10-11 - in-box CH07/CH08:**
+    `inbox_floor_fit.py` (floor 60.0 x 43.2 cm, lens fixed to the CH05/CH06 RLC-520A, operator's floor labels on
+    empty-house night frames; images the paddock rotated 180 deg, confirmed by WISER) -> `cohort_ties_2026c.json`, so
+    `Corrections.to_paddock` maps all of CH01-CH08 (CH07/CH08: z above the house floor).
   - **Use it anywhere** (numpy/scipy/cv2 only, falls back to the repo copy when `E:` is absent):
     `sys.path.insert(0, "<repo>/calibration_qc"); from paddock_map import load; cams = load();
     cams["CH01"].to_paddock((u, v), z_mm=0, units="in")`. `to_paddock` returns NaN outside the
