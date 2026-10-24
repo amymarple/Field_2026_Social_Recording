@@ -1237,3 +1237,17 @@ other lid-closed segment reaches it through that repo's correction table) to the
 - Not covered: the house poses' ridge angle (~2 deg, ~1 cm at the box ends) and the wall-thickness estimate
   (+-6 mm at the walls).
 With this, CH01-CH08 all map into the paddock at cohort times.
+
+### Paddock showcase film for talks (2026-10-23)
+
+`paddock_showcase.py`: the 2026-10-03 drone footage (PTSC_0020 approach + PTSC_0021_0001 exterior pass, cones removed)
+with the paddock drawn in as 3-D overlays (floor outline and size, pole tops / UWB anchors, the houses, cameras
+CH01-CH06), for the operator's talk slide. SfM on the chosen segments (COLMAP, `--Mapper.image_list_path`: the
+incremental mapper on all ~1600 frames ran > 10 h on the CPU - this build's Ceres has no CUDA). The 10-03 frames share
+no features with the anchored 09-30 / 10-02 drone models and GPS alone is off by 1-2 m, so the model is tied to the
+paddock frame by fitting the paddock's own rigid geometry to its points (`--stage wall-fit`: the four wall planes,
+the poles of occluders.json, the floor; from the GPS start; wall distance 22 mm median), checked by eye on stills
+with the poles drawn as 3-D lines. Render: per-frame poses interpolated from 3 fps keyframes, rotation stabilisation
+(Gaussian-smoothed camera rotation, frame remapped, 12 % crop), integer speed-up, Arial labels in the deck's style.
+Final: `F:\calibration\qc\paddock_showcase\paddock_showcase_talk_v4_10s.mp4` (10 s, 1080p; `--stabilise 0.8 --zoom
+1.12 --segments PTSC_0020:3:72:10,PTSC_0021_0001:66:28:10`). Setup only - no animal or neural data in it.
